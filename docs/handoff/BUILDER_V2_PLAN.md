@@ -13,6 +13,15 @@ The builder must be comfortable for people who are:
 
 Builder V2 exists to reduce mental load first, then improve power and speed second.
 
+## Current Landed Bridge
+The live builder has started applying the lab direction without rewriting storage:
+- left rail is workspace-only: `Basics`, `Content`, `Signatories`, `Print`
+- `Save` stays in the command bar/save dock instead of acting like another builder workspace
+- Content shows `Container` and `Field` as the normal primitives
+- internal `section` and `field_group` storage remains for compatibility
+- Content has an always-live input-form preview on desktop, while full preview remains optional
+- Content now uses a recursive canvas instead of organizer/focused-editor columns: containers collapse/expand in place, fields edit inside their own cards, and field details/options open inline only when needed
+
 ## Product Problem
 The clinic needs a form/exam builder so they can change exams without hiring a programmer every time.
 

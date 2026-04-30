@@ -21,6 +21,23 @@ This spec is meant to answer:
 5. Keep the engine more flexible than the UI.
 6. Keep advanced meaning optional, not required.
 
+## Current UI Bridge
+The live builder now intentionally shows only `Container` and `Field` in the normal Content pane.
+
+This is a UX simplification, not a storage rewrite:
+- existing `section` and `field_group` blocks still remain valid internal storage kinds
+- a visible top-level `Container` may still save as a `section`
+- a visible nested `Container` may still save as a `field_group`
+- users should not need to understand that distinction during normal editing
+
+The current Content UI is recursive:
+- containers can contain containers or fields
+- containers collapse/expand in place
+- field name/input type editing happens inside the field card
+- extra field details such as required status, references, normal range, and choice options stay collapsed until opened
+
+If the product later needs separate section/group behavior, expose it as an advanced container display setting instead of bringing back separate default primitives.
+
 ## Recommended Entity Model
 
 ### 1. Library Node

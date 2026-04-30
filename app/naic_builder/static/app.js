@@ -13,6 +13,7 @@
     setupOpen: true,
     saveOpen: false,
     openSectionPaths: [],
+    openFieldDetailPaths: [],
     activeItemPath: null,
     activeOptionToken: null,
     activePreviewSectionId: null,
@@ -30,7 +31,7 @@ const sortableInstances = [];
 const INPUT_TYPES = [
   { id: "text", label: "Text", control: "input", dataType: "text" },
   { id: "number", label: "Number", control: "input", dataType: "number" },
-  { id: "choice", label: "Choices", control: "select", dataType: "enum" },
+  { id: "choice", label: "Choice", control: "select", dataType: "enum" },
   { id: "image", label: "Image", control: "input", dataType: "image" },
   { id: "date", label: "Date", control: "input", dataType: "date" },
   { id: "time", label: "Time", control: "input", dataType: "time" },
@@ -128,7 +129,7 @@ const DEFAULT_PATHOLOGIST_SIGNATORY_OPTIONS = [
   { id: "bernardita_mojica_figueroa", name: "Bernardita Mojica Figueroa, MD, DPSP", license: "068053" },
 ];
 const SIGNATORY_INPUT_TYPES = [
-  { id: "person_dropdown", label: "Dropdown" },
+  { id: "person_dropdown", label: "Person choice" },
   { id: "fixed", label: "Fixed person" },
   { id: "stamp_image", label: "Fixed stamp image" },
   { id: "manual", label: "Manual entry" },
@@ -1300,6 +1301,11 @@ function topLevelContentEntries() {
   });
 }
 
+function isContainerBlockNode(node) {
+  const kind = blockKind(node);
+  return kind === "section" || kind === "field_group";
+}
+
 function topLevelBlockEntries() {
   return topLevelBlocks().map((node, index) => ({
     node,
@@ -1313,13 +1319,67 @@ function setContentSelection(path) {
     return;
   }
 
-  if (blockKind(node) === "section") {
-    state.ui.openSectionPaths = [pathKey(path)];
+  if (isContainerBlockNode(node)) {
+    ensureAncestorContainersOpen(path);
+    setContainerOpen(path, true);
     state.ui.activeItemPath = null;
+  } else if (blockKind(node) === "field") {
+    ensureAncestorContainersOpen(path);
+    setFieldDetailsOpen(path, true);
+    state.ui.activeItemPath = pathKey(path);
   } else {
+    ensureAncestorContainersOpen(path);
     state.ui.activeItemPath = pathKey(path);
   }
   state.ui.activeOptionToken = null;
+}
+
+function collectContainerPathKeysFromNode(node, basePath) {
+  const keys = [];
+  if (isContainerBlockNode(node)) {
+    keys.push(pathKey(basePath));
+  }
+
+  getNodeChildren(node).forEach((child, index) => {
+    keys.push(...collectContainerPathKeysFromNode(child, [...basePath, "children", index]));
+  });
+
+  return keys;
+}
+
+function collectContainerPathKeys(container, basePath = []) {
+  const keys = [];
+  normalizeArray(container?.blocks).forEach((block, index) => {
+    keys.push(...collectContainerPathKeysFromNode(block, [...basePath, "blocks", index]));
+  });
+  getNodeChildren(container).forEach((child, index) => {
+    keys.push(...collectContainerPathKeysFromNode(child, [...basePath, "children", index]));
+  });
+  return keys;
+}
+
+function collectFieldPathKeysFromNode(node, basePath) {
+  const keys = [];
+  if (blockKind(node) === "field") {
+    keys.push(pathKey(basePath));
+  }
+
+  getNodeChildren(node).forEach((child, index) => {
+    keys.push(...collectFieldPathKeysFromNode(child, [...basePath, "children", index]));
+  });
+
+  return keys;
+}
+
+function collectFieldPathKeys(container, basePath = []) {
+  const keys = [];
+  normalizeArray(container?.blocks).forEach((block, index) => {
+    keys.push(...collectFieldPathKeysFromNode(block, [...basePath, "blocks", index]));
+  });
+  getNodeChildren(container).forEach((child, index) => {
+    keys.push(...collectFieldPathKeysFromNode(child, [...basePath, "children", index]));
+  });
+  return keys;
 }
 
 function collectItemPathKeysFromNode(node, basePath) {
@@ -1435,9 +1495,9 @@ function topLevelPreviewSegments() {
       flushLooseItems();
       const sectionName = compactText(entry.node?.name);
       segments.push({
-        id: previewSectionId(sectionName || "Section", index),
-        label: sectionName || "Section",
-        title: sectionName || "Untitled Section",
+        id: previewSectionId(sectionName || "Container", index),
+        label: sectionName || "Container",
+        title: sectionName || "Untitled Container",
         items: getNodeChildren(entry.node),
       });
       return;
@@ -1844,10 +1904,10 @@ function renderPreviewCallout() {
 }
 
 function resetEditorPanels() {
-  const sections = topLevelSectionEntries();
   state.ui.setupOpen = !state.selectedFormSlug;
   state.ui.saveOpen = !state.selectedFormSlug;
-  state.ui.openSectionPaths = sections.length ? [pathKey(sections[0].path)] : [];
+  state.ui.openSectionPaths = [];
+  state.ui.openFieldDetailPaths = [];
   state.ui.activeItemPath = null;
   state.ui.activeOptionToken = null;
   state.ui.focusPane = defaultFocusPane();
@@ -1865,19 +1925,17 @@ function collectItemPathKeys(container, basePath = []) {
 }
 
 function syncEditorPanels() {
-  const sections = topLevelSectionEntries();
-  const validPaths = new Set(sections.map((entry) => pathKey(entry.path)));
-  state.ui.openSectionPaths = normalizeArray(state.ui.openSectionPaths).filter((item) => validPaths.has(item));
-
-  if (sections.length && !state.ui.openSectionPaths.length) {
-    state.ui.openSectionPaths = [pathKey(sections[0].path)];
-  }
+  const validContainerPaths = new Set(collectContainerPathKeys(state.draft?.block_schema, ["block_schema"]));
+  state.ui.openSectionPaths = normalizeArray(state.ui.openSectionPaths).filter((item) => validContainerPaths.has(item));
 
   const validItemPaths = new Set(collectItemPathKeys(state.draft?.block_schema, ["block_schema"]));
   if (state.ui.activeItemPath && !validItemPaths.has(state.ui.activeItemPath)) {
     state.ui.activeItemPath = null;
     state.ui.activeOptionToken = null;
   }
+
+  const validFieldPaths = new Set(collectFieldPathKeys(state.draft?.block_schema, ["block_schema"]));
+  state.ui.openFieldDetailPaths = normalizeArray(state.ui.openFieldDetailPaths).filter((item) => validFieldPaths.has(item));
 
   if (state.ui.activeOptionToken) {
     const parsed = parseOptionToken(state.ui.activeOptionToken);
@@ -1891,23 +1949,77 @@ function syncEditorPanels() {
   syncFocusPane();
 }
 
-function isSectionOpen(path) {
+function isContainerOpen(path) {
   return normalizeArray(state.ui.openSectionPaths).includes(pathKey(path));
 }
 
-function toggleSection(path) {
+function isSectionOpen(path) {
+  return isContainerOpen(path);
+}
+
+function setContainerOpen(path, open) {
   const token = pathKey(path);
-  if (isSectionOpen(path)) {
-    state.ui.openSectionPaths = state.ui.openSectionPaths.filter((item) => item !== token);
+  const current = new Set(normalizeArray(state.ui.openSectionPaths));
+  if (open) {
+    current.add(token);
+  } else {
+    current.delete(token);
     if (state.ui.activeItemPath && pathStartsWith(parsePathKey(state.ui.activeItemPath), path)) {
       state.ui.activeItemPath = null;
-    }
-  } else {
-    state.ui.openSectionPaths = [token];
-    if (state.ui.activeItemPath && !pathStartsWith(parsePathKey(state.ui.activeItemPath), path)) {
-      state.ui.activeItemPath = null;
+      state.ui.activeOptionToken = null;
     }
   }
+  state.ui.openSectionPaths = [...current];
+}
+
+function ensureAncestorContainersOpen(path) {
+  const current = new Set(normalizeArray(state.ui.openSectionPaths));
+  for (let length = 1; length <= path.length; length += 1) {
+    const candidatePath = path.slice(0, length);
+    if (isContainerBlockNode(getNodeByPath(candidatePath))) {
+      current.add(pathKey(candidatePath));
+    }
+  }
+  state.ui.openSectionPaths = [...current];
+}
+
+function toggleContainer(path) {
+  setContainerOpen(path, !isContainerOpen(path));
+  state.ui.focusPane = "content";
+  renderEditor();
+}
+
+function toggleSection(path) {
+  toggleContainer(path);
+}
+
+function isFieldDetailsOpen(path) {
+  return normalizeArray(state.ui.openFieldDetailPaths).includes(pathKey(path));
+}
+
+function setFieldDetailsOpen(path, open) {
+  const token = pathKey(path);
+  const current = new Set(normalizeArray(state.ui.openFieldDetailPaths));
+  if (open) {
+    current.add(token);
+  } else {
+    current.delete(token);
+    if (state.ui.activeItemPath === token) {
+      state.ui.activeItemPath = null;
+      state.ui.activeOptionToken = null;
+    }
+  }
+  state.ui.openFieldDetailPaths = [...current];
+}
+
+function toggleFieldDetails(path) {
+  const shouldOpen = !isFieldDetailsOpen(path);
+  if (shouldOpen) {
+    ensureAncestorContainersOpen(path);
+    state.ui.activeItemPath = pathKey(path);
+  }
+  setFieldDetailsOpen(path, shouldOpen);
+  state.ui.focusPane = "content";
   renderEditor();
 }
 
@@ -1922,36 +2034,28 @@ function toggleSaveStep() {
 }
 
 function isItemOpen(path) {
-  if (!state.ui.activeItemPath) {
-    return false;
-  }
-
-  const token = pathKey(path);
-  if (state.ui.activeItemPath === token) {
-    return true;
-  }
-
   const node = getNodeByPath(path);
-  if (node?.kind !== "field_group") {
-    return false;
+  if (isContainerBlockNode(node)) {
+    return isContainerOpen(path);
   }
-
-  return pathStartsWith(parsePathKey(state.ui.activeItemPath), path);
+  if (blockKind(node) === "field") {
+    return isFieldDetailsOpen(path);
+  }
+  return Boolean(state.ui.activeItemPath && state.ui.activeItemPath === pathKey(path));
 }
 
 function toggleItem(path) {
-  const token = pathKey(path);
-  if (state.ui.activeItemPath) {
-    const activePath = parsePathKey(state.ui.activeItemPath);
-    if (state.ui.activeItemPath === token || pathStartsWith(activePath, path)) {
-      state.ui.activeItemPath = null;
-      state.ui.activeOptionToken = null;
-      renderEditor();
-      return;
-    }
+  const node = getNodeByPath(path);
+  if (isContainerBlockNode(node)) {
+    toggleContainer(path);
+    return;
+  }
+  if (blockKind(node) === "field") {
+    toggleFieldDetails(path);
+    return;
   }
 
-  state.ui.activeItemPath = token;
+  state.ui.activeItemPath = pathKey(path);
   state.ui.activeOptionToken = null;
   renderEditor();
 }
@@ -1988,6 +2092,9 @@ function remapPathAfterMove(path, parentPath, fromIndex, toIndex) {
 function remapUiStateAfterMove(parentPath, fromIndex, toIndex) {
   state.ui.openSectionPaths = [...new Set(
     normalizeArray(state.ui.openSectionPaths).map((serialized) => pathKey(remapPathAfterMove(parsePathKey(serialized), parentPath, fromIndex, toIndex)))
+  )];
+  state.ui.openFieldDetailPaths = [...new Set(
+    normalizeArray(state.ui.openFieldDetailPaths).map((serialized) => pathKey(remapPathAfterMove(parsePathKey(serialized), parentPath, fromIndex, toIndex)))
   )];
 
   if (state.ui.activeItemPath) {
@@ -2091,9 +2198,9 @@ function makeBlankGroup() {
   return {
     id: `blk_${slugify(`group_${Date.now()}`)}`,
     kind: "field_group",
-    name: "New Field Group",
+    name: "New Container",
     props: {
-      key: "new_field_group",
+      key: "new_container",
       order: 1,
       notes: [],
     },
@@ -2126,9 +2233,9 @@ function makeBlankSection() {
   return {
     id: `blk_${slugify(`section_${Date.now()}`)}`,
     kind: "section",
-    name: "New Section",
+    name: "New Container",
     props: {
-      key: "new_section",
+      key: "new_container",
       order: 1,
       notes: [],
     },
@@ -2643,7 +2750,7 @@ function defaultFocusPane() {
 
 function syncFocusPane() {
   const focus = String(state.ui.focusPane || "");
-  const valid = new Set(["setup", "content", "signatories", "print", "save"]);
+  const valid = new Set(["setup", "content", "signatories", "print"]);
   if (!valid.has(focus)) {
     state.ui.focusPane = defaultFocusPane();
   }
@@ -2664,13 +2771,11 @@ function renderOutline() {
     return;
   }
 
-  const contentEntries = topLevelContentEntries();
   const focusPane = String(state.ui.focusPane || defaultFocusPane());
-  const selectedContentEntry = focusPane === "content" ? resolveFocusedTopLevelBlockEntry(contentEntries) : null;
 
   builderOutlineEl.innerHTML = `
       <div class="outline-head">
-        <p class="eyebrow">Outline</p>
+        <p class="eyebrow">Workspace</p>
         <h3>${escapeHtml(state.draft.name || "Untitled Form")}</h3>
       </div>
 
@@ -2681,24 +2786,11 @@ function renderOutline() {
         <button class="outline-item ${focusPane === "content" ? "active" : ""}" type="button" data-action="focus-pane" data-pane="content">
           <span>Content</span>
         </button>
-      ${contentEntries.length ? `
-        <div class="outline-sublist">
-          ${contentEntries.map((entry) => renderOutlineContentItem(
-            entry,
-            Boolean(selectedContentEntry) && pathKey(entry.path) === pathKey(selectedContentEntry.path)
-          )).join("")}
-        </div>
-        ` : `
-          <div class="outline-empty">No content yet.</div>
-        `}
         <button class="outline-item ${focusPane === "signatories" ? "active" : ""}" type="button" data-action="focus-pane" data-pane="signatories">
           <span>Signatories</span>
         </button>
         <button class="outline-item ${focusPane === "print" ? "active" : ""}" type="button" data-action="focus-pane" data-pane="print">
           <span>Print</span>
-        </button>
-        <button class="outline-item ${focusPane === "save" ? "active" : ""}" type="button" data-action="focus-pane" data-pane="save">
-          <span>Save</span>
         </button>
       </nav>
     `;
@@ -3175,7 +3267,7 @@ function renderPrintCard() {
           <section class="print-body-options">
             <div class="reference-editor-head">
               <span class="reference-range-title">Result body</span>
-              <p>These affect the printed result rows, sections, images, and tables.</p>
+              <p>These affect the printed result rows, containers, images, and tables.</p>
             </div>
             <div class="print-toggle-grid">
               <label class="identity-check">
@@ -3184,11 +3276,11 @@ function renderPrintCard() {
               </label>
               <label class="identity-check">
                 <input type="checkbox" data-action="print-config-toggle" data-key="show_section_titles" ${config.show_section_titles ? "checked" : ""}>
-                <span>Section headings</span>
+                <span>Top container headings</span>
               </label>
               <label class="identity-check">
                 <input type="checkbox" data-action="print-config-toggle" data-key="show_group_titles" ${config.show_group_titles ? "checked" : ""}>
-                <span>Group headings</span>
+                <span>Nested container headings</span>
               </label>
             </div>
             <div class="setup-grid">
@@ -3411,10 +3503,10 @@ function organizerSecondaryLabel(node, title) {
     const kind = blockKind(node);
     const normalizedTitle = compactText(title).toLowerCase();
     if (kind === "section") {
-      return compactText(node?.name || "") ? "" : "Section";
+      return compactText(node?.name || "") ? "" : "Container";
     }
     if (kind === "field_group") {
-      return compactText(node?.name || "") ? "" : "Group";
+      return compactText(node?.name || "") ? "" : "Container";
     }
     const label = kind === "note"
       ? "Note"
@@ -3428,7 +3520,7 @@ function organizerSecondaryLabel(node, title) {
 
 function itemOrganizerSecondaryLabel(item, title) {
     if (item.kind === "field_group") {
-      return compactText(item.name || "") ? "" : "Group";
+      return compactText(item.name || "") ? "" : "Container";
     }
     if (isUtilityBlockNode(item)) {
       const summary = summarizeItem(item);
@@ -3502,14 +3594,12 @@ function renderOutlineContentItem(entry, active) {
 function renderContentCard() {
   const entries = topLevelContentEntries();
   const hiddenBlockCount = Math.max(0, topLevelBlockEntries().length - entries.length);
-  const selectedEntry = resolveFocusedTopLevelBlockEntry(entries);
   const helpCopy = state.ui.advancedMode
     ? "Add, edit, and order everything here."
-    : "Add sections, fields, or groups here.";
+    : "Add containers and fields here.";
   const addItems = [
-    { action: "add-content-section", label: "Section" },
+    { action: "add-content-container", label: "Container" },
     { action: "add-content-field", label: "Field" },
-    { action: "add-content-group", label: "Group" },
     ...(state.ui.advancedMode
       ? [
           { action: "add-content-note", label: "Note" },
@@ -3520,7 +3610,7 @@ function renderContentCard() {
   ];
 
   return `
-    <section class="editor-card">
+    <section class="editor-card content-editor-card">
       <div class="card-head">
         <div>
           <div class="card-title-row">
@@ -3532,22 +3622,55 @@ function renderContentCard() {
           ${renderAddMenu(addItems)}
         </div>
       </div>
-      ${entries.length ? `
-        <div class="section-organizer" data-collection-path="${encodePath(["block_schema", "blocks"])}">
-          ${entries.map((entry) => renderContentOrganizerItem(entry, selectedEntry ? pathKey(entry.path) === pathKey(selectedEntry.path) : false)).join("")}
+      <div class="content-workspace-grid">
+        <div class="recursive-content-canvas">
+          ${entries.length ? `
+            <div class="content-tree-list" data-collection-path="${encodePath(["block_schema", "blocks"])}">
+              ${entries.map((entry) => renderContentNode(entry.node, entry.path, 0)).join("")}
+            </div>
+          ` : '<div class="empty-state">No content yet. Add what you need when you are ready.</div>'}
+          ${!state.ui.advancedMode && hiddenBlockCount ? '<div class="collapsed-copy">Some advanced items stay hidden until you turn on Advanced.</div>' : ""}
         </div>
-        <div class="section-focus-stage">
-          ${selectedEntry
-            ? (selectedEntry.node?.kind === "section"
-              ? renderSectionCard(selectedEntry.node, selectedEntry.path, { forceOpen: true, hideToggle: true, focusedCard: true })
-              : (selectedEntry.node?.kind === "field" || selectedEntry.node?.kind === "field_group")
-                ? renderItemCard(selectedEntry.node, selectedEntry.path, { forceOpen: true, hideToggle: true, focusedCard: true })
-                : renderUtilityBlockCard(selectedEntry.node, selectedEntry.path))
-            : '<div class="empty-state">Choose an item.</div>'}
-        </div>
-      ` : '<div class="empty-state">No content yet. Add what you need when you are ready.</div>'}
-      ${!state.ui.advancedMode && hiddenBlockCount ? '<div class="collapsed-copy">Some advanced items stay hidden until you turn on Advanced.</div>' : ""}
+        ${renderInlineInputPreview()}
+      </div>
     </section>
+  `;
+}
+
+function renderContentNode(node, path, depth = 0) {
+  if (blockKind(node) === "section") {
+    return renderSectionCard(node, path, { recursive: true, depth });
+  }
+  if (blockKind(node) === "field_group" || blockKind(node) === "field") {
+    return renderItemCard(node, path, { recursive: true, depth });
+  }
+  return renderUtilityBlockCard(node, path, { recursive: true, depth });
+}
+
+function renderInlineInputPreview() {
+  if (!state.draft) {
+    return "";
+  }
+
+  const previewSegments = topLevelPreviewSegments().filter((segment) => normalizeArray(segment.items).length);
+  return `
+    <aside class="content-input-preview" aria-label="Input form preview">
+      <div class="content-input-preview-head">
+        <div>
+          <p class="eyebrow">Input preview</p>
+          <h4>${escapeHtml(state.draft.name || "Untitled Form")}</h4>
+        </div>
+        <span class="live-pill compact">
+          <span class="live-dot"></span>
+          Live
+        </span>
+      </div>
+      ${previewSegments.length ? `
+        <div class="content-input-preview-paper">
+          ${previewSegments.map((segment) => renderPreviewSection(segment.title, segment.items, `inline_${segment.id}`)).join("")}
+        </div>
+      ` : '<div class="empty-state">Add fields to see the input form.</div>'}
+    </aside>
   `;
 }
 
@@ -3671,71 +3794,84 @@ function renderUtilityBlockCard(node, path) {
 
 
 function renderSectionCard(section, path, options = {}) {
-    const focusedCard = Boolean(options.focusedCard);
-    const open = Boolean(options.forceOpen) || isSectionOpen(path);
-    const showHeaderActions = !focusedCard || !options.hideToggle;
-    const addItems = [
-      { action: "add-field", label: "Field", path: [...path, "children"] },
-      { action: "add-group", label: "Group", path: [...path, "children"] },
-      ...(state.ui.advancedMode
-        ? [
-            { action: "add-note", label: "Note", path: [...path, "children"] },
-            { action: "add-table", label: "Table", path: [...path, "children"] },
-            { action: "add-divider", label: "Divider", path: [...path, "children"] },
-          ]
-        : []),
-    ];
-    return `
-      <article class="section-card ${open ? "is-open" : ""} ${focusedCard ? "is-focused" : ""}" data-node-path="${encodePath(path)}" data-parent-path="${encodePath(path.slice(0, -1))}">
-        <div class="section-head ${focusedCard ? "section-head-focused" : ""}">
-          <div>
-            <h4 class="section-display-title">${escapeHtml(section.name || "Untitled Section")}</h4>
-          </div>
-          ${showHeaderActions ? `
-          <div class="row-actions">
-            ${focusedCard ? "" : `
-            <button class="drag-handle" type="button" title="Drag to reorder" aria-label="Drag to reorder">
-              <span class="drag-dots" aria-hidden="true"></span>
-            </button>
-            `}
-            ${options.hideToggle ? "" : `<button class="ghost mini" type="button" data-action="toggle-section" data-path="${encodePath(path)}">${open ? "Hide" : "Show"}</button>`}
-            ${renderNodeActionMenu(path)}
-          </div>
-          ` : ""}
-        </div>
-  
-        ${open ? `
-          <div class="section-builder-head ${focusedCard ? "compact" : ""}">
-            <label class="section-title-wrap">
-              <span>Name</span>
-              <input class="section-title-input" data-path="${encodePath(path)}" data-bind="name" value="${escapeHtml(section.name || "")}" placeholder="Example: Chemical Findings">
-            </label>
-            <div class="section-quick-actions">
-              ${renderAddMenu(addItems)}
-          </div>
-        </div>
+  const focusedCard = Boolean(options.focusedCard);
+  const recursive = Boolean(options.recursive);
+  const depth = Number(options.depth || 0);
+  const open = recursive ? isContainerOpen(path) : Boolean(options.forceOpen) || isSectionOpen(path);
+  const showHeaderActions = !focusedCard || !options.hideToggle;
+  const childCount = getNodeChildren(section).length;
+  const addItems = [
+    { action: "add-field", label: "Field", path: [...path, "children"] },
+    { action: "add-container", label: "Container", path: [...path, "children"] },
+    ...(state.ui.advancedMode
+      ? [
+          { action: "add-note", label: "Note", path: [...path, "children"] },
+          { action: "add-table", label: "Table", path: [...path, "children"] },
+          { action: "add-divider", label: "Divider", path: [...path, "children"] },
+        ]
+      : []),
+  ];
 
-        ${renderItemCollection(getNodeChildren(section), [...path, "children"], { focused: true })}
-
-          ${state.ui.advancedMode ? `
-            <details class="advanced">
-              <summary>Advanced</summary>
-              <div class="advanced-grid">
-              <label>
-                <span>Key</span>
-                <input data-path="${encodePath(path)}" data-bind="key" value="${escapeHtml(getNodeKey(section) || "")}">
-              </label>
-              <label style="grid-column: 1 / -1;">
-                <span>Notes</span>
-                <textarea data-path="${encodePath(path)}" data-bind="notes" data-format="lines">${escapeHtml(getNodeNotes(section).join("\n"))}</textarea>
-              </label>
-              </div>
-            </details>
-          ` : ""}
-          ${focusedCard ? renderManageFooter(path) : ""}
+  return `
+    <article class="section-card ${open ? "is-open" : ""} ${focusedCard ? "is-focused" : ""} ${recursive ? "recursive-container-card" : ""}" data-node-path="${encodePath(path)}" data-parent-path="${encodePath(path.slice(0, -1))}" ${recursive ? `style="--content-depth:${Math.min(depth, 6)}"` : ""}>
+      <div class="section-head ${focusedCard ? "section-head-focused" : ""}">
+        ${recursive ? `
+          <button class="container-toggle" type="button" data-action="toggle-container" data-path="${encodePath(path)}" aria-expanded="${open ? "true" : "false"}" aria-label="${open ? "Collapse container" : "Expand container"}">${open ? "-" : "+"}</button>
         ` : ""}
-      </article>
-    `;
+        <div>
+          <div class="item-meta">
+            <span class="item-summary">Container</span>
+            <span class="item-summary">${childCount} ${childCount === 1 ? "item" : "items"}</span>
+          </div>
+          <h4 class="section-display-title">${escapeHtml(section.name || "Untitled Container")}</h4>
+        </div>
+        ${showHeaderActions ? `
+        <div class="row-actions">
+          ${focusedCard ? "" : `
+          <button class="drag-handle" type="button" title="Drag to reorder" aria-label="Drag to reorder">
+            <span class="drag-dots" aria-hidden="true"></span>
+          </button>
+          `}
+          ${options.hideToggle || recursive ? "" : `<button class="ghost mini" type="button" data-action="toggle-section" data-path="${encodePath(path)}">${open ? "Hide" : "Show"}</button>`}
+          ${renderNodeActionMenu(path)}
+        </div>
+        ` : ""}
+      </div>
+
+      ${open ? `
+        <div class="section-builder-head ${focusedCard ? "compact" : ""}">
+          <label class="section-title-wrap">
+            <span>Name</span>
+            <input class="section-title-input" data-path="${encodePath(path)}" data-bind="name" value="${escapeHtml(section.name || "")}" placeholder="Example: Patient Information">
+          </label>
+          <div class="section-quick-actions">
+            ${renderAddMenu(addItems)}
+          </div>
+        </div>
+
+        <div class="nested-items">
+          ${renderItemCollection(getNodeChildren(section), [...path, "children"], recursive ? { recursive: true, depth: depth + 1 } : { focused: true })}
+        </div>
+
+        ${state.ui.advancedMode ? `
+          <details class="advanced">
+            <summary>Advanced</summary>
+            <div class="advanced-grid">
+            <label>
+              <span>Key</span>
+              <input data-path="${encodePath(path)}" data-bind="key" value="${escapeHtml(getNodeKey(section) || "")}">
+            </label>
+            <label style="grid-column: 1 / -1;">
+              <span>Notes</span>
+              <textarea data-path="${encodePath(path)}" data-bind="notes" data-format="lines">${escapeHtml(getNodeNotes(section).join("\n"))}</textarea>
+            </label>
+            </div>
+          </details>
+        ` : ""}
+        ${focusedCard ? renderManageFooter(path) : ""}
+      ` : ""}
+    </article>
+  `;
   }
 
 function renderItemCollection(items, collectionPath, options = {}) {
@@ -3759,6 +3895,15 @@ function renderItemCollection(items, collectionPath, options = {}) {
       }
       return '<div class="empty-state">No content here yet. Add something when you are ready.</div>';
     }
+  if (options.recursive) {
+    const nextDepth = Number(options.depth || 0);
+    return `
+      <div class="item-list recursive-child-list" data-collection-path="${encodePath(collectionPath)}">
+        ${visibleEntries.map((entry) => renderContentNode(entry.node, entry.path, nextDepth)).join("")}
+      </div>
+      ${hiddenUtilityCount ? '<div class="collapsed-copy">Some advanced items stay hidden here. Turn on Advanced to edit them.</div>' : ""}
+    `;
+  }
   if (options.focused) {
     const selectedIndex = resolveFocusedItemIndex(collectionPath, visibleEntries);
     const selectedEntry = visibleEntries[selectedIndex] || null;
@@ -3845,11 +3990,11 @@ function summarizeItem(item) {
     return "Table";
   }
   if (item.kind === "field_group") {
-    return "Group";
+    return "Container";
   }
   const inputType = inferInputType(item);
   if (inputType === "choice") {
-    return "Dropdown";
+    return "Choice";
   }
   return INPUT_TYPES.find((item) => item.id === inputType)?.label || "Text";
 }
@@ -3857,7 +4002,7 @@ function summarizeItem(item) {
 function renderItemOrganizerItem(item, path, index, active) {
     const isGroup = item.kind === "field_group";
     const isUtility = isUtilityBlockNode(item);
-    const title = item.name || (isUtility ? summarizeItem(item) : isGroup ? `Group ${index + 1}` : `Field ${index + 1}`);
+    const title = item.name || (isUtility ? summarizeItem(item) : isGroup ? `Container ${index + 1}` : `Field ${index + 1}`);
     const secondaryLabel = itemOrganizerSecondaryLabel(item, title);
     return `
       <div class="item-organizer-item ${active ? "active" : ""}">
@@ -3880,6 +4025,8 @@ function renderItemCard(item, path, options = {}) {
     const summary = summarizeItem(item);
     const inputType = inferInputType(item);
     const focusedCard = Boolean(options.focusedCard);
+    const recursive = Boolean(options.recursive);
+    const depth = Number(options.depth || 0);
     const showHeaderActions = !focusedCard || !options.hideToggle;
     const compactReference = compactText(getInputReferenceText(item));
     const compactUnit = compactText(getInputUnitHint(item));
@@ -3895,7 +4042,7 @@ function renderItemCard(item, path, options = {}) {
     const addItems = isGroup
       ? [
           { action: "add-field", label: "Field", path: [...path, "children"] },
-          { action: "add-group", label: "Group", path: [...path, "children"] },
+          { action: "add-container", label: "Container", path: [...path, "children"] },
           ...(state.ui.advancedMode
             ? [
                 { action: "add-note", label: "Note", path: [...path, "children"] },
@@ -3905,6 +4052,149 @@ function renderItemCard(item, path, options = {}) {
             : []),
         ]
       : [];
+
+    if (recursive) {
+      const childCount = isGroup ? getNodeChildren(item).length : 0;
+      return `
+        <article class="item-card ${isGroup ? "group-card recursive-container-card" : "field-card"} ${open ? "is-open" : ""}" data-node-path="${encodePath(path)}" data-parent-path="${encodePath(path.slice(0, -1))}" style="--content-depth:${Math.min(depth, 6)}">
+          <div class="item-head">
+            <button
+              class="${isGroup ? "container-toggle" : "field-details-toggle"}"
+              type="button"
+              data-action="${isGroup ? "toggle-container" : "toggle-field-details"}"
+              data-path="${encodePath(path)}"
+              aria-expanded="${open ? "true" : "false"}"
+              aria-label="${isGroup ? (open ? "Collapse container" : "Expand container") : (open ? "Hide field details" : "Show field details")}"
+            >${open ? "-" : "+"}</button>
+            <div>
+              <div class="item-meta">
+                <span class="item-summary">${escapeHtml(summary)}</span>
+                ${isGroup ? `<span class="item-summary">${childCount} ${childCount === 1 ? "item" : "items"}</span>` : ""}
+                ${!isGroup && getNodeProps(item).required ? '<span class="item-summary">Required</span>' : ""}
+              </div>
+              <h4 class="item-display-title">${escapeHtml(item.name || (isGroup ? "Untitled Container" : "Untitled Field"))}</h4>
+            </div>
+            <div class="row-actions">
+              <button class="drag-handle" type="button" title="Drag to reorder" aria-label="Drag to reorder">
+                <span class="drag-dots" aria-hidden="true"></span>
+              </button>
+              ${renderNodeActionMenu(path)}
+            </div>
+          </div>
+
+          ${isGroup ? `
+            ${open ? `
+              <div class="section-builder-head">
+                <label class="section-title-wrap">
+                  <span>Name</span>
+                  <input class="section-title-input" data-path="${encodePath(path)}" data-bind="name" value="${escapeHtml(item.name || "")}" placeholder="Example: Microscopic Findings">
+                </label>
+                <div class="section-quick-actions">
+                  ${renderAddMenu(addItems)}
+                </div>
+              </div>
+              <div class="nested-items">
+                ${renderItemCollection(getNodeChildren(item), [...path, "children"], { recursive: true, depth: depth + 1 })}
+              </div>
+              ${state.ui.advancedMode ? `
+                <details class="advanced">
+                  <summary>Advanced</summary>
+                  <div class="advanced-grid">
+                    <label>
+                      <span>Key</span>
+                      <input data-path="${encodePath(path)}" data-bind="key" value="${escapeHtml(getNodeKey(item) || "")}">
+                    </label>
+                    <label style="grid-column: 1 / -1;">
+                      <span>Notes</span>
+                      <textarea data-path="${encodePath(path)}" data-bind="notes" data-format="lines">${escapeHtml(getNodeNotes(item).join("\n"))}</textarea>
+                    </label>
+                  </div>
+                </details>
+              ` : ""}
+            ` : ""}
+          ` : `
+            <div class="field-inline-editor">
+              <div class="inline-grid item-basics-grid compact">
+                <label>
+                  <span>Name</span>
+                  <input class="item-title-input" data-path="${encodePath(path)}" data-bind="name" value="${escapeHtml(item.name || "")}" placeholder="Example: Color">
+                </label>
+                <label>
+                  <span>Input</span>
+                  <select data-action="item-input-type" data-path="${encodePath(path)}">
+                    ${INPUT_TYPES.map((item) => `<option value="${item.id}"${item.id === inputType ? " selected" : ""}>${item.label}</option>`).join("")}
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            ${open ? `
+              <label class="field-required-toggle">
+                <span>Required before completion</span>
+                <input type="checkbox" data-action="field-required" data-path="${encodePath(path)}" ${getNodeProps(item).required ? "checked" : ""}>
+              </label>
+
+              ${inputType === "image" ? `
+                <section class="reference-editor image-answer-editor">
+                  <div class="reference-editor-head">
+                    <p>One image will be uploaded when this form is filled up.</p>
+                  </div>
+                </section>
+              ` : `
+                <section class="reference-editor">
+                  <div class="inline-grid item-basics-grid compact">
+                    <label>
+                      <span>Reference</span>
+                      <input data-path="${encodePath(path)}" data-bind="reference_text" value="${escapeHtml(getInputReferenceText(item) || "")}" placeholder="${inputType === "choice" ? "Example: Negative" : "Example: 4.5 - 11.0"}">
+                    </label>
+                    <label>
+                      <span>Unit</span>
+                      <input data-path="${encodePath(path)}" data-bind="unit_hint" value="${escapeHtml(getInputUnitHint(item) || "")}" placeholder="Example: mg/dL">
+                    </label>
+                  </div>
+                  ${inputType === "number" ? `
+                    <div class="reference-range">
+                      <div class="reference-range-head">
+                        <span class="reference-range-title">Normal range</span>
+                        <p>Used for abnormal highlighting in print.</p>
+                      </div>
+                      <div class="inline-grid reference-range-grid">
+                        <label>
+                          <span>From</span>
+                          <input type="number" step="any" data-path="${encodePath(path)}" data-bind="normal_min" value="${escapeHtml(getInputNormalMin(item) || "")}" placeholder="Example: 4.5">
+                        </label>
+                        <label>
+                          <span>To</span>
+                          <input type="number" step="any" data-path="${encodePath(path)}" data-bind="normal_max" value="${escapeHtml(getInputNormalMax(item) || "")}" placeholder="Example: 11.0">
+                        </label>
+                      </div>
+                    </div>
+                  ` : ""}
+                </section>
+              `}
+
+              ${inputType === "choice" ? renderOptionsEditor(item, path) : ""}
+
+              ${state.ui.advancedMode ? `
+                <details class="advanced">
+                  <summary>Advanced</summary>
+                  <div class="advanced-grid">
+                    <label>
+                      <span>Key</span>
+                      <input data-path="${encodePath(path)}" data-bind="key" value="${escapeHtml(getNodeKey(item) || "")}">
+                    </label>
+                    <label style="grid-column: 1 / -1;">
+                      <span>Notes</span>
+                      <textarea data-path="${encodePath(path)}" data-bind="notes" data-format="lines">${escapeHtml(getNodeNotes(item).join("\n"))}</textarea>
+                    </label>
+                  </div>
+                </details>
+              ` : ""}
+            ` : ""}
+          `}
+        </article>
+      `;
+    }
   
     return `
       <article class="item-card ${isGroup ? "group-card" : ""} ${open ? "is-open" : ""} ${focusedCard ? "is-focused" : ""}" data-node-path="${encodePath(path)}" data-parent-path="${encodePath(path.slice(0, -1))}">
@@ -3915,7 +4205,7 @@ function renderItemCard(item, path, options = {}) {
               <span class="item-summary">${escapeHtml(summary)}</span>
             </div>
             ` : ""}
-            <h4 class="item-display-title">${escapeHtml(item.name || (isGroup ? "Untitled Group" : "Untitled Field"))}</h4>
+            <h4 class="item-display-title">${escapeHtml(item.name || (isGroup ? "Untitled Container" : "Untitled Field"))}</h4>
           </div>
           ${showHeaderActions ? `
           <div class="row-actions">
@@ -4031,11 +4321,8 @@ function renderItemCard(item, path, options = {}) {
 
 function renderOptionsEditor(field, path) {
     const options = getInputOptions(field);
-    const selectedIndex = resolveFocusedOptionIndex(path, options);
-    const selectedOption = selectedIndex >= 0 ? options[selectedIndex] : null;
-    const selectedOptionName = String(selectedOption?.name || "").trim() || "Untitled option";
     return `
-      <section class="item-stack">
+      <section class="item-stack options-editor">
         <div class="card-head">
           <div>
             <div class="card-title-row">
@@ -4047,37 +4334,23 @@ function renderOptionsEditor(field, path) {
           </div>
         </div>
       ${options.length ? `
-        <div class="option-organizer">
+        <div class="options-list">
           ${options.map((option, index) => `
-            <div class="option-organizer-item ${index === selectedIndex ? "active" : ""}">
-              <button class="option-organizer-select" type="button" data-action="focus-option" data-path="${encodePath(path)}" data-index="${index}">
-                <span class="option-organizer-copy">
-                  <strong>${escapeHtml(option.name || "Untitled option")}</strong>
-                  ${option.is_normal ? '<span>Normal</span>' : ""}
-                </span>
-              </button>
+            <div class="option-row">
+              <label class="option-focus-input">
+                <span>Choice ${index + 1}</span>
+                <input data-action="option-name" data-path="${encodePath(path)}" data-index="${index}" value="${escapeHtml(option.name || "")}" placeholder="Example: Positive">
+              </label>
+              <label class="option-focus-toggle">
+                <span>Normal</span>
+                <input type="checkbox" data-action="option-normal" data-path="${encodePath(path)}" data-index="${index}" ${option.is_normal ? "checked" : ""}>
+              </label>
+              <div class="row-actions option-inline-actions">
+                <button class="ghost mini" type="button" data-action="duplicate-option" data-path="${encodePath(path)}" data-index="${index}">Copy</button>
+                <button class="ghost mini warn" type="button" data-action="delete-option" data-path="${encodePath(path)}" data-index="${index}">Remove</button>
+              </div>
             </div>
           `).join("")}
-        </div>
-        <div class="option-focus-stage">
-          ${selectedOption ? `
-            <div class="option-focus-card">
-                <div class="option-focus-head">
-                  <div>
-                    <h5>${escapeHtml(selectedOptionName)}</h5>
-                  </div>
-                </div>
-                <label class="option-focus-input">
-                  <span>Name</span>
-                  <input data-action="option-name" data-path="${encodePath(path)}" data-index="${selectedIndex}" value="${escapeHtml(selectedOption.name || "")}" placeholder="Example: Positive">
-                </label>
-                <label class="option-focus-toggle">
-                  <span>Counts as normal</span>
-                  <input type="checkbox" data-action="option-normal" data-path="${encodePath(path)}" data-index="${selectedIndex}" ${selectedOption.is_normal ? "checked" : ""}>
-                </label>
-                ${renderOptionManageFooter(path, selectedIndex)}
-              </div>
-          ` : '<div class="empty-state">Pick an option to keep editing.</div>'}
         </div>
       ` : '<div class="empty-state">No options yet. Add one when you are ready.</div>'}
     </section>
@@ -4222,7 +4495,7 @@ function renderPreviewItem(item) {
     return `
       <div class="preview-group">
         <div class="preview-group-head">
-          <div class="preview-group-title">${escapeHtml(item.name || "Group")}</div>
+          <div class="preview-group-title">${escapeHtml(item.name || "Container")}</div>
         </div>
         <div class="preview-grid">
           ${getNodeChildren(item).map((child) => renderPreviewItem(child)).join("")}
@@ -4332,15 +4605,20 @@ function duplicateAtPath(path) {
   collection.splice(index + 1, 0, cloneNode(collection[index]));
   const duplicatedPath = [...path.slice(0, -1), index + 1];
   const duplicatedNode = getNodeByPath(duplicatedPath);
-  if (String(duplicatedNode?.kind || "").trim() === "section") {
-    state.ui.openSectionPaths = [pathKey(duplicatedPath)];
+  if (isContainerBlockNode(duplicatedNode)) {
+    ensureAncestorContainersOpen(duplicatedPath);
+    setContainerOpen(duplicatedPath, true);
     state.ui.focusPane = "content";
     state.ui.activeItemPath = null;
-  } else {
+  } else if (blockKind(duplicatedNode) === "field") {
+    ensureAncestorContainersOpen(duplicatedPath);
     state.ui.activeItemPath = pathKey(duplicatedPath);
-    if (!pathStartsWith(duplicatedPath, ["block_schema", "blocks"])) {
-      state.ui.focusPane = "content";
-    }
+    setFieldDetailsOpen(duplicatedPath, true);
+    state.ui.focusPane = "content";
+  } else {
+    ensureAncestorContainersOpen(duplicatedPath);
+    state.ui.activeItemPath = pathKey(duplicatedPath);
+    state.ui.focusPane = "content";
   }
   if (path.includes("children")) {
     state.ui.activeItemPath = pathKey([...path.slice(0, -1), index + 1]);
@@ -4356,8 +4634,13 @@ function deleteAtPath(path) {
   if (state.ui.activeItemPath && pathStartsWith(parsePathKey(state.ui.activeItemPath), path)) {
     state.ui.activeItemPath = null;
   }
-  if (String(getNodeByPath(path)?.kind || "").trim() === "section" && isSectionOpen(path)) {
-    state.ui.openSectionPaths = [];
+  state.ui.openSectionPaths = normalizeArray(state.ui.openSectionPaths).filter((serialized) => !pathStartsWith(parsePathKey(serialized), path));
+  state.ui.openFieldDetailPaths = normalizeArray(state.ui.openFieldDetailPaths).filter((serialized) => !pathStartsWith(parsePathKey(serialized), path));
+  if (state.ui.activeOptionToken) {
+    const parsed = parseOptionToken(state.ui.activeOptionToken);
+    if (parsed && pathStartsWith(parsed.path, path)) {
+      state.ui.activeOptionToken = null;
+    }
   }
   collection.splice(index, 1);
   touch({ full: true, source: "blocks" });
@@ -4369,7 +4652,18 @@ function addItemAt(path, kind) {
     return;
   }
   const insertAt = insertChildNodeAtSelection(path, makeBlankBlock(kind));
-  state.ui.activeItemPath = pathKey([...path, insertAt]);
+  const insertedPath = [...path, insertAt];
+  ensureAncestorContainersOpen(insertedPath);
+  if (kind === "field_group") {
+    setContainerOpen(insertedPath, true);
+    state.ui.activeItemPath = null;
+  } else if (kind === "field") {
+    setFieldDetailsOpen(insertedPath, true);
+    state.ui.activeItemPath = pathKey(insertedPath);
+  } else {
+    state.ui.activeItemPath = pathKey(insertedPath);
+  }
+  state.ui.activeOptionToken = null;
   touch({ full: true, source: "blocks" });
 }
 
@@ -4386,7 +4680,9 @@ function addUtilityAt(path, kind) {
         ? makeBlankTable()
         : makeBlankNote()
   );
-  state.ui.activeItemPath = pathKey([...path, insertAt]);
+  const insertedPath = [...path, insertAt];
+  ensureAncestorContainersOpen(insertedPath);
+  state.ui.activeItemPath = pathKey(insertedPath);
   state.ui.activeOptionToken = null;
   touch({ full: true, source: "blocks" });
 }
@@ -4413,7 +4709,7 @@ function insertChildNodeAtSelection(collectionPath, node) {
 
 function addSection() {
   topLevelBlocks().push(makeBlankSection());
-  state.ui.openSectionPaths = [pathKey(["block_schema", "blocks", topLevelBlocks().length - 1])];
+  setContainerOpen(["block_schema", "blocks", topLevelBlocks().length - 1], true);
   state.ui.activeItemPath = null;
   state.ui.focusPane = "content";
   touch({ full: true, source: "blocks" });
@@ -4421,24 +4717,7 @@ function addSection() {
 
 function insertTopLevelContentBlock(kind) {
   const blocks = topLevelBlocks();
-  const selectedEntry = resolveFocusedTopLevelBlockEntry(topLevelContentEntries());
   const nextNode = makeBlankBlock(kind);
-
-  if (selectedEntry) {
-    const selectedIndex = Number(selectedEntry.path[selectedEntry.path.length - 1]);
-    const insertAt = Number.isInteger(selectedIndex) ? selectedIndex + 1 : blocks.length;
-    blocks.splice(insertAt, 0, nextNode);
-    if (kind === "section") {
-      state.ui.openSectionPaths = [pathKey(["block_schema", "blocks", insertAt])];
-      state.ui.activeItemPath = null;
-    } else {
-      state.ui.activeItemPath = pathKey(["block_schema", "blocks", insertAt]);
-      state.ui.activeOptionToken = null;
-    }
-    state.ui.focusPane = "content";
-    touch({ full: true, source: "blocks" });
-    return;
-  }
 
   if (kind === "section") {
     addSection();
@@ -4446,8 +4725,16 @@ function insertTopLevelContentBlock(kind) {
   }
 
   if (kind === "field" || kind === "field_group") {
-    const actualIndex = insertTopLevelItem(kind);
-    state.ui.activeItemPath = pathKey(["block_schema", "blocks", actualIndex]);
+    blocks.push(nextNode);
+    const actualIndex = blocks.length - 1;
+    const insertedPath = ["block_schema", "blocks", actualIndex];
+    if (kind === "field_group") {
+      setContainerOpen(insertedPath, true);
+      state.ui.activeItemPath = null;
+    } else {
+      setFieldDetailsOpen(insertedPath, true);
+      state.ui.activeItemPath = pathKey(insertedPath);
+    }
     state.ui.activeOptionToken = null;
     state.ui.focusPane = "content";
     touch({ full: true, source: "blocks" });
@@ -4455,7 +4742,8 @@ function insertTopLevelContentBlock(kind) {
   }
 
   blocks.push(nextNode);
-  state.ui.activeItemPath = pathKey(["block_schema", "blocks", blocks.length - 1]);
+  const insertedPath = ["block_schema", "blocks", blocks.length - 1];
+  state.ui.activeItemPath = pathKey(insertedPath);
   state.ui.activeOptionToken = null;
   state.ui.focusPane = "content";
   touch({ full: true, source: "blocks" });
@@ -4510,7 +4798,7 @@ async function confirmDeleteOption(path, index) {
   const decision = await openDecisionDialog({
     eyebrow: "Remove option",
     title: `Remove ${optionName}?`,
-    message: "This option will be removed from the dropdown.",
+    message: "This option will be removed from the choice field.",
     cancelLabel: "Keep option",
     confirmLabel: "Remove option",
     destructive: true,
@@ -4712,6 +5000,10 @@ async function handleEditorClick(event) {
     addSection();
     return;
   }
+  if (action === "add-content-container") {
+    insertTopLevelContentBlock("section");
+    return;
+  }
   if (action === "add-content-section") {
     insertTopLevelContentBlock("section");
     return;
@@ -4768,12 +5060,25 @@ async function handleEditorClick(event) {
     toggleSection(path);
     return;
   }
+  if (action === "toggle-container" && path) {
+    state.ui.focusPane = "content";
+    toggleContainer(path);
+    return;
+  }
   if (action === "toggle-item" && path) {
     toggleItem(path);
     return;
   }
+  if (action === "toggle-field-details" && path) {
+    toggleFieldDetails(path);
+    return;
+  }
   if (action === "add-field" && path) {
     addItemAt(path, "field");
+    return;
+  }
+  if (action === "add-container" && path) {
+    addItemAt(path, "field_group");
     return;
   }
   if (action === "add-group" && path) {

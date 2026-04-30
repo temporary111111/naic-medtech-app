@@ -188,7 +188,7 @@ The app now starts from a builder-first FastAPI scaffold.
 - non-legacy block kinds like `note` and `divider` can now be preserved in stored block schema even when the legacy compatibility projection skips them
 - the frontend builder draft is now block-first too: the live editor state no longer keeps a duplicated `draft.schema`, and setup details like `Key` and `Notes` now read and write directly through `block_schema.meta`
 - save requests now go out through `block_schema`
-- the current calmer editor now reads and writes through block-backed paths for focused editing, preview rendering, and top-level content/section organizer flows
+- the current calmer editor now reads and writes through block-backed paths for the recursive content canvas, inline field editing, and preview rendering
 - advanced mode now stays inside the same `Content` pane instead of opening a separate `Layout` or `Arrange` lane
 - advanced mode can now add real `note`, `divider`, and `table` blocks in root, section, and group editors without forcing the user into another pane
 - the live preview now follows the real top-level block order, including separated top-field clusters when root fields appear in multiple places
@@ -196,7 +196,7 @@ The app now starts from a builder-first FastAPI scaffold.
 - the live preview can now render real `table` blocks too, including nested tables inside sections
 - selected sections can now add real `note`, `divider`, and `table` blocks too, but only in `Advanced` mode so the normal section editor stays simple by default
 - selected groups can now add real `note`, `divider`, and `table` blocks in `Advanced` mode too, and the live preview now renders those nested utility blocks from the real block tree
-- selected sections and groups now keep their nested organizers and focused editors inside the same `Content` pane, so there is no separate child-layout workspace anymore
+- selected sections and groups now behave as recursive containers inside the same `Content` pane, so children expand/edit in place without a separate child-layout workspace
 - when a section contains advanced utility blocks, the default section editor hides them and shows a quiet hint instead of exposing extra controls in the normal flow
 - richer stored block schema is now preserved correctly across save/reload hydration, so advanced-only blocks are no longer dropped when a saved response is reloaded into the calmer builder UI
 - presets have been deliberately removed from the active product path for now so the builder stays focused on the core flow
@@ -215,16 +215,16 @@ The app now starts from a builder-first FastAPI scaffold.
 - the visible surface still keeps a compatibility projection so the UI can stay calm while the engine migrates underneath it
 - the new entry screen is `/forms`, a dedicated `Form Library`
 - new form creation now starts from `/forms/new`, a guided `Start New Form` screen
-- the builder workspace now uses a calmer `outline + focused editor + live preview` layout
+- the builder workspace now uses a calmer `outline + recursive content canvas + live input preview` layout
 - the default workspace now lands on a single `Content` pane driven by real top-level block order instead of splitting the root flow into separate `Ungrouped fields` and `Sections` panes
 - the live top-level builder flow now stays on just `Basics`, `Content`, and `Save`
 - the root `Content` pane now inserts new top-level blocks relative to the current selected block when possible, so the main workspace follows real root order instead of old bucket placement rules
 - the left outline now follows that same root content model too, showing real top-level content items instead of a section-only shortcut list
 - in `Advanced` mode, the root `Content` pane can now add `note`, `divider`, and `table` blocks directly without forcing users into another pane just to place them
-- the focused content pane uses one organizer plus one focused editor, while selected sections and groups still use compact item organizers plus one focused item editor
+- the content pane now uses a recursive canvas: containers collapse/expand in place, fields keep `Name` and `Input` visible, and deeper details/options open inline only when needed
 - nested section and group content now also inserts relative to the currently selected child block when possible, so deeper editing follows real ordered block behavior instead of always appending at the end
 - selected groups can now add nested groups in the normal flow too, so grouped content is less locked to a field-only structure
-- selected groups now use the same compact child organizer plus one focused child editor pattern as selected sections, instead of spilling every child card open at once
+- selected groups now use the same recursive container behavior as sections, instead of a separate child organizer/focused-editor pattern
 - the old separate root `Ungrouped fields` and `Sections` panes are no longer active workspace paths; the builder now uses one real root `Content` path instead of keeping both models alive
 - the old root section-only focus path has now been removed from the active builder flow, so the workspace no longer keeps that extra root shortcut model alive behind the scenes
 - root and nested `Content` add actions now insert relative to the current selected block when possible, so the true ordered-block surface no longer blindly appends new blocks

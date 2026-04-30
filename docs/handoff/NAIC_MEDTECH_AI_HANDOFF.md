@@ -559,6 +559,10 @@ What is implemented:
 - active organizer rows are quieter too: the old `Editing` pills are gone from the outline and nested organizers, so focus now reads through the active highlight instead of extra status chips
 - advanced labels and helper copy are calmer too: shorter labels like `Key` and `Notes`, plus tighter Basics/Content/Save help copy, now keep the builder less technical without adding extra clutter
 - the old shared `Record defaults` selector is now hidden from the visible builder flow, so setup stays closer to the flexible lego model while backend compatibility remains intact
+- the builder left rail is now workspace navigation only: `Basics`, `Content`, `Signatories`, and `Print`; the previous content sub-outline and separate `Save` rail step were removed because they duplicated the focused canvas and added ceremony
+- the visible Content model now says `Container` and `Field`; this is a UI bridge over the existing `section` and `field_group` storage so the app stays compatible while users get a simpler mental model
+- the Content pane now includes an always-live input-form preview beside the editor on desktop, while the existing full preview panel remains optional; this keeps the user oriented without making preview a permanent third top-level workspace
+- root and nested content editing now use a recursive canvas instead of side-by-side organizer/focused-editor columns: containers collapse/expand in place, field name/input edits stay inside each field card, and details/options open inline only when needed
 - the guided `/forms/new` flow is less legacy too: it no longer carries old grouping/order hidden fields into the builder, only the tree/location data the current flow actually needs
 - the frontend draft logic is less legacy too: new and duplicated drafts no longer depend on old grouping/order fields just to keep the current builder working
 - library-tree sync is stronger too: `FormDefinition` location metadata is now backfilled from real library nodes, so page flows rely less on old `group_name/group_kind` fallbacks
@@ -650,9 +654,9 @@ What is implemented:
 - the old separate `Arrange` pane is gone; `Advanced` now means deeper controls inside the same `Content` editor
 - builder action wording is quieter too: `Duplicate` now reads `Copy`, `More` is shorter and calmer than the old `More options`, and destructive actions now prefer `Remove` language for a less tool-like feel
 - toggle and preview wording are calmer too: setup/save/section cards now use `Show` and `Hide` instead of `Open` and `Done`, and preview helper copy now says `Choose` or `Show` instead of `Open`
-- selected sections still use a compact section organizer plus one focused section editor
-- inside selected sections and groups, the builder now uses compact item organizers plus one focused item editor instead of showing every field card at once
-- dropdown fields now use a compact `Choices` organizer plus one focused choice editor instead of rendering every option input at once
+- selected sections/groups are no longer edited through separate compact organizers; they are recursive containers that reveal their children in place
+- fields now keep only the common edits visible by default (`Name` and `Input`); required status, reference/unit, normal range, and choice options live in the field details area
+- choice fields now render options inline inside field details, with simple `Add option`, `Copy`, `Remove`, and `Normal` controls instead of a separate focused choice editor
 - `Form details` and `Save` now use a calmer narrow centered treatment instead of wide full-width surfaces
 - `Form details` now offers folder suggestions from the existing library to reduce typing friction
 - `Save` now uses a clearer draft-state spotlight (`Ready to save` / `Already saved`) with a simpler optional note field
