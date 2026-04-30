@@ -3,7 +3,13 @@ const BLOCK_TYPES = [
   { kind: "field", label: "Field", isContainer: false },
 ];
 
-const FIELD_TYPES = ["Text", "Choice", "Number", "Date", "Image"];
+const FIELD_TYPES = ["Text", "Long text", "Number", "Choice", "Date", "Time", "Date & time", "Image"];
+const WORKSPACES = [
+  { id: "basics", label: "Basics", description: "Form identity and location" },
+  { id: "content", label: "Content", description: "Containers and fields" },
+  { id: "signatories", label: "Signatories", description: "Special print footer roles" },
+  { id: "print", label: "Print", description: "Patient-facing output" },
+];
 const NORMAL_RULE_OPERATORS = [
   { id: "between", label: "Between" },
   { id: "gt", label: "Greater than" },
@@ -14,9 +20,29 @@ const NORMAL_RULE_OPERATORS = [
 ];
 
 const state = {
+  activeWorkspace: "content",
   selectedBlockId: "lab_result",
-  inspectorVisible: true,
   collapsedBlockIds: new Set(["patient_info"]),
+  openFieldDetailIds: new Set(["rbc"]),
+  basics: {
+    name: "Blood Bank",
+    location: "Laboratory Forms",
+    description: "Routine blood bank result form.",
+  },
+  signatories: [
+    { id: "medtech_1", label: "Medical Technologist", type: "Choice", required: true, showOnPrint: true },
+    { id: "pathologist", label: "Pathologist", type: "Fixed stamp image", required: false, showOnPrint: true },
+  ],
+  print: {
+    accentColor: "#cc3399",
+    density: "Compact",
+    font: "Arial Narrow",
+    showLogo: true,
+    showClinicInfo: true,
+    showSignatories: true,
+    hideEmpty: false,
+    resultLayout: "Compact rows",
+  },
   root: {
     id: "root",
     kind: "root",
@@ -82,17 +108,15 @@ const state = {
               },
             ],
           },
-          { id: "remarks", kind: "field", name: "Remarks", fieldType: "Text", required: false },
+          { id: "remarks", kind: "field", name: "Remarks", fieldType: "Long text", required: false },
         ],
       },
     ],
   },
 };
 
-const outlineList = document.querySelector("#outlineList");
-const contentEditor = document.querySelector("#contentEditor");
-const inspectorPanel = document.querySelector("#inspectorPanel");
-const inspectorContent = document.querySelector("#inspectorContent");
+const workspaceNav = document.querySelector("#workspaceNav");
+const workspaceEditor = document.querySelector("#workspaceEditor");
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -128,10 +152,6 @@ function findBlock(blockId) {
   return found;
 }
 
-function selectedBlock() {
-  return findBlock(state.selectedBlockId)?.block || state.root;
-}
-
 function uniqueId(prefix) {
   return `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -163,45 +183,240 @@ function isCollapsed(blockId) {
   return state.collapsedBlockIds.has(blockId);
 }
 
-function renderOutline() {
-  const rows = [];
-  walkBlocks(state.root, (block, depth) => {
-    if (block.kind === "root") {
-      return;
-    }
-    rows.push(`
-      <button
-        class="outline-item ${block.id === state.selectedBlockId ? "active" : ""}"
-        style="--depth: ${Math.max(0, depth - 1)}"
-        type="button"
-        data-action="select-block"
-        data-block-id="${escapeHtml(block.id)}"
-      >
-        <span class="outline-kind">${escapeHtml(blockType(block.kind).label)}</span>
-        <strong>${escapeHtml(block.name)}</strong>
-        <span>${isContainerBlock(block) ? countChildren(block) : escapeHtml(block.fieldType || "Field")}</span>
-      </button>
-    `);
-  });
-  outlineList.innerHTML = rows.join("");
+function isFieldDetailsOpen(blockId) {
+  return state.openFieldDetailIds.has(blockId);
 }
 
-function renderContentEditor() {
-  contentEditor.innerHTML = `
-    <article class="form-canvas-card">
-      <div class="form-title-row">
-        <label>
-          <p class="eyebrow">Content canvas</p>
-          <input value="${escapeHtml(state.root.name)}" data-action="rename-block" data-block-id="root" aria-label="Form name">
-        </label>
-        <div class="canvas-note">Only two content blocks: Container and Field. Containers can contain more containers or fields.</div>
+function renderWorkspaceNav() {
+  workspaceNav.innerHTML = WORKSPACES.map((workspace) => `
+    <button
+      class="workspace-nav-item ${state.activeWorkspace === workspace.id ? "active" : ""}"
+      type="button"
+      data-action="select-workspace"
+      data-workspace="${escapeHtml(workspace.id)}"
+    >
+      <strong>${escapeHtml(workspace.label)}</strong>
+      <span>${escapeHtml(workspace.description)}</span>
+    </button>
+  `).join("");
+}
+
+function renderWorkspaceEditor() {
+  if (state.activeWorkspace === "content") {
+    workspaceEditor.innerHTML = renderContentWorkspace();
+    return;
+  }
+  if (state.activeWorkspace === "basics") {
+    workspaceEditor.innerHTML = renderBasicsWorkspace();
+    return;
+  }
+  if (state.activeWorkspace === "signatories") {
+    workspaceEditor.innerHTML = renderSignatoriesWorkspace();
+    return;
+  }
+  if (state.activeWorkspace === "print") {
+    workspaceEditor.innerHTML = renderPrintWorkspace();
+    return;
+  }
+  workspaceEditor.innerHTML = renderContentWorkspace();
+}
+
+function renderContentWorkspace() {
+  return `
+    <div class="content-workspace-grid">
+      <article class="form-canvas-card">
+        <div class="form-title-row">
+          <label>
+            <p class="eyebrow">Content canvas</p>
+            <input value="${escapeHtml(state.root.name)}" data-action="rename-block" data-block-id="root" aria-label="Form name">
+          </label>
+          <div class="canvas-actions">
+            <button class="ghost" type="button" data-action="expand-all">Expand all</button>
+            <button class="ghost" type="button" data-action="collapse-all">Collapse all</button>
+          </div>
+        </div>
+        <div class="block-tree">
+          ${renderChildren(state.root, 0)}
+        </div>
+        ${renderAddContent(state.root)}
+      </article>
+      ${renderInputPreview()}
+    </div>
+  `;
+}
+
+function renderBasicsWorkspace() {
+  return `
+    <article class="workspace-card">
+      <p class="eyebrow">Basics</p>
+      <h2>Form identity</h2>
+      <div class="workspace-form-grid">
+        ${renderBasicField("Form name", "name", state.basics.name)}
+        ${renderBasicField("Location", "location", state.basics.location)}
+        ${renderBasicField("Description", "description", state.basics.description)}
       </div>
-      <div class="block-tree">
-        ${renderChildren(state.root, 0)}
-      </div>
-      ${renderAddContent(state.root)}
     </article>
   `;
+}
+
+function renderBasicField(label, key, value) {
+  return `
+    <label class="workspace-field">
+      ${escapeHtml(label)}
+      <input value="${escapeHtml(value)}" data-action="basic-field" data-key="${escapeHtml(key)}">
+    </label>
+  `;
+}
+
+function renderSignatoriesWorkspace() {
+  return `
+    <article class="workspace-card">
+      <p class="eyebrow">Signatories</p>
+      <h2>Special print footer slots</h2>
+      <div class="signatory-list">
+        ${state.signatories.map((item) => `
+          <article class="signatory-row">
+            <label>
+              Label
+              <input value="${escapeHtml(item.label)}" data-action="signatory-label" data-id="${escapeHtml(item.id)}">
+            </label>
+            <label>
+              Type
+              <select data-action="signatory-type" data-id="${escapeHtml(item.id)}">
+                ${["Choice", "Fixed stamp image", "Manual text"].map((type) => `
+                  <option value="${escapeHtml(type)}" ${item.type === type ? "selected" : ""}>${escapeHtml(type)}</option>
+                `).join("")}
+              </select>
+            </label>
+            <label class="inline-check">
+              <input type="checkbox" data-action="signatory-required" data-id="${escapeHtml(item.id)}" ${item.required ? "checked" : ""}>
+              Required
+            </label>
+            <label class="inline-check">
+              <input type="checkbox" data-action="signatory-print" data-id="${escapeHtml(item.id)}" ${item.showOnPrint ? "checked" : ""}>
+              Show on print
+            </label>
+            ${item.type === "Fixed stamp image" ? `
+              <div class="stamp-placeholder">
+                <strong>Stamp image</strong>
+                <span>Upload area placeholder</span>
+              </div>
+            ` : ""}
+          </article>
+        `).join("")}
+      </div>
+      <button class="add-content-button" type="button" data-action="add-signatory">Add signatory</button>
+    </article>
+  `;
+}
+
+function renderPrintWorkspace() {
+  return `
+    <article class="workspace-card print-workspace">
+      <div>
+        <p class="eyebrow">Print</p>
+        <h2>Patient-facing output</h2>
+      </div>
+      <div class="print-layout">
+        <div class="print-settings">
+          <label class="workspace-field">
+            Accent color
+            <input type="color" value="${escapeHtml(state.print.accentColor)}" data-action="print-field" data-key="accentColor">
+          </label>
+          <label class="workspace-field">
+            Density
+            <select data-action="print-field" data-key="density">
+              ${["Compact", "Comfortable"].map((density) => `<option ${state.print.density === density ? "selected" : ""}>${density}</option>`).join("")}
+            </select>
+          </label>
+          <label class="workspace-field">
+            Font
+            <select data-action="print-field" data-key="font">
+              ${["Arial Narrow", "Arial", "Times New Roman"].map((font) => `<option ${state.print.font === font ? "selected" : ""}>${font}</option>`).join("")}
+            </select>
+          </label>
+          <label class="inline-check">
+            <input type="checkbox" data-action="print-toggle" data-key="showLogo" ${state.print.showLogo ? "checked" : ""}>
+            Show clinic logo
+          </label>
+          <label class="inline-check">
+            <input type="checkbox" data-action="print-toggle" data-key="showClinicInfo" ${state.print.showClinicInfo ? "checked" : ""}>
+            Show clinic info
+          </label>
+          <label class="inline-check">
+            <input type="checkbox" data-action="print-toggle" data-key="showSignatories" ${state.print.showSignatories ? "checked" : ""}>
+            Show signatories
+          </label>
+          <label class="inline-check">
+            <input type="checkbox" data-action="print-toggle" data-key="hideEmpty" ${state.print.hideEmpty ? "checked" : ""}>
+            Hide empty fields
+          </label>
+          <label class="workspace-field">
+            Result layout
+            <select data-action="print-field" data-key="resultLayout">
+              ${["Compact rows", "Spacious rows"].map((layout) => `<option ${state.print.resultLayout === layout ? "selected" : ""}>${layout}</option>`).join("")}
+            </select>
+          </label>
+        </div>
+        ${renderPrintPreview()}
+      </div>
+    </article>
+  `;
+}
+
+function renderPrintPreview() {
+  return `
+    <div class="fake-print-preview" style="--print-accent:${escapeHtml(state.print.accentColor)}">
+      <div class="fake-print-header">
+        <div class="fake-logo">${state.print.showLogo ? "N" : ""}</div>
+        <div>
+          <strong>NAIC Medtech</strong>
+          <span>${state.print.showClinicInfo ? "Patient-facing laboratory result" : ""}</span>
+        </div>
+      </div>
+      <div class="fake-print-band">Blood Bank</div>
+      <div class="fake-print-table">
+        <div><span>Patient's Blood Type</span><strong>A+</strong></div>
+        <div><span>Blood Component</span><strong>Packed RBC</strong></div>
+        <div><span>RBC</span><strong class="abnormal">8 /hpf</strong></div>
+      </div>
+      ${state.print.showSignatories ? `<div class="fake-print-footer">
+        <span>Medical Technologist</span>
+        <span>Pathologist</span>
+      </div>` : ""}
+    </div>
+  `;
+}
+
+function renderInputPreview() {
+  return `
+    <section class="input-preview">
+      <div class="input-preview-head">
+        <strong>Input preview</strong>
+        <span>How medtech staff will fill this content.</span>
+      </div>
+      ${renderInputPreviewBlocks(state.root.children || [])}
+    </section>
+  `;
+}
+
+function renderInputPreviewBlocks(blocks) {
+  return blocks.map((block) => {
+    if (isContainerBlock(block)) {
+      return `
+        <div class="input-preview-container">
+          <h3>${escapeHtml(block.name)}</h3>
+          ${renderInputPreviewBlocks(block.children || [])}
+        </div>
+      `;
+    }
+    return `
+      <label class="input-preview-field">
+        ${escapeHtml(block.name)}${block.required ? " *" : ""}
+        <input placeholder="${escapeHtml(block.fieldType || "Text")}">
+      </label>
+    `;
+  }).join("");
 }
 
 function renderChildren(block, depth) {
@@ -221,6 +436,7 @@ function renderBlock(block, depth) {
   const type = blockType(block.kind);
   const isContainer = isContainerBlock(block);
   const collapsed = isContainer && isCollapsed(block.id);
+  const detailsOpen = block.kind === "field" && isFieldDetailsOpen(block.id);
   const descendantCount = isContainer ? countDescendants(block) : { containers: 0, fields: 0 };
   return `
     <article class="lego-block lego-block--${escapeHtml(block.kind)} ${selected ? "active" : ""} ${collapsed ? "is-collapsed" : ""}" style="--depth: ${depth}" data-block-id="${escapeHtml(block.id)}">
@@ -237,7 +453,7 @@ function renderBlock(block, depth) {
           <span>${escapeHtml(type.label)}</span>
           <input value="${escapeHtml(block.name)}" data-action="rename-block" data-block-id="${escapeHtml(block.id)}" aria-label="${escapeHtml(type.label)} name">
         </label>
-        ${block.kind === "field" ? renderFieldControls(block) : `<span class="block-count">${descendantCount.containers} containers / ${descendantCount.fields} fields</span>`}
+        ${block.kind === "field" ? renderFieldControls(block, detailsOpen) : `<span class="block-count">${descendantCount.containers} containers / ${descendantCount.fields} fields</span>`}
         <button class="icon-button" type="button" data-action="remove-block" data-block-id="${escapeHtml(block.id)}" aria-label="Remove ${escapeHtml(block.name)}">x</button>
       </div>
       ${isContainer ? (collapsed ? "" : `
@@ -250,13 +466,18 @@ function renderBlock(block, depth) {
   `;
 }
 
-function renderFieldControls(block) {
+function renderFieldControls(block, detailsOpen) {
   return `
-    <select class="field-type-select" data-action="change-field-type" data-block-id="${escapeHtml(block.id)}" aria-label="Field type">
-      ${FIELD_TYPES.map((type) => `
-        <option value="${escapeHtml(type)}" ${block.fieldType === type ? "selected" : ""}>${escapeHtml(type)}</option>
-      `).join("")}
-    </select>
+    <div class="field-compact-controls">
+      <select class="field-type-select" data-action="change-field-type" data-block-id="${escapeHtml(block.id)}" aria-label="Field type">
+        ${FIELD_TYPES.map((type) => `
+          <option value="${escapeHtml(type)}" ${block.fieldType === type ? "selected" : ""}>${escapeHtml(type)}</option>
+        `).join("")}
+      </select>
+      <button class="details-button" type="button" data-action="toggle-field-details" data-block-id="${escapeHtml(block.id)}" aria-expanded="${detailsOpen ? "true" : "false"}">
+        ${detailsOpen ? "Hide details" : "Details"}
+      </button>
+    </div>
   `;
 }
 
@@ -277,17 +498,20 @@ function normalizedChoiceOptions(block) {
 }
 
 function renderFieldDetails(block) {
+  const detailsOpen = isFieldDetailsOpen(block.id);
   return `
     <div class="field-inline-settings">
       <label>
         <input type="checkbox" data-action="toggle-required" data-block-id="${escapeHtml(block.id)}" ${block.required ? "checked" : ""}>
         Required
       </label>
-      <span>Field captures one answer. Add related content inside its parent container.</span>
+      <span>${detailsOpen ? "Details are open for this field." : "Open details for choices, normal rules, reference, and unit."}</span>
     </div>
-    ${renderReferenceText(block)}
-    ${block.fieldType === "Choice" ? renderChoiceOptions(block) : ""}
-    ${block.fieldType === "Number" ? renderNormalRange(block) : ""}
+    ${detailsOpen ? `
+      ${renderReferenceText(block)}
+      ${block.fieldType === "Choice" ? renderChoiceOptions(block) : ""}
+      ${block.fieldType === "Number" ? renderNormalRange(block) : ""}
+    ` : ""}
   `;
 }
 
@@ -402,25 +626,9 @@ function renderAddContent(parentBlock) {
   `;
 }
 
-function renderInspector() {
-  inspectorPanel.classList.toggle("is-hidden", !state.inspectorVisible);
-  document.querySelector(".builder-frame").classList.toggle("inspector-hidden", !state.inspectorVisible);
-
-  const block = selectedBlock();
-  const isContainer = isContainerBlock(block);
-  inspectorContent.innerHTML = `
-    <div class="inspector-empty">
-      <strong>${escapeHtml(block.name)}</strong>
-      <span>${block.kind === "root" ? "Root form" : escapeHtml(blockType(block.kind).label)}</span>
-      <span>${isContainer ? "Container: holds containers and fields." : "Field: captures one answer."}</span>
-    </div>
-  `;
-}
-
 function render() {
-  renderOutline();
-  renderContentEditor();
-  renderInspector();
+  renderWorkspaceNav();
+  renderWorkspaceEditor();
 }
 
 function addBlock(parentId, kind) {
@@ -455,13 +663,17 @@ document.addEventListener("click", (event) => {
   }
 
   const action = target.dataset.action;
-  if (action === "select-block") {
-    state.selectedBlockId = target.dataset.blockId || state.selectedBlockId;
-    render();
+  if (action === "select-workspace") {
+    const workspaceId = target.dataset.workspace;
+    if (WORKSPACES.some((workspace) => workspace.id === workspaceId)) {
+      state.activeWorkspace = workspaceId;
+      render();
+    }
   }
 
-  if (action === "toggle-inspector") {
-    state.inspectorVisible = !state.inspectorVisible;
+  if (action === "select-block") {
+    state.activeWorkspace = "content";
+    state.selectedBlockId = target.dataset.blockId || state.selectedBlockId;
     render();
   }
 
@@ -473,6 +685,31 @@ document.addEventListener("click", (event) => {
       state.collapsedBlockIds.add(blockId);
     }
     state.selectedBlockId = blockId || state.selectedBlockId;
+    render();
+  }
+
+  if (action === "toggle-field-details") {
+    const blockId = target.dataset.blockId;
+    if (state.openFieldDetailIds.has(blockId)) {
+      state.openFieldDetailIds.delete(blockId);
+    } else if (blockId) {
+      state.openFieldDetailIds.add(blockId);
+    }
+    state.selectedBlockId = blockId || state.selectedBlockId;
+    render();
+  }
+
+  if (action === "collapse-all") {
+    walkBlocks(state.root, (block) => {
+      if (block.kind === "container") {
+        state.collapsedBlockIds.add(block.id);
+      }
+    });
+    render();
+  }
+
+  if (action === "expand-all") {
+    state.collapsedBlockIds.clear();
     render();
   }
 
@@ -510,6 +747,17 @@ document.addEventListener("click", (event) => {
       render();
     }
   }
+
+  if (action === "add-signatory") {
+    state.signatories.push({
+      id: uniqueId("signatory"),
+      label: "Signatory",
+      type: "Choice",
+      required: false,
+      showOnPrint: true,
+    });
+    render();
+  }
 });
 
 document.addEventListener("input", (event) => {
@@ -524,10 +772,25 @@ document.addEventListener("input", (event) => {
       "field-normal-max",
       "field-normal-value",
       "field-reference-text",
+      "basic-field",
+      "signatory-label",
     ].includes(target.dataset.action)
   ) {
     return;
   }
+
+  if (target.dataset.action === "basic-field") {
+    state.basics[target.dataset.key] = target.value;
+    return;
+  }
+  if (target.dataset.action === "signatory-label") {
+    const item = state.signatories.find((signatory) => signatory.id === target.dataset.id);
+    if (item) {
+      item.label = target.value;
+    }
+    return;
+  }
+
   const found = findBlock(target.dataset.blockId);
   if (found) {
     if (target.dataset.action === "rename-choice-option") {
@@ -559,8 +822,7 @@ document.addEventListener("input", (event) => {
     }
     found.block.name = target.value;
     state.selectedBlockId = found.block.id;
-    renderOutline();
-    renderInspector();
+    renderWorkspaceNav();
   }
 });
 
@@ -572,8 +834,7 @@ document.addEventListener("focusin", (event) => {
   const blockEl = target.closest("[data-block-id]");
   if (blockEl?.dataset.blockId && blockEl.dataset.blockId !== state.selectedBlockId) {
     state.selectedBlockId = blockEl.dataset.blockId;
-    renderOutline();
-    renderInspector();
+    renderWorkspaceNav();
   }
 });
 
@@ -593,6 +854,39 @@ document.addEventListener("change", (event) => {
     const found = findBlock(target.dataset.blockId);
     if (found?.block?.kind === "field") {
       normalizedNormalRule(found.block).operator = target.value;
+      render();
+    }
+  }
+  if (target instanceof HTMLSelectElement && target.dataset.action === "signatory-type") {
+    const item = state.signatories.find((signatory) => signatory.id === target.dataset.id);
+    if (item) {
+      item.type = target.value;
+      render();
+    }
+  }
+  if (target instanceof HTMLSelectElement && target.dataset.action === "print-field") {
+    state.print[target.dataset.key] = target.value;
+    render();
+  }
+  if (target instanceof HTMLInputElement && target.dataset.action === "print-field") {
+    state.print[target.dataset.key] = target.value;
+    render();
+  }
+  if (target instanceof HTMLInputElement && target.dataset.action === "print-toggle") {
+    state.print[target.dataset.key] = target.checked;
+    render();
+  }
+  if (target instanceof HTMLInputElement && target.dataset.action === "signatory-required") {
+    const item = state.signatories.find((signatory) => signatory.id === target.dataset.id);
+    if (item) {
+      item.required = target.checked;
+      render();
+    }
+  }
+  if (target instanceof HTMLInputElement && target.dataset.action === "signatory-print") {
+    const item = state.signatories.find((signatory) => signatory.id === target.dataset.id);
+    if (item) {
+      item.showOnPrint = target.checked;
       render();
     }
   }

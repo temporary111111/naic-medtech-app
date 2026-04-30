@@ -15,37 +15,27 @@
         <h1>Container and field builder</h1>
       </div>
       <div class="topbar-actions">
-        <button class="ghost" type="button" data-action="toggle-inspector">Inspector</button>
         <button class="primary" type="button">Save prototype</button>
       </div>
     </header>
 
     <section class="lab-note" aria-label="Prototype goal">
-      <strong>Pass 03</strong>
-      <span>Test the simplest content model: Container and Field only. No section/group decision while building.</span>
+      <strong>Pass 05</strong>
+      <span>Test lean builder navigation: Basics, Content, Signatories, and Print. Content has a live input preview; Print has its own output preview.</span>
     </section>
 
     <div class="builder-frame">
-      <aside class="outline-panel" aria-label="Form outline">
+      <aside class="workspace-panel" aria-label="Builder workspace navigation">
         <div class="panel-head">
-          <p class="eyebrow">Form</p>
+          <p class="eyebrow">Workspace</p>
           <h2>Blood Bank</h2>
         </div>
-        <nav id="outlineList" class="outline-list" aria-label="Content blocks"></nav>
-        <button class="add-container" type="button" data-action="add-root-container">+ Add container</button>
+        <nav id="workspaceNav" class="workspace-nav" aria-label="Builder areas"></nav>
       </aside>
 
-      <section class="work-canvas" aria-label="Content editor">
-        <div id="contentEditor"></div>
+      <section class="work-canvas" aria-label="Active builder workspace">
+        <div id="workspaceEditor"></div>
       </section>
-
-      <aside id="inspectorPanel" class="inspector-panel" aria-label="Selected item inspector">
-        <div class="panel-head">
-          <p class="eyebrow">Inspector</p>
-          <h2>Details</h2>
-        </div>
-        <div id="inspectorContent"></div>
-      </aside>
     </div>
   </main>
 
