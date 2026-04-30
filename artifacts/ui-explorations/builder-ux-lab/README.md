@@ -23,6 +23,9 @@ Current prototype:
 Working mental model:
 - `container` holds containers and fields.
 - `field` is a leaf input. It stores one answer and does not contain children.
+- `Choice` is the generic field type for selectable answers. A dropdown is only one possible UI rendering of a choice field.
+- Normal values stay inside the field and are only for abnormal detection: number fields use a normal-rule operator plus unit, and choice fields mark normal choices.
+- Reference text is separate display-only guidance and can apply to any field type.
 - Section/group language is intentionally removed from the visible builder for now.
 - If section/group becomes useful later, it should be a container display setting, not a separate primitive.
 
@@ -35,3 +38,4 @@ Evaluation questions:
 - Is it better if every container has an inline `Add content here` area?
 - Does removing section/group reduce mental weight?
 - Do collapsed containers make long forms easier to scan without hiding too much?
+- Does normal-value editing belong inline in the field, or should it be tucked behind an advanced affordance?
