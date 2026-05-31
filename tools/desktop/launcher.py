@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import time
+import traceback
 import urllib.error
 import urllib.request
 import webbrowser
@@ -22,6 +23,7 @@ PRODUCT_ID = "ndhi-labrecords"
 SESSION_SECRET_FILENAME = "session-secret.txt"
 CREATE_NO_WINDOW = 0x08000000
 DETACHED_PROCESS = 0x00000008
+_PROCESS_STREAMS = []
 
 
 def default_data_dir() -> Path:
@@ -55,6 +57,23 @@ def prepare_runtime_environment(data_dir: Path) -> None:
 
     os.environ["NDHI_LABRECORDS_DATA_DIR"] = str(data_dir)
     os.environ["NDHI_SESSION_SECRET"] = secret_path.read_text(encoding="utf-8").strip()
+
+
+def append_startup_log(data_dir: Path, message: str) -> None:
+    log_path = data_dir / "logs" / "startup.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    with log_path.open("a", encoding="utf-8") as log_file:
+        log_file.write(f"[{timestamp}] {message}\n")
+
+
+def ensure_process_streams(data_dir: Path) -> None:
+    for attribute, filename in (("stdout", "launcher.out.log"), ("stderr", "launcher.err.log")):
+        if getattr(sys, attribute) is not None:
+            continue
+        stream = (data_dir / "logs" / filename).open("a", encoding="utf-8", buffering=1)
+        setattr(sys, attribute, stream)
+        _PROCESS_STREAMS.append(stream)
 
 
 def app_url(port: int) -> str:
@@ -140,9 +159,14 @@ def show_error(message: str) -> None:
 
 
 def serve(port: int) -> int:
+    data_dir = data_dir_from_args(os.environ.get("NDHI_LABRECORDS_DATA_DIR", ""))
+    append_startup_log(data_dir, f"Importing Uvicorn for local server on {HOST}:{port}.")
     import uvicorn
+
+    append_startup_log(data_dir, "Importing FastAPI application.")
     from naic_builder.main import app
 
+    append_startup_log(data_dir, "Starting Uvicorn event loop.")
     uvicorn.run(
         app,
         host=HOST,
@@ -184,6 +208,8 @@ def main() -> int:
 
     data_dir = data_dir_from_args(args.data_dir)
     prepare_runtime_environment(data_dir)
+    ensure_process_streams(data_dir)
+    append_startup_log(data_dir, f"Launcher entered mode: {'serve' if args.serve else 'backup' if args.backup_now else 'verify' if args.verify_backup else 'desktop'}.")
 
     if args.serve:
         return serve(args.port)
@@ -205,4 +231,14 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except BaseException:
+        raw_data_dir = os.environ.get("NDHI_LABRECORDS_DATA_DIR", "")
+        if raw_data_dir:
+            try:
+                data_dir = data_dir_from_args(raw_data_dir)
+                append_startup_log(data_dir, "Unhandled launcher error:\n" + traceback.format_exc())
+            except OSError:
+                pass
+        raise
