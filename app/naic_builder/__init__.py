@@ -1,1 +1,1 @@
-"""NAIC Medtech exam builder application."""
+"""NDHI laboratory records application."""

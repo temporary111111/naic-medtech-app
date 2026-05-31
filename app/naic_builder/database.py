@@ -5,10 +5,10 @@ from collections.abc import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-from .config import DATA_RUNTIME_DIR, DB_PATH
+from .config import DB_PATH, ensure_runtime_directories
 
 
-DATA_RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
+ensure_runtime_directories()
 
 
 class Base(DeclarativeBase):

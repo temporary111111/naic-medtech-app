@@ -1,5 +1,5 @@
 {
-  "project_name": "NAIC Medtech",
+  "project_name": "NDHI Laboratory Records",
   "primary_problem": "The clinic needs a system that speeds up lab input and lab output during daily operations.",
   "core_product_direction": "Schema-driven laboratory platform with an exam/form builder.",
   "active_builder_foundation_doc": "docs/handoff/FLEXIBLE_BUILDER_FOUNDATION.md",
@@ -8,6 +8,7 @@
   "active_builder_wireframe_doc": "docs/handoff/BUILDER_WIREFRAME_IMPLEMENTATION_PLAN.md",
   "active_builder_direction_doc": "docs/handoff/BUILDER_V2_PLAN.md",
   "active_print_system_doc": "docs/handoff/PRINT_SYSTEM_HANDOFF.md",
+  "active_desktop_installer_doc": "docs/handoff/DESKTOP_INSTALLER_ARCHITECTURE.md",
   "main_goal_status": "core_done_cleanup_remaining",
   "locked_ui_direction": {
     "design_language": "clinical_depth_luxe",

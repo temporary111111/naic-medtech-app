@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "NDHI Laboratory Records",
+  "short_name": "NDHI Lab Records",
+  "description": "Laboratory records system for Naic Doctors Hospital, Incorporated.",
+  "start_url": "/records",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#07191d",
+  "theme_color": "#123f48",
+  "icons": [
+    {
+      "src": "/static/ndhi-labrecords-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

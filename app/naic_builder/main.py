@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from .config import APP_TITLE, SESSION_SECRET, SIGNATORY_UPLOADS_DIR, STATIC_DIR, TEMPLATES_DIR
+from .config import APP_TITLE, PRODUCT_ID, SESSION_SECRET, SIGNATORY_UPLOADS_DIR, STATIC_DIR, TEMPLATES_DIR
 from .database import SessionLocal, ensure_runtime_schema, get_session
 from .schemas import (
     AccountRequestPayload,
@@ -128,6 +128,8 @@ class AuthFlowMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
         if any(path.startswith(prefix) for prefix in PUBLIC_PREFIXES):
+            return await call_next(request)
+        if path == "/api/health":
             return await call_next(request)
 
         with SessionLocal() as session:
@@ -1849,7 +1851,7 @@ def activate_user_account_page(
 
 @app.get("/api/health")
 def health() -> dict[str, str]:
-    return {"status": "ok"}
+    return {"status": "ok", "product_id": PRODUCT_ID}
 
 
 @app.get("/api/records/bootstrap")

@@ -1,4 +1,4 @@
-# NAIC Medtech Workspace
+# NDHI Laboratory Records Workspace
 
 This workspace is organized to separate raw inputs, generated artifacts, reference materials, and future app source code.
 

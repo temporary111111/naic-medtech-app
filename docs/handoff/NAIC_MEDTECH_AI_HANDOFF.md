@@ -1,7 +1,7 @@
-# NAIC Medtech AI Handoff
+# NDHI Laboratory Records AI Handoff
 
 ## Purpose
-This document explains the core product concept for the NAIC Medtech app so another AI can continue implementation without re-discovering the domain context.
+This document explains the core product concept for the NDHI Laboratory Records app so another AI can continue implementation without re-discovering the domain context.
 
 ## Project Summary
 The client is a clinic/laboratory that needs an internal app to make laboratory operations faster during daily use.
@@ -36,6 +36,9 @@ Current status snapshot:
 - the recursive builder integration is now browser-audited and stabilized across duplicate-form startup, nested editing, copy/remove, hidden advanced-block ordering, save/reload, light/dark, desktop, tablet, and mobile
 - the current active product area is patient-facing print configuration and real clinic-device print QA
 - print should continue from the builder-driven `record_identity` and `print_config` model
+- a local-first Windows desktop-installer foundation now exists under `tools/desktop/`; continue from `docs/handoff/DESKTOP_INSTALLER_ARCHITECTURE.md`
+- the desktop layer intentionally keeps FastAPI as the product core: a launcher starts a localhost-only server and opens a browser-powered app window
+- the verified backup foundation is real, but automatic scheduling, external copies, safe restore, and pre-update backup are still required before clinic release
 
 ## Historical Phase 1 Priority
 Phase 1 focused on the `Exam/Form Builder`.

@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from .config import (
     CLINIC_UPLOADS_DIR,
+    ORGANIZATION_SHORT_NAME,
     RECORD_UPLOADS_DIR,
     REFERENCE_SCHEMA_PATH,
     SIGNATORY_UPLOADS_DIR,
@@ -2663,7 +2664,7 @@ def build_print_clinic_profile(
     logo_url: str = "",
 ) -> dict[str, Any]:
     profile = clinic_profile if isinstance(clinic_profile, dict) else {}
-    name = compact_text(profile.get("clinic_name")) or "NAIC Medtech"
+    name = compact_text(profile.get("clinic_name")) or ORGANIZATION_SHORT_NAME
     address = compact_text(profile.get("address"))
     contact_number = compact_text(profile.get("contact_number"))
     contact_email = compact_text(profile.get("contact_email"))

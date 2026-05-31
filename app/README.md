@@ -12,6 +12,10 @@ The app now starts from a builder-first FastAPI scaffold.
 - phase 1 started with the `exam/form builder`, but the app now also has a first `records runtime` foundation
 - the app seeds itself from `../artifacts/schema/naic_medtech_app_schema.json`
 - runtime data lives in `../data/runtime/naic_medtech.db`
+- a local-first Windows desktop packaging foundation now lives in `../tools/desktop/`
+  - the installed launcher keeps the FastAPI app local to `127.0.0.1`
+  - installed patient data belongs under `%ProgramData%\NDHI\LabRecords`, outside replaceable app binaries
+  - `../docs/handoff/DESKTOP_INSTALLER_ARCHITECTURE.md` is the active deployment and backup-continuation guide
 - `/` now redirects to `/records`, so the app starts from the small-clinic daily workflow instead of dropping everyone into the builder/library first
 - the app now has a first auth/settings foundation too:
   - first-run setup lives at `/setup`

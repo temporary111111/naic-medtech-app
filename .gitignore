@@ -3,3 +3,7 @@
 *.pyc
 output/print-qa/
 data/runtime/backups/
+data/runtime/config/
+data/runtime/database/
+data/runtime/logs/
+dist/
