@@ -33,7 +33,8 @@ not as a:
 
 Current status snapshot:
 - the builder and records foundations have landed
-- the current active product area is patient-facing print configuration
+- the recursive builder integration is now browser-audited and stabilized across duplicate-form startup, nested editing, copy/remove, hidden advanced-block ordering, save/reload, light/dark, desktop, tablet, and mobile
+- the current active product area is patient-facing print configuration and real clinic-device print QA
 - print should continue from the builder-driven `record_identity` and `print_config` model
 
 ## Historical Phase 1 Priority
@@ -406,7 +407,8 @@ Current intentional limits:
   - `completed`
 
 What the next AI should continue from here:
-- improve the record-entry runtime instead of reopening builder architecture debates
+- run real clinic-device and real-data print QA before reopening major builder architecture debates
+- improve the record-entry runtime only where actual use exposes friction
 - refine the new image/file answer flow instead of re-planning it from zero
 - preserve the current quiet accountability layer in records instead of replacing it with heavy workflow
 - preserve the current draft-versus-complete behavior:
@@ -422,7 +424,7 @@ What the next AI should continue from here:
   - edit and detail pages should stay normal-scroll instead of inheriting nested list containers everywhere
 
 ## Builder Direction Note
-The current builder prototype is not yet considered final for the real client.
+The current builder foundation is ready for client review. It is not frozen forever, but future changes should respond to concrete real-use findings instead of restarting the architecture.
 
 Before continuing major builder work, read in this order:
 - `docs/handoff/FLEXIBLE_BUILDER_FOUNDATION.md`
@@ -452,8 +454,9 @@ Current locked direction:
 
 Current honest status:
 - the core builder-direction goal is effectively **done**
-- the remaining work is refinement and cleanup, not another architecture pivot
-- the right next work is still simplification and polish, not feature sprawl
+- the recursive integration stabilization pass is also **done**
+- the remaining builder work is confirmed bug/polish work from real use, not another architecture pivot
+- the active major gate is real clinic-device and real-data print QA
 
 What the next AI should optimize for:
 - keep the current builder as one real content tree, not parallel editing lanes

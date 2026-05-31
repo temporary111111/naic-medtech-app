@@ -21,6 +21,10 @@ The live builder has started applying the lab direction without rewriting storag
 - internal `section` and `field_group` storage remains for compatibility
 - Content has an always-live input-form preview on desktop, while full preview remains optional
 - Content now uses a recursive canvas instead of organizer/focused-editor columns: containers collapse/expand in place, fields edit inside their own cards, and field details/options open inline only when needed
+- browser QA now covers duplicate-form startup, recursive container/field editing, choice options, numeric ranges, subtree copy/remove, mixed advanced blocks, save/reload persistence, light/dark modes, and desktop/tablet/mobile layouts
+- copied block subtrees now receive fresh recursive block and option IDs, preventing duplicated record-field identities
+- SortableJS ordering now maps visible cards back to their real collection positions, so hidden advanced blocks do not corrupt reorder results
+- tablet/mobile workspace navigation now stays above the editor as compact tabs instead of becoming a tall vertical panel or falling below a long form
 
 ## Product Problem
 The clinic needs a form/exam builder so they can change exams without hiring a programmer every time.
@@ -283,29 +287,21 @@ The builder passes when these feel true:
 6. The page does not feel heavy on first load.
 7. Another AI can continue the codebase without rediscovering the product direction.
 
-## Current Prototype Status
-Current prototype strengths:
-- schema-driven
+## Current Builder Status
+The non-print builder foundation is now stabilized enough for real client review:
+- schema-driven and block-backed
 - versioned save flow
-- live preview
-- easy options editing
-
-Current prototype weaknesses:
-- still too much on screen
-- still too schema-shaped
-- still too many visible concepts
-- ordering not yet direct manipulation
-- preview/library/editor balance still too heavy
+- recursive container/field editing
+- inline options and numeric-range editing
+- live input preview
+- direct manipulation through SortableJS
+- safe subtree copy/remove behavior
+- compact responsive pane navigation
 
 ## Rules For The Next Implementation Pass
-When coding Builder V2 next:
-- do not keep the current layout just because it works
-- do not expose schema metadata in the main flow
-- do not add more features before reducing mental load
-- do not optimize for developer visibility over client usability
+Do not restart the builder architecture unless real clinic use exposes a concrete blocker.
 
-The next coding pass should implement:
-- Phase 1 shell
-- then Phase 2 editing flow
-
-Not everything at once.
+Next priority:
+- real clinic-device and real-data print QA
+- builder bug fixes only when confirmed through actual use
+- preserve the calm recursive canvas and keep technical metadata behind `Advanced`

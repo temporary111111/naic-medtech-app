@@ -22,6 +22,7 @@ Printing is a high-importance feature because this is the result document the cl
 The first print configuration foundation, builder-side preview confidence pass, controlled result-body options, generic signatory configuration, compact real-form result layout, actual-record print smoke coverage, and repeatable browser PDF page-count QA are implemented.
 
 Implemented:
+- The recursive builder shell that owns `Print` and `Signatories` has now passed browser QA across duplicate-form startup, nested edits, save/reload, light/dark, desktop, tablet, and mobile layouts.
 - Builder fields now support `props.required`.
 - Completing a record validates configured required fields.
 - Form versions can store generic record identity config at `block_schema.meta.record_identity`.

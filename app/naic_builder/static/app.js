@@ -2196,7 +2196,7 @@ function setBoundValue(target, bind, rawValue) {
 
 function makeBlankGroup() {
   return {
-    id: `blk_${slugify(`group_${Date.now()}`)}`,
+    id: freshBlockId("field_group", "new_container"),
     kind: "field_group",
     name: "New Container",
     props: {
@@ -2210,7 +2210,7 @@ function makeBlankGroup() {
 
 function makeBlankField() {
   return {
-    id: `blk_${slugify(`field_${Date.now()}`)}`,
+    id: freshBlockId("field", "new_field"),
     kind: "field",
     name: "New Field",
     props: {
@@ -2231,7 +2231,7 @@ function makeBlankField() {
 
 function makeBlankSection() {
   return {
-    id: `blk_${slugify(`section_${Date.now()}`)}`,
+    id: freshBlockId("section", "new_container"),
     kind: "section",
     name: "New Container",
     props: {
@@ -2245,7 +2245,7 @@ function makeBlankSection() {
 
 function makeBlankNote() {
   return {
-    id: `blk_${slugify(`note_${Date.now()}`)}`,
+    id: freshBlockId("note", "note"),
     kind: "note",
     name: "Note",
     props: {
@@ -2260,7 +2260,7 @@ function makeBlankNote() {
 
 function makeBlankDivider() {
   return {
-    id: `blk_${slugify(`divider_${Date.now()}`)}`,
+    id: freshBlockId("divider", "divider"),
     kind: "divider",
     name: "Divider",
     props: {
@@ -2275,7 +2275,7 @@ function makeBlankDivider() {
 
 function makeBlankTable() {
   return {
-    id: `blk_${slugify(`table_${Date.now()}`)}`,
+    id: freshBlockId("table", "results_table"),
     kind: "table",
     name: "Results Table",
     props: {
@@ -2433,15 +2433,34 @@ function cloneNode(node) {
     if (props.key) {
       props.key = `${slugify(props.key)}_copy`;
     }
-    if (!copy.id) {
-      copy.id = `blk_${slugify(`${copy.kind || "node"}_${Date.now()}`)}`;
-    }
+    refreshClonedBlockIds(copy);
     return copy;
   }
   if (copy.key) {
     copy.key = `${slugify(copy.key)}_copy`;
   }
   return copy;
+}
+
+function refreshClonedBlockIds(node) {
+  if (!isStoredBlockNode(node)) {
+    return;
+  }
+
+  const props = getNodeProps(node);
+  node.id = freshBlockId(node.kind || "node", props.key || node.name || "copy");
+
+  if (blockKind(node) === "field") {
+    const usedOptionKeys = new Set();
+    getInputOptions(node).forEach((option, index) => {
+      const key = uniqueSlug(option.key || option.name || `option_${index + 1}`, usedOptionKeys);
+      option.id = `${node.id}.${key}`;
+      option.key = key;
+      option.order = index + 1;
+    });
+  }
+
+  getNodeChildren(node).forEach(refreshClonedBlockIds);
 }
 
 function inferInputType(field) {
@@ -3733,6 +3752,11 @@ function renderUtilityBlockCard(node, path) {
         <div>
           <h4 class="item-display-title">${escapeHtml(node.name || title)}</h4>
         </div>
+        <div class="row-actions">
+          <button class="drag-handle" type="button" title="Drag to reorder" aria-label="Drag to reorder">
+            <span class="drag-dots" aria-hidden="true"></span>
+          </button>
+        </div>
       </div>
       <p class="item-focus-copy">${escapeHtml(
         isNote
@@ -4844,12 +4868,50 @@ function setupSortableCollections() {
           return;
         }
 
-        moveWithinCollection(collectionPath, event.oldIndex, event.newIndex);
+        moveCollectionElementByVisibleOrder(collectionPath, event);
       },
     });
 
     sortableInstances.push(sortable);
   });
+}
+
+function collectionIndexFromElement(element, collectionPath) {
+  if (!(element instanceof HTMLElement)) {
+    return null;
+  }
+
+  const nodePath = decodePath(element.dataset.nodePath || "");
+  if (!pathStartsWith(nodePath, collectionPath)) {
+    return null;
+  }
+
+  const index = nodePath[collectionPath.length];
+  return Number.isInteger(index) ? index : null;
+}
+
+function moveCollectionElementByVisibleOrder(collectionPath, event) {
+  const fromIndex = collectionIndexFromElement(event.item, collectionPath);
+  if (fromIndex == null || !(event.to instanceof HTMLElement)) {
+    return;
+  }
+
+  const visibleElements = [...event.to.children].filter((element) => collectionIndexFromElement(element, collectionPath) != null);
+  const visibleIndex = visibleElements.indexOf(event.item);
+  if (visibleIndex < 0) {
+    return;
+  }
+
+  const nextIndex = collectionIndexFromElement(visibleElements[visibleIndex + 1], collectionPath);
+  if (nextIndex != null) {
+    moveWithinCollection(collectionPath, fromIndex, nextIndex - (fromIndex < nextIndex ? 1 : 0));
+    return;
+  }
+
+  const previousIndex = collectionIndexFromElement(visibleElements[visibleIndex - 1], collectionPath);
+  if (previousIndex != null) {
+    moveWithinCollection(collectionPath, fromIndex, previousIndex + (fromIndex < previousIndex ? 0 : 1));
+  }
 }
 
 async function saveDraft() {

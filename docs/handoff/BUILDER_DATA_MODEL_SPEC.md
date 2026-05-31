@@ -36,6 +36,11 @@ The current Content UI is recursive:
 - field name/input type editing happens inside the field card
 - extra field details such as required status, references, normal range, and choice options stay collapsed until opened
 
+Current stabilization rules:
+- copying a container or field must assign fresh IDs recursively to the copied subtree and its choice options
+- drag ordering must resolve real collection positions from each visible node path, not assume DOM indexes always match storage indexes
+- this distinction matters because `Advanced` utility blocks can stay stored while hidden from the normal Content view
+
 If the product later needs separate section/group behavior, expose it as an advanced container display setting instead of bringing back separate default primitives.
 
 ## Recommended Entity Model

@@ -11,7 +11,7 @@
   "main_goal_status": "core_done_cleanup_remaining",
   "locked_ui_direction": {
     "design_language": "clinical_depth_luxe",
-    "status": "authenticated_shell_content_first_compact_work_surface_public_auth_settings_ia_account_profile_clinic_profile_and_settings_utility_pass_landed_print_configuration_phase_2e_compact_grid_pass_landed",
+    "status": "authenticated_shell_content_first_compact_work_surface_public_auth_settings_ia_account_profile_clinic_profile_settings_utility_recursive_builder_browser_qa_and_print_configuration_phase_2f_pass_landed",
     "mode_pair": {
       "light": "artifacts/ui-explorations/records-home-modern-clinical-depth-luxe.html",
       "dark": "artifacts/ui-explorations/records-home-modern-clinical-depth-luxe-dark-deeper.html"
@@ -69,7 +69,9 @@
         "The public auth follow-up then moved /login, /request-account, and /setup to the same compact utility-card language too, replacing the older heavy auth panel plus long helper-list composition with one direct form card and one compact facts card.",
         "Settings > Users & access now keeps search and status filters inside the Accounts directory header, so the staff list reads as one directory surface instead of a separate toolbar plus list.",
         "/records/history now keeps search and status filters inside the History section header, so lookup reads as one history surface and search preserves the active Completed/Drafts/All filter.",
-        "The builder stabilization pass is now landed too: builder-specific light/dark surfaces are tokenized, organizer rows no longer inherit primary button styling, preview is opt-in instead of open by default, command actions are grouped, and the workspace header no longer sticks over builder content while scrolling."
+        "The builder stabilization pass is now landed too: builder-specific light/dark surfaces are tokenized, organizer rows no longer inherit primary button styling, preview is opt-in instead of open by default, command actions are grouped, and the workspace header no longer sticks over builder content while scrolling.",
+        "The recursive builder integration has now passed a real-browser QA pass too: duplicate-form startup, nested containers and fields, choice options, numeric ranges, subtree copy/remove, mixed advanced-block ordering, save/reload persistence, light/dark contrast, and desktop/tablet/mobile layouts were checked directly.",
+        "Builder subtree copies now refresh block and option IDs recursively, SortableJS ordering now resolves real collection positions even while Advanced utility blocks are hidden, advanced utility cards expose drag handles, and tablet/mobile workspace tabs stay compact and reachable above the editor."
       ]
     },
     "notes": [
@@ -212,6 +214,10 @@
       "builder duplicate actions now route through the guided create screen instead of forking immediately in place"
     ],
     "workspace_behavior": [
+      "the current Content pane is a recursive in-place canvas: containers collapse and expand where they live, fields edit inside their cards, and deeper details open inline only when needed",
+      "subtree copy is identity-safe now: every copied block and copied choice option receives a fresh recursive ID",
+      "mixed visible/hidden ordering is safe now: SortableJS maps visible node paths back to real stored collection positions so hidden Advanced utility blocks do not corrupt reorder results",
+      "tablet and mobile workspace navigation now stays above the editor as compact tabs; it no longer becomes a tall vertical block or falls below a long form",
       "the builder workspace now uses a left outline plus one focused editing context at a time",
       "the default workspace now lands on a single Content pane driven by real root block order instead of splitting the main flow into separate ungrouped-fields and sections panes",
       "the live top-level builder flow now stays on just Basics, Content, and Save",
@@ -603,14 +609,21 @@
     "Do not make the client dependent on programmers for ordinary exam changes"
   ],
   "builder_v2_direction": {
-    "status": "active",
+    "status": "browser_audited_foundation_landed",
     "summary": "Reduce mental load first. The builder should feel calm, step-like, and non-technical.",
     "current_progress": {
       "phase_1_shell": "completed",
       "phase_2_core_editing": "implemented",
       "phase_3_direct_manipulation": "implemented",
-      "phase_4_polish": "advanced_in_progress",
+      "phase_4_polish": "browser_audited_foundation_landed",
+      "phase_5_stabilization": "builder_foundation_ready_for_client_review",
       "implemented_improvements": [
+        "recursive in-place content canvas for root and nested containers and fields",
+        "fresh recursive IDs for copied block subtrees and copied choice options",
+        "hidden-advanced-safe SortableJS collection mapping",
+        "advanced utility-card drag handles",
+        "compact responsive workspace tabs above the editor on tablet and mobile",
+        "real-browser duplicate, nested-edit, copy/remove, reorder, save/reload, light/dark, desktop, tablet, and mobile QA",
         "collapsible form library drawer",
         "docked side-by-side live preview panel on desktop",
         "preview promoted to a first-class live-preview callout in the main flow",
@@ -679,9 +692,9 @@
         "the library header itself is tighter too: spacing is calmer, the top band sits lower visually, and the first impression is less crowded"
       ],
       "remaining_builder_v2_gaps": [
-        "less header and action noise",
-        "final client-ready visual polish",
-        "real-use stabilization and QA"
+        "real client review",
+        "confirmed bug fixes from actual use",
+        "real clinic-device and real-data print QA before optional builder expansion"
       ]
     },
     "primary_ui_rules": [

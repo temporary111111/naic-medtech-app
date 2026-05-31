@@ -3541,6 +3541,29 @@ html[data-theme="dark"] .shell .identity-check {
     grid-template-columns: 1fr;
   }
 
+  .shell .outline-panel {
+    padding: 10px;
+  }
+
+  .shell .builder-outline {
+    gap: 0;
+  }
+
+  .shell .outline-head {
+    display: none;
+  }
+
+  .shell .outline-nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .shell .outline-item {
+    justify-content: center;
+    padding: 9px 8px;
+    text-align: center;
+  }
+
   .shell .content-workspace-grid {
     grid-template-columns: 1fr;
   }
@@ -3613,7 +3636,7 @@ html[data-theme="dark"] .shell .identity-check {
   }
 
   .shell .outline-panel {
-    order: 2;
+    order: 0;
   }
 
   .shell .preview-panel {
@@ -3650,6 +3673,12 @@ html[data-theme="dark"] .shell .identity-check {
   }
 
   .signatory-toggle-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .shell .outline-nav {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
