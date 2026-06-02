@@ -6,7 +6,9 @@ The desktop foundation is implemented as a local-first deployment mode. It is no
 
 The web application remains the product core. The desktop layer is intentionally thin so future multi-user deployment does not require rewriting the FastAPI application.
 
-The source-level launcher, fresh-runtime smoke path, manifest, and verified backup foundation have been validated. PyInstaller `6.20.0` is installed in the project virtual environment through Python's Windows trust store, without bypassing TLS certificate checks. Inno Setup `6.7.3` is installed too. The normal windowed package now passes the automated local-server and verified-backup smoke checks, and a development installer has been generated at `dist/desktop/installer/NDHI-LabRecords-Setup-0.1.0-dev-x64.exe`.
+The source-level launcher, fresh-runtime smoke path, manifest, and verified backup foundation have been validated. PyInstaller `6.20.0` is installed in the project virtual environment through Python's Windows trust store, without bypassing TLS certificate checks. Inno Setup `6.7.3` is installed too. The normal windowed package now passes the automated local-server and verified-backup smoke checks, and the current development installer is `dist/desktop/installer/NDHI-LabRecords-Setup-0.1.1-dev-x64.exe`.
+
+The first installed `0.1.0-dev` build was manually launched successfully on the development PC. Its running installed edition also created and re-verified a backup archive under `%ProgramData%\NDHI\LabRecords\backups`, proving that the online SQLite backup foundation works against the installed runtime while the local server is active. `0.1.1-dev` fixes misleading success-exit log entries and is the current upgrade-test build.
 
 This is a testable development installer, not a clinic release. Manual installed-app QA, Defender-enabled clean-PC QA, real-printer QA, restore drills, automatic backup scheduling, external backup configuration, upgrade safety, and Authenticode signing are still required.
 

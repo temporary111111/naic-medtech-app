@@ -233,7 +233,7 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         raise SystemExit(main())
-    except BaseException:
+    except Exception:
         raw_data_dir = os.environ.get("NDHI_LABRECORDS_DATA_DIR", "")
         if raw_data_dir:
             try:
