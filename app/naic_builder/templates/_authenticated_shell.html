@@ -177,6 +177,7 @@
   </div>
 
   {% block page_scripts %}{% endblock %}
+  <script src="{{ url_for('static', path='password-toggle.js') }}?v=20260606-password-toggle" defer></script>
   <script src="{{ url_for('static', path='shell.js') }}" defer></script>
 </body>
 </html>

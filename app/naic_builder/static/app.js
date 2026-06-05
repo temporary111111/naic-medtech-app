@@ -5492,14 +5492,14 @@ formEditorEl.addEventListener("change", (event) => {
 });
 builderOutlineEl?.addEventListener("click", handleOutlineClick);
 previewCanvasEl?.addEventListener("click", handlePreviewClick);
-formEditorEl.addEventListener("toggle", (event) => {
+document.addEventListener("toggle", (event) => {
   const details = event.target;
   if (!(details instanceof HTMLDetailsElement) || !details.open) {
     return;
   }
 
   if (details.classList.contains("action-details") || details.classList.contains("manage-details")) {
-    formEditorEl.querySelectorAll(".action-details[open], .manage-details[open]").forEach((item) => {
+    document.querySelectorAll(".action-details[open], .manage-details[open]").forEach((item) => {
       if (item !== details) {
         item.open = false;
       }
@@ -5507,7 +5507,7 @@ formEditorEl.addEventListener("toggle", (event) => {
   }
 
   if (details.classList.contains("inline-help")) {
-    formEditorEl.querySelectorAll(".inline-help[open]").forEach((item) => {
+    document.querySelectorAll(".inline-help[open]").forEach((item) => {
       if (item !== details) {
         item.open = false;
       }
@@ -5525,7 +5525,13 @@ document.addEventListener("click", (event) => {
     return;
   }
 
-  if (target.closest(".action-details, .manage-details, .inline-help")) {
+  const activeDetails = target.closest(".action-details, .manage-details, .inline-help");
+  if (activeDetails instanceof HTMLDetailsElement) {
+    document.querySelectorAll(".action-details[open], .manage-details[open], .inline-help[open]").forEach((item) => {
+      if (item !== activeDetails) {
+        item.open = false;
+      }
+    });
     return;
   }
 

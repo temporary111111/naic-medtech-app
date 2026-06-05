@@ -8,7 +8,7 @@
   <link rel="manifest" href="{{ url_for('static', path='manifest.webmanifest') }}">
   <script src="{{ url_for('static', path='theme.js') }}"></script>
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20260606-password-toggle">
   <link rel="stylesheet" href="{{ url_for('static', path='theme.css') }}">
 </head>
 <body>
@@ -94,5 +94,6 @@
       </aside>
     </section>
   </main>
+  <script src="{{ url_for('static', path='password-toggle.js') }}?v=20260606-password-toggle" defer></script>
 </body>
 </html>

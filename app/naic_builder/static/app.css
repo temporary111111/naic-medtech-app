@@ -79,8 +79,11 @@ textarea {
 }
 
 .builder-command-bar {
+  position: relative;
+  z-index: 20;
   padding: 12px 14px;
   border-radius: var(--radius-lg);
+  overflow: visible;
 }
 
 .builder-command-bar .brand-block {
@@ -904,10 +907,12 @@ button.subtle[aria-pressed="true"] {
 .section-card,
 .item-card,
 .preview-card {
+  position: relative;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.82);
   padding: 14px;
+  overflow: visible;
 }
 
 .editor-card {
@@ -1245,6 +1250,15 @@ button.subtle[aria-pressed="true"] {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(250, 245, 238, 0.9));
 }
 
+.section-card:hover,
+.section-card:focus-within,
+.section-card:has(.action-details[open]),
+.item-card:hover,
+.item-card:focus-within,
+.item-card:has(.action-details[open]) {
+  z-index: 30;
+}
+
 .section-card.is-focused {
     max-width: 860px;
 }
@@ -1316,6 +1330,11 @@ button.subtle[aria-pressed="true"] {
 
 .action-details {
   position: relative;
+  z-index: 1;
+}
+
+.action-details[open] {
+  z-index: 120;
 }
 
 .action-details summary {
@@ -1370,7 +1389,7 @@ button.subtle[aria-pressed="true"] {
   border-radius: var(--radius-md);
   background: rgba(255, 252, 247, 0.98);
   box-shadow: 0 18px 34px rgba(38, 29, 20, 0.12);
-  z-index: 8;
+  z-index: 130;
 }
 
 .action-menu button {
@@ -2957,6 +2976,8 @@ textarea:focus,
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
+  position: relative;
+  z-index: 40;
   width: var(--builder-rail-width);
   margin-inline: 0;
   align-items: center;
