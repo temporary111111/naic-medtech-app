@@ -10,7 +10,25 @@ The installed shortcut launches `NDHI-LabRecords.exe`. The launcher:
 2. generates a machine-local session secret if needed;
 3. starts the FastAPI server on `127.0.0.1:8114` if it is not already healthy;
 4. waits for `/api/health`;
-5. opens Microsoft Edge in dedicated `--app=` mode, with default-browser fallback.
+5. opens the configured browser in dedicated app mode, with Edge as the safe default.
+
+Browser preference is intentionally a launcher/runtime setting, not an installer-only decision. The installed launcher reads:
+
+```text
+%ProgramData%\NDHI\LabRecords\config\desktop.json
+```
+
+Supported values:
+
+```json
+{ "browser_preference": "auto" }
+```
+
+Allowed values are `auto`, `edge`, `chrome`, and `default`. `auto` tries Edge first, then Chrome, then the default browser as a last-resort fallback. Command-line override is also available:
+
+```powershell
+NDHI-LabRecords.exe --browser chrome
+```
 
 The site also ships a web app manifest so the browser-installable PWA path remains available. The launcher does not depend on browser PWA registration because browser profile state is not a reliable startup contract.
 

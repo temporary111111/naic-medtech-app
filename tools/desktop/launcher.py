@@ -21,6 +21,9 @@ DEFAULT_PORT = 8114
 APP_PATH = "/records"
 PRODUCT_ID = "ndhi-labrecords"
 SESSION_SECRET_FILENAME = "session-secret.txt"
+DESKTOP_CONFIG_FILENAME = "desktop.json"
+BROWSER_PREFERENCE_ENV = "NDHI_LABRECORDS_BROWSER"
+SUPPORTED_BROWSERS = {"auto", "edge", "chrome", "default"}
 CREATE_NO_WINDOW = 0x08000000
 DETACHED_PROCESS = 0x00000008
 _PROCESS_STREAMS = []
@@ -57,6 +60,39 @@ def prepare_runtime_environment(data_dir: Path) -> None:
 
     os.environ["NDHI_LABRECORDS_DATA_DIR"] = str(data_dir)
     os.environ["NDHI_SESSION_SECRET"] = secret_path.read_text(encoding="utf-8").strip()
+
+
+def desktop_config_path(data_dir: Path) -> Path:
+    return data_dir / "config" / DESKTOP_CONFIG_FILENAME
+
+
+def normalize_browser_preference(value: str | None) -> str:
+    preference = (value or "").strip().lower()
+    return preference if preference in SUPPORTED_BROWSERS else "auto"
+
+
+def read_desktop_config(data_dir: Path) -> dict[str, str]:
+    config_path = desktop_config_path(data_dir)
+    if not config_path.exists():
+        return {}
+    try:
+        raw_config = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        append_startup_log(data_dir, f"Ignoring unreadable desktop config: {config_path}")
+        return {}
+    if not isinstance(raw_config, dict):
+        append_startup_log(data_dir, f"Ignoring invalid desktop config: {config_path}")
+        return {}
+    return {str(key): str(value) for key, value in raw_config.items()}
+
+
+def browser_preference_from_config(data_dir: Path, override: str = "") -> str:
+    if override:
+        return normalize_browser_preference(override)
+    env_preference = normalize_browser_preference(os.environ.get(BROWSER_PREFERENCE_ENV))
+    if os.environ.get(BROWSER_PREFERENCE_ENV):
+        return env_preference
+    return normalize_browser_preference(read_desktop_config(data_dir).get("browser_preference"))
 
 
 def append_startup_log(data_dir: Path, message: str) -> None:
@@ -142,12 +178,50 @@ def find_edge_executable() -> Path | None:
     return Path(edge_on_path) if edge_on_path else None
 
 
-def open_app_window(port: int) -> None:
+def find_chrome_executable() -> Path | None:
+    candidate_paths = [
+        Path(os.environ.get("ProgramFiles", "")) / "Google" / "Chrome" / "Application" / "chrome.exe",
+        Path(os.environ.get("ProgramFiles(x86)", "")) / "Google" / "Chrome" / "Application" / "chrome.exe",
+        Path(os.environ.get("LOCALAPPDATA", "")) / "Google" / "Chrome" / "Application" / "chrome.exe",
+    ]
+    for candidate in candidate_paths:
+        if candidate.is_file():
+            return candidate
+    chrome_on_path = shutil.which("chrome")
+    return Path(chrome_on_path) if chrome_on_path else None
+
+
+def open_with_browser(browser: str, url: str) -> bool:
+    if browser == "edge":
+        browser_path = find_edge_executable()
+    elif browser == "chrome":
+        browser_path = find_chrome_executable()
+    else:
+        return False
+    if not browser_path:
+        return False
+    subprocess.Popen([str(browser_path), f"--app={url}", "--start-maximized"], close_fds=True)
+    return True
+
+
+def browser_attempt_order(preference: str) -> list[str]:
+    if preference == "edge":
+        return ["edge", "chrome"]
+    if preference == "chrome":
+        return ["chrome", "edge"]
+    if preference == "default":
+        return []
+    return ["edge", "chrome"]
+
+
+def open_app_window(port: int, data_dir: Path, browser_preference: str) -> None:
     url = app_url(port)
-    edge_path = find_edge_executable()
-    if edge_path:
-        subprocess.Popen([str(edge_path), f"--app={url}", "--start-maximized"], close_fds=True)
-        return
+    preference = normalize_browser_preference(browser_preference)
+    for browser in browser_attempt_order(preference):
+        if open_with_browser(browser, url):
+            append_startup_log(data_dir, f"Opened desktop app using {browser}.")
+            return
+    append_startup_log(data_dir, "Opening desktop app using default browser fallback.")
     webbrowser.open(url, new=1)
 
 
@@ -202,6 +276,7 @@ def main() -> int:
     parser.add_argument("--serve", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--backup-now", action="store_true", help="Create a verified local backup.")
     parser.add_argument("--verify-backup", metavar="ARCHIVE", help="Verify an existing backup archive.")
+    parser.add_argument("--browser", choices=sorted(SUPPORTED_BROWSERS), default="")
     parser.add_argument("--reason", default="manual")
     parser.add_argument("--destination", default="")
     args = parser.parse_args()
@@ -209,6 +284,7 @@ def main() -> int:
     data_dir = data_dir_from_args(args.data_dir)
     prepare_runtime_environment(data_dir)
     ensure_process_streams(data_dir)
+    browser_preference = browser_preference_from_config(data_dir, args.browser)
     append_startup_log(data_dir, f"Launcher entered mode: {'serve' if args.serve else 'backup' if args.backup_now else 'verify' if args.verify_backup else 'desktop'}.")
 
     if args.serve:
@@ -226,7 +302,7 @@ def main() -> int:
             f"Check the logs under:\n{data_dir / 'logs'}"
         )
         return 1
-    open_app_window(args.port)
+    open_app_window(args.port, data_dir, browser_preference)
     return 0
 
 
