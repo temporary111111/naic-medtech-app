@@ -23,7 +23,7 @@
         <span>{{ fit.detail or "Use browser print preview for final confirmation." }}</span>
       </div>
       <div class="print-toolbar-actions">
-        <a class="print-link" href="/records/{{ record_meta['id'] }}">Back</a>
+        <a class="print-link" href="{{ back_href }}">{{ back_label }}</a>
         <button class="print-button" type="button" onclick="window.print()">Print / Save PDF</button>
       </div>
     </div>

@@ -639,12 +639,15 @@ def render_record_print_page(
 
     clinic_profile = get_clinic_profile(session)
     clinic_logo_url = "/settings/clinic/logo" if clinic_profile.get("has_logo") else ""
+    back_to_history = request.query_params.get("from") == "history"
 
     return templates.TemplateResponse(
         request=request,
         name="records/print.html",
         context={
             "app_title": APP_TITLE,
+            "back_href": f"/records/{record.id}?from=history" if back_to_history else f"/records/{record.id}",
+            "back_label": "Back to record",
             "document": build_record_print_document(
                 record,
                 clinic_profile=clinic_profile,

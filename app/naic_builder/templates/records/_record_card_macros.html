@@ -28,7 +28,7 @@
     <a class="ghost-button" href="{{ view_href }}">View</a>
     {% else %}
     <a class="primary-button" href="{{ view_href }}">View</a>
-    <a class="ghost-button" href="/records/{{ record.id }}/print" target="_blank" rel="noopener">Print</a>
+    <a class="ghost-button" href="/records/{{ record.id }}/print{% if from_history %}?from=history{% endif %}">Print</a>
     {% endif %}
   </div>
 </article>
