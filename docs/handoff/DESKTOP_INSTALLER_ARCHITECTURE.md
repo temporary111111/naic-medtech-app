@@ -32,11 +32,37 @@ NDHI Laboratory Records desktop shortcut
   -> ensure persistent runtime folders and machine-local session secret
   -> start bundled FastAPI server if /api/health is not already healthy
   -> bind only to 127.0.0.1:8114
-  -> open Microsoft Edge in dedicated --app= mode
-  -> default-browser fallback only if Edge cannot be found
+  -> open the configured browser in dedicated app mode
+  -> default-browser fallback only if app-mode browser launch cannot be satisfied
 ```
 
-The browser-powered window is the recommended initial desktop shell. It keeps browser printing behavior intact while avoiding an early rewrite into a native UI framework. A PWA manifest is shipped too, but daily launch does not depend on browser-profile PWA registration.
+The browser-powered window is the recommended initial desktop shell. It keeps browser printing behavior intact while avoiding an early rewrite into a native UI framework. Edge remains the reliable default because it is normally present on supported Windows machines, but the launcher also supports Chrome and default-browser fallback. A PWA manifest is shipped too, but daily launch does not depend on browser-profile PWA registration.
+
+Browser preference is runtime configuration, not an installer-only decision:
+
+```text
+%ProgramData%\NDHI\LabRecords\config\desktop.json
+```
+
+```json
+{ "browser_preference": "auto" }
+```
+
+Allowed values are `auto`, `edge`, `chrome`, and `default`. `auto` tries Edge, then Chrome, then the default browser. The launcher also accepts `--browser auto|edge|chrome|default` for shortcut/testing overrides.
+
+Admins can edit this local machine preference from `Settings -> Desktop app`. Keep it out of the main database because future multi-PC deployments may need different browser preferences per workstation.
+
+The same Settings page now includes LAN access. `network_mode=local` binds the server to `127.0.0.1`; `network_mode=lan` binds it to `0.0.0.0` while still opening the host PC's desktop window through `127.0.0.1`. Settings shows a hostname URL first and local IPv4 fallback URLs for other clinic PCs. The default port remains `8114`; do not switch to port `80` by default because it increases permission, conflict, and firewall risk.
+
+The host PC is the only machine that should own the SQLite database and backup folder. Other LAN devices should connect through the host URL in a normal browser. Never place the SQLite database on a network share and never run multiple installed desktop servers against the same database.
+
+If Windows Firewall blocks LAN access, run this on the host PC as Administrator:
+
+```powershell
+.\tools\desktop\enable-lan-access.ps1
+```
+
+LAN mode is for trusted clinic networks only. Do not configure router port forwarding or expose the app directly to the internet.
 
 ## Installed Paths
 

@@ -17,13 +17,16 @@ from pathlib import Path
 
 
 HOST = "127.0.0.1"
+LAN_BIND_HOST = "0.0.0.0"
 DEFAULT_PORT = 8114
 APP_PATH = "/records"
 PRODUCT_ID = "ndhi-labrecords"
 SESSION_SECRET_FILENAME = "session-secret.txt"
 DESKTOP_CONFIG_FILENAME = "desktop.json"
 BROWSER_PREFERENCE_ENV = "NDHI_LABRECORDS_BROWSER"
+NETWORK_MODE_ENV = "NDHI_LABRECORDS_NETWORK_MODE"
 SUPPORTED_BROWSERS = {"auto", "edge", "chrome", "default"}
+SUPPORTED_NETWORK_MODES = {"local", "lan"}
 CREATE_NO_WINDOW = 0x08000000
 DETACHED_PROCESS = 0x00000008
 _PROCESS_STREAMS = []
@@ -71,6 +74,11 @@ def normalize_browser_preference(value: str | None) -> str:
     return preference if preference in SUPPORTED_BROWSERS else "auto"
 
 
+def normalize_network_mode(value: str | None) -> str:
+    mode = (value or "").strip().lower()
+    return mode if mode in SUPPORTED_NETWORK_MODES else "local"
+
+
 def read_desktop_config(data_dir: Path) -> dict[str, str]:
     config_path = desktop_config_path(data_dir)
     if not config_path.exists():
@@ -93,6 +101,19 @@ def browser_preference_from_config(data_dir: Path, override: str = "") -> str:
     if os.environ.get(BROWSER_PREFERENCE_ENV):
         return env_preference
     return normalize_browser_preference(read_desktop_config(data_dir).get("browser_preference"))
+
+
+def network_mode_from_config(data_dir: Path, override: str = "") -> str:
+    if override:
+        return normalize_network_mode(override)
+    env_mode = normalize_network_mode(os.environ.get(NETWORK_MODE_ENV))
+    if os.environ.get(NETWORK_MODE_ENV):
+        return env_mode
+    return normalize_network_mode(read_desktop_config(data_dir).get("network_mode"))
+
+
+def bind_host_for_network_mode(network_mode: str) -> str:
+    return LAN_BIND_HOST if normalize_network_mode(network_mode) == "lan" else HOST
 
 
 def append_startup_log(data_dir: Path, message: str) -> None:
@@ -148,7 +169,7 @@ def launcher_command(*args: str) -> list[str]:
     return [sys.executable, str(Path(__file__).resolve()), *args]
 
 
-def start_server(data_dir: Path, port: int) -> None:
+def start_server(data_dir: Path, port: int, bind_host: str, network_mode: str) -> None:
     log_dir = data_dir / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     stdout_path = log_dir / "server.out.log"
@@ -156,7 +177,17 @@ def start_server(data_dir: Path, port: int) -> None:
     creationflags = CREATE_NO_WINDOW | DETACHED_PROCESS if os.name == "nt" else 0
     with stdout_path.open("a", encoding="utf-8") as stdout_file, stderr_path.open("a", encoding="utf-8") as stderr_file:
         subprocess.Popen(
-            launcher_command("--serve", "--data-dir", str(data_dir), "--port", str(port)),
+            launcher_command(
+                "--serve",
+                "--data-dir",
+                str(data_dir),
+                "--port",
+                str(port),
+                "--host",
+                bind_host,
+                "--network-mode",
+                network_mode,
+            ),
             stdin=subprocess.DEVNULL,
             stdout=stdout_file,
             stderr=stderr_file,
@@ -232,9 +263,11 @@ def show_error(message: str) -> None:
     print(message, file=sys.stderr)
 
 
-def serve(port: int) -> int:
+def serve(port: int, host: str, network_mode: str) -> int:
     data_dir = data_dir_from_args(os.environ.get("NDHI_LABRECORDS_DATA_DIR", ""))
-    append_startup_log(data_dir, f"Importing Uvicorn for local server on {HOST}:{port}.")
+    os.environ["NDHI_LABRECORDS_BIND_HOST"] = host
+    os.environ[NETWORK_MODE_ENV] = normalize_network_mode(network_mode)
+    append_startup_log(data_dir, f"Importing Uvicorn for local server on {host}:{port}.")
     import uvicorn
 
     append_startup_log(data_dir, "Importing FastAPI application.")
@@ -243,7 +276,7 @@ def serve(port: int) -> int:
     append_startup_log(data_dir, "Starting Uvicorn event loop.")
     uvicorn.run(
         app,
-        host=HOST,
+        host=host,
         port=port,
         log_level="info",
         access_log=False,
@@ -274,6 +307,8 @@ def main() -> int:
     parser.add_argument("--data-dir", default=os.environ.get("NDHI_LABRECORDS_DATA_DIR", ""))
     parser.add_argument("--port", type=int, default=int(os.environ.get("NDHI_LABRECORDS_PORT", DEFAULT_PORT)))
     parser.add_argument("--serve", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--host", default="", help=argparse.SUPPRESS)
+    parser.add_argument("--network-mode", choices=sorted(SUPPORTED_NETWORK_MODES), default="", help=argparse.SUPPRESS)
     parser.add_argument("--backup-now", action="store_true", help="Create a verified local backup.")
     parser.add_argument("--verify-backup", metavar="ARCHIVE", help="Verify an existing backup archive.")
     parser.add_argument("--browser", choices=sorted(SUPPORTED_BROWSERS), default="")
@@ -285,17 +320,19 @@ def main() -> int:
     prepare_runtime_environment(data_dir)
     ensure_process_streams(data_dir)
     browser_preference = browser_preference_from_config(data_dir, args.browser)
+    network_mode = network_mode_from_config(data_dir, args.network_mode)
+    bind_host = args.host.strip() or bind_host_for_network_mode(network_mode)
     append_startup_log(data_dir, f"Launcher entered mode: {'serve' if args.serve else 'backup' if args.backup_now else 'verify' if args.verify_backup else 'desktop'}.")
 
     if args.serve:
-        return serve(args.port)
+        return serve(args.port, bind_host, network_mode)
     if args.backup_now:
         return create_backup(args.reason, args.destination)
     if args.verify_backup:
         return verify_backup(args.verify_backup)
 
     if not server_is_healthy(args.port):
-        start_server(data_dir, args.port)
+        start_server(data_dir, args.port, bind_host, network_mode)
     if not wait_for_server(args.port):
         show_error(
             "NDHI Laboratory Records could not start.\n\n"

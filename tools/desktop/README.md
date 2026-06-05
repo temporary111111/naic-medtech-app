@@ -30,6 +30,24 @@ Allowed values are `auto`, `edge`, `chrome`, and `default`. `auto` tries Edge fi
 NDHI-LabRecords.exe --browser chrome
 ```
 
+Admins can edit the same local preference from `Settings -> Desktop app`. The setting is per machine, not per user account.
+
+`Settings -> Desktop app` also controls same-network access:
+
+```json
+{ "network_mode": "local" }
+```
+
+Allowed values are `local` and `lan`. `local` binds the server to `127.0.0.1`. `lan` binds the server to `0.0.0.0` so other trusted clinic devices on the same LAN can open the app using the hostname/IP URLs shown in Settings. Keep the port at `8114` unless there is a specific support reason to change it.
+
+If another clinic PC cannot open the LAN URL after LAN mode is enabled and the desktop server has restarted, run PowerShell as Administrator on the host PC:
+
+```powershell
+.\tools\desktop\enable-lan-access.ps1
+```
+
+Do not expose the port to the internet or configure router port forwarding.
+
 The site also ships a web app manifest so the browser-installable PWA path remains available. The launcher does not depend on browser PWA registration because browser profile state is not a reliable startup contract.
 
 ## Developer commands

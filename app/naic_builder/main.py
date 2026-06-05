@@ -16,6 +16,14 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from .config import APP_TITLE, PRODUCT_ID, SESSION_SECRET, SIGNATORY_UPLOADS_DIR, STATIC_DIR, TEMPLATES_DIR
 from .database import SessionLocal, ensure_runtime_schema, get_session
+from .desktop_settings import (
+    BROWSER_PREFERENCE_OPTIONS,
+    NETWORK_MODE_OPTIONS,
+    detect_desktop_browsers,
+    lan_access_details,
+    read_desktop_settings,
+    save_desktop_settings,
+)
 from .schemas import (
     AccountRequestPayload,
     ClinicProfilePayload,
@@ -111,7 +119,7 @@ PUBLIC_PATHS = {
 }
 PUBLIC_PREFIXES = ("/static",)
 ADMIN_PREFIXES = ("/forms", "/folders", "/builder", "/api/forms", "/api/builder", "/api/library")
-ADMIN_SETTINGS_PREFIXES = ("/settings/users",)
+ADMIN_SETTINGS_PREFIXES = ("/settings/users", "/settings/desktop")
 
 
 def redirect_for_html(path: str) -> RedirectResponse:
@@ -343,6 +351,31 @@ def render_settings_users_page(
             "pending_count": count_users(session, status="pending"),
             "active_count": count_users(session, status="active"),
             "disabled_count": count_users(session, status="disabled"),
+            "error_message": error_message,
+            "success_message": success_message,
+        },
+        status_code=status_code,
+    )
+
+
+def render_settings_desktop_page(
+    request: Request,
+    *,
+    settings_override: dict[str, str] | None = None,
+    error_message: str = "",
+    success_message: str = "",
+    status_code: int = 200,
+) -> HTMLResponse:
+    return templates.TemplateResponse(
+        request=request,
+        name="settings/desktop.html",
+        context={
+            "app_title": APP_TITLE,
+            "desktop_settings": settings_override or read_desktop_settings(),
+            "browser_options": BROWSER_PREFERENCE_OPTIONS,
+            "network_options": NETWORK_MODE_OPTIONS,
+            "browser_status": detect_desktop_browsers(),
+            "lan_access": lan_access_details(),
             "error_message": error_message,
             "success_message": success_message,
         },
@@ -1655,6 +1688,22 @@ def settings_clinic_logo_file(session: Session = Depends(get_session)) -> FileRe
         media_type=str(clinic_profile.get("logo_mime_type") or "") or None,
         filename=str(clinic_profile.get("logo_original_filename") or "") or None,
     )
+
+
+@app.get("/settings/desktop", response_class=HTMLResponse)
+def settings_desktop_page(request: Request) -> HTMLResponse:
+    success_message = "Saved the desktop app settings." if request.query_params.get("saved") == "1" else ""
+    return render_settings_desktop_page(request, success_message=success_message)
+
+
+@app.post("/settings/desktop")
+async def save_settings_desktop_page(request: Request):
+    form = await request.form()
+    save_desktop_settings(
+        browser_preference=str(form.get("browser_preference") or ""),
+        network_mode=str(form.get("network_mode") or ""),
+    )
+    return RedirectResponse(url="/settings/desktop?saved=1", status_code=303)
 
 
 @app.get("/settings/users", response_class=HTMLResponse)

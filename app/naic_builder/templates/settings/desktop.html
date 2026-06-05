@@ -1,0 +1,164 @@
+{% extends "_authenticated_shell.html" %}
+{% set shell_active = "settings" %}
+{% set settings_active = "desktop" %}
+
+{% block html_title %}Desktop App | {{ app_title }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}">
+{% endblock %}
+
+{% block shell_eyebrow %}Settings{% endblock %}
+{% block shell_title %}Desktop app{% endblock %}
+{% block shell_description %}{% endblock %}
+
+{% block topbar_actions %}
+  <button class="primary-button" type="submit" form="desktopSettingsForm">Save changes</button>
+{% endblock %}
+
+{% block content %}
+  <div class="auth-shell">
+    {% include "settings/_settings_nav.html" %}
+
+    <section class="settings-utility-grid">
+      <div class="settings-utility-main">
+        {% if error_message %}
+        <div class="banner error">{{ error_message }}</div>
+        {% endif %}
+        {% if success_message %}
+        <div class="banner success">{{ success_message }}</div>
+        {% endif %}
+
+        <form id="desktopSettingsForm" method="post" action="/settings/desktop" class="panel settings-utility-card">
+          <div class="section-head settings-utility-head">
+            <div>
+              <p class="eyebrow">Local machine</p>
+              <h2>Desktop launch and access</h2>
+            </div>
+            <span class="settings-utility-pill">Desktop launcher</span>
+          </div>
+
+          <div class="settings-utility-section">
+            <label class="field-stack">
+              <span>Preferred browser</span>
+              <select name="browser_preference">
+                {% for option in browser_options %}
+                <option value="{{ option.value }}" {% if desktop_settings.browser_preference == option.value %}selected{% endif %}>{{ option.label }}</option>
+                {% endfor %}
+              </select>
+              <p class="field-help">Used the next time the desktop shortcut opens the app. Auto is the safest clinic default.</p>
+            </label>
+          </div>
+
+          <div class="settings-utility-section">
+            <label class="field-stack">
+              <span>Same-network access</span>
+              <select name="network_mode">
+                {% for option in network_options %}
+                <option value="{{ option.value }}" {% if desktop_settings.network_mode == option.value %}selected{% endif %}>{{ option.label }}</option>
+                {% endfor %}
+              </select>
+              <p class="field-help">Use LAN only on the trusted clinic network. It takes effect when the desktop server starts.</p>
+            </label>
+          </div>
+
+          <div class="settings-utility-section">
+            {% for option in browser_options %}
+            <article class="user-card user-card--compact">
+              <div class="user-card-main">
+                <div class="user-card-copy">
+                  <div class="user-card-title-row">
+                    <h3>{{ option.label }}</h3>
+                    {% if option.value == desktop_settings.browser_preference %}
+                    <span class="status-chip" data-status="active">selected</span>
+                    {% endif %}
+                  </div>
+                  <p>{{ option.description }}</p>
+                </div>
+              </div>
+            </article>
+            {% endfor %}
+          </div>
+
+          <div class="settings-utility-section">
+            {% for option in network_options %}
+            <article class="user-card user-card--compact">
+              <div class="user-card-main">
+                <div class="user-card-copy">
+                  <div class="user-card-title-row">
+                    <h3>{{ option.label }}</h3>
+                    {% if option.value == desktop_settings.network_mode %}
+                    <span class="status-chip" data-status="active">selected</span>
+                    {% endif %}
+                  </div>
+                  <p>{{ option.description }}</p>
+                </div>
+              </div>
+            </article>
+            {% endfor %}
+          </div>
+
+          <div class="settings-utility-actions">
+            <button class="primary-button" type="submit">Save desktop settings</button>
+          </div>
+        </form>
+      </div>
+
+      <aside class="panel settings-utility-card settings-utility-card--aside">
+        <div class="section-head settings-utility-head">
+          <div>
+            <p class="eyebrow">LAN access</p>
+            <h2>This PC</h2>
+          </div>
+        </div>
+
+        <div class="settings-utility-section">
+          <label class="field-stack">
+            <span>Use this on another clinic PC</span>
+            <input type="text" value="{{ lan_access.hostname_url }}" readonly>
+            <p class="field-help">Recommended link. Works when Windows/network hostname lookup is available.</p>
+          </label>
+
+          {% if lan_access.ip_urls %}
+          <label class="field-stack">
+            <span>If the first link does not work</span>
+            <input type="text" value="{{ lan_access.ip_urls[0] }}" readonly>
+            <p class="field-help">Fallback link using this PC's local network address.</p>
+          </label>
+          {% else %}
+          <div class="banner">
+            No LAN IP address was detected yet. Connect this PC to the clinic network, then refresh this page.
+          </div>
+          {% endif %}
+
+          {% if desktop_settings.network_mode != 'lan' %}
+          <div class="banner">
+            Same-network access is currently off. Select "Same network / LAN" and save before using these links.
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="settings-utility-section">
+          <div class="section-head settings-utility-head">
+            <div>
+              <p class="eyebrow">Detected browsers</p>
+              <h2>Launch options</h2>
+            </div>
+          </div>
+          {% for key, browser in browser_status.items() %}
+          <article class="user-card user-card--compact">
+            <div class="user-card-copy">
+              <div class="user-card-title-row">
+                <h3>{{ browser.label }}</h3>
+                <span class="status-chip" data-status="{{ 'active' if browser.installed else 'disabled' }}">{{ 'available' if browser.installed else 'not found' }}</span>
+              </div>
+              <p>{{ browser.path }}</p>
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+      </aside>
+    </section>
+  </div>
+{% endblock %}
