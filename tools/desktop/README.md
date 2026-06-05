@@ -70,6 +70,13 @@ Create and immediately verify a development backup:
 .\tools\desktop\backup-now.ps1 -Reason manual
 ```
 
+Installed executable backup contract:
+
+```powershell
+NDHI-LabRecords.exe --backup-now --reason manual
+NDHI-LabRecords.exe --verify-backup <archive.zip>
+```
+
 Build the packaged app and final Inno Setup installer:
 
 ```powershell
@@ -92,6 +99,16 @@ Validate PyInstaller packaging before Inno Setup is installed:
 - Inno Setup 6 for the final setup executable.
 
 PyInstaller generates an architecture-specific package. Generate `x86` only if the actual clinic PC requires it and use an `x86` Python interpreter for that build.
+
+## Upgrade safety
+
+The Inno Setup installer checks `%ProgramData%\NDHI\LabRecords` before replacing binaries. If an existing runtime database is present, Setup runs the currently installed executable with:
+
+```powershell
+NDHI-LabRecords.exe --backup-now --data-dir "%ProgramData%\NDHI\LabRecords" --reason pre-update
+```
+
+Fresh installs without a runtime database skip the hook. If the backup cannot start or exits nonzero, Setup aborts before changing installed files.
 
 ## Release boundary
 

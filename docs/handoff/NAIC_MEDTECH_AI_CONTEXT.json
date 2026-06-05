@@ -11,7 +11,7 @@
   "active_desktop_installer_doc": "docs/handoff/DESKTOP_INSTALLER_ARCHITECTURE.md",
   "main_goal_status": "continuation_ready_real_world_qa_remaining",
   "handoff_status": {
-    "last_refreshed": "2026-06-05",
+    "last_refreshed": "2026-06-06",
     "continuation_readiness": "ready_for_another_ai_if_it_reads_the_handoff_docs_first",
     "current_priority": "real_world_validation_before_clinic_release",
     "must_not_reopen_without_evidence": [
@@ -24,7 +24,7 @@
       "manual QA of the installed app",
       "real clinic browser/printer behavior",
       "real production record samples",
-      "backup restore expectations and external backup destination",
+      "backup restore expectations and external backup folder decision",
       "final clinic release/signing decision"
     ]
   },
@@ -41,13 +41,15 @@
       "host PC still opens through 127.0.0.1:8114",
       "installer-created Windows Firewall rule limited to Private/Domain local subnet",
       "Settings -> Desktop app shows hostname/IP links, readiness cards, copy actions, full QR view, and downloadable SVG QR",
-      "QR is generated locally with segno and prefers IP fallback when available"
+      "QR is generated locally with segno and prefers IP fallback when available",
+      "Settings -> Desktop app shows local/external backup status, external backup folder, retention count, manual backup, and latest-backup verification actions",
+      "source Inno installer script attempts a verified pre-update backup before replacing binaries when an existing runtime database is present"
     ],
     "not_release_complete": [
       "clean Windows PC installed-app QA",
       "Defender/antivirus-enabled QA",
       "real LAN scan/connect QA on clinic-like network",
-      "backup schedule, external copy, restore drill, and pre-update backup",
+      "backup schedule, restore drill, and Windows validation of external/pre-update backup behavior",
       "Authenticode signing"
     ]
   },
@@ -478,11 +480,11 @@
       "controlled result-body print options for hide empty fields, section headings, group headings, image size, and table density",
       "footer/signatory configuration is now generic rather than left/right source-specific",
       "compact result-grid layout compresses consecutive ordinary scalar fields into a two-column print grid while keeping image fields full width",
-      "first automated real-form fit audit after compact grid: 15 likely, 3 tight, 0 long across the current 18-form sample set",
+      "first automated real-form fit audit after compact grid reduced the seeded sample set to 0 long estimates",
       "Chromium PDF QA confirmed the remaining tight forms OGTT, Semen, and Serology each export as one A4 page after the generic print spacing pass",
       "clinic-like stress PDF QA confirmed OGTT, Semen, and Serology still export as one A4 page with longer patient names, case numbers, requesting physician, medtech/pathologist names, remarks, and release fields",
-      "actual /records/{id}/print smoke now passes across all current 18 forms using temporary completed records; the QA script snapshots/restores the runtime DB by default",
-      "browser PDF QA now exists at tools/scripts/print_pdf_qa.py and checks real Playwright-generated A4 PDF page counts while restoring the runtime DB by default; current --all run passes all 18 forms as one-page A4 PDFs",
+      "actual /records/{id}/print smoke now passes across all current 16 forms using temporary completed records; the QA script snapshots/restores the runtime DB by default",
+      "browser PDF QA now exists at tools/scripts/print_pdf_qa.py and checks real Playwright-generated A4 PDF page counts while restoring the runtime DB by default; rerun it on Windows for the current 16 forms because WSL currently lacks Playwright Chromium Linux system libraries",
       "real record print pages now receive document.fit_estimate and show the estimated fit badge in the toolbar",
       "/records/{id}/print applies print_config",
       "existing Semen sample verified as one A4 portrait page"
@@ -502,7 +504,7 @@
     "test print output with real clinic records and real printer/browser settings",
     "test installed desktop app behavior on a clean Windows PC",
     "test same-network LAN access from another trusted clinic device using hostname, IP fallback, and QR",
-    "finish backup scheduling, external backup destination, restore drill, and pre-update backup behavior",
+    "finish backup scheduling, safe restore drill, and Windows validation of external/pre-update backup behavior",
     "verify real clinic device/browser behavior",
     "consider print design overrides only if real print review proves a concrete need",
     "treat non-print UI work as secondary cleanup unless direct issues appear"

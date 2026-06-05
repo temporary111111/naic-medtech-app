@@ -4,21 +4,22 @@
 This document explains the core product concept for the NDHI Laboratory Records app so another AI can continue implementation without re-discovering the domain context.
 
 ## Handoff Readiness Snapshot
-As of June 5, 2026, the codebase is continuation-ready for another AI if it starts from this document and the focused handoff docs listed below.
+As of June 6, 2026, the codebase is continuation-ready for another AI if it starts from this document and the focused handoff docs listed below.
 
 Current repo state:
 - core records/forms/builder/settings/auth foundations are implemented
 - recursive builder concept is implemented in the live app, not just in the standalone replica
 - patient-facing browser-print output is implemented through the builder-driven print model
-- automated print smoke and browser PDF page-count QA pass across the current 18 seeded forms
+- automated print smoke passes across the current 16 seeded forms; browser PDF page-count QA remains a Windows-side validation task when Playwright dependencies are available
 - local-first Windows desktop installer foundation exists and has a current `0.1.4-dev` QR/LAN reliability build
 - same-network LAN access defaults on for fresh desktop installs; Settings shows hostname/IP links and a downloadable QR code
+- Settings now exposes local/external verified backups, backup retention, and latest-backup verification; the source Inno installer script now has a pre-update backup hook
 
 Still not clinic-release-complete:
 - manual installed-app QA on a clean Windows machine
 - real clinic device/browser/printer QA
 - real production data QA
-- backup scheduling, external backup destination, restore drill, and pre-update backup flow
+- backup scheduling, safe restore drill, and Windows validation of external/pre-update backup behavior
 - Authenticode signing before distributing a serious release build
 
 ## Project Summary
@@ -57,7 +58,7 @@ Current status snapshot:
 - a local-first Windows desktop-installer foundation now exists under `tools/desktop/`; continue from `docs/handoff/DESKTOP_INSTALLER_ARCHITECTURE.md`
 - the desktop layer intentionally keeps FastAPI as the product core: a launcher starts the local server and opens a browser-powered app window
 - fresh desktop installs default to LAN mode so same-network clinic devices can connect with the hostname/IP/QR shown in Settings
-- the verified backup foundation is real, but automatic scheduling, external copies, safe restore, and pre-update backup are still required before clinic release
+- the verified backup foundation now includes local/external backup UI and a source installer pre-update hook, but automatic scheduling, safe restore, and Windows upgrade-flow validation are still required before clinic release
 
 ## Historical Phase 1 Priority
 Phase 1 focused on the `Exam/Form Builder`.
@@ -347,7 +348,7 @@ Current implementation checkpoint:
 - Chromium PDF QA confirmed the remaining tight forms OGTT, Semen, and Serology each export as one A4 page after the generic print spacing pass
 - clinic-like stress PDF QA confirmed those same tight forms still export as one A4 page with longer names/remarks/signatory-style values
 - actual `/records/{id}/print` smoke now passes across all current forms using temporary completed records; the QA script snapshots/restores the runtime DB by default, and real record print pages now show the estimated fit badge too
-- browser PDF QA now exists at `tools/scripts/print_pdf_qa.py`; it creates temporary completed records, launches a temporary local server, exports A4 PDFs through Playwright, checks page counts, refreshes artifacts under `output/print-qa/`, restores the runtime DB by default, and currently passes all 18 forms as one-page A4 PDFs
+- browser PDF QA now exists at `tools/scripts/print_pdf_qa.py`; it creates temporary completed records, launches a temporary local server, exports A4 PDFs through Playwright, checks page counts, refreshes artifacts under `output/print-qa/`, and restores the runtime DB by default. Rerun it on Windows for the current 16 forms; WSL currently lacks the Linux system libraries needed by Playwright Chromium
 - `/records/{id}/print` now reads form-version print config
 - the existing Semen sample was verified as a one-page A4 portrait export
 

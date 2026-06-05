@@ -3689,7 +3689,6 @@ function renderContentCard() {
           ` : '<div class="empty-state">No content yet. Add what you need when you are ready.</div>'}
           ${!state.ui.advancedMode && hiddenBlockCount ? '<div class="collapsed-copy">Some advanced items stay hidden until you turn on Advanced.</div>' : ""}
         </div>
-        ${renderInlineInputPreview()}
       </div>
     </section>
   `;
@@ -3703,33 +3702,6 @@ function renderContentNode(node, path, depth = 0) {
     return renderItemCard(node, path, { recursive: true, depth });
   }
   return renderUtilityBlockCard(node, path, { recursive: true, depth });
-}
-
-function renderInlineInputPreview() {
-  if (!state.draft) {
-    return "";
-  }
-
-  const previewSegments = topLevelPreviewSegments().filter((segment) => normalizeArray(segment.items).length);
-  return `
-    <aside class="content-input-preview" aria-label="Input form preview">
-      <div class="content-input-preview-head">
-        <div>
-          <p class="eyebrow">Input preview</p>
-          <h4>${escapeHtml(state.draft.name || "Untitled Form")}</h4>
-        </div>
-        <span class="live-pill compact">
-          <span class="live-dot"></span>
-          Live
-        </span>
-      </div>
-      ${previewSegments.length ? `
-        <div class="content-input-preview-paper">
-          ${previewSegments.map((segment) => renderPreviewSection(segment.title, segment.items, `inline_${segment.id}`)).join("")}
-        </div>
-      ` : '<div class="empty-state">Add fields to see the input form.</div>'}
-    </aside>
-  `;
 }
 
 function resolveFocusedTopLevelBlockEntry(entries) {

@@ -6,11 +6,11 @@ The desktop foundation is implemented as a local-first deployment mode. It is no
 
 The web application remains the product core. The desktop layer is intentionally thin so future multi-user deployment does not require rewriting the FastAPI application.
 
-The source-level launcher, fresh-runtime smoke path, manifest, and verified backup foundation have been validated. PyInstaller `6.20.0` is installed in the project virtual environment through Python's Windows trust store, without bypassing TLS certificate checks. Inno Setup `6.7.3` is installed too. The normal windowed package now passes the automated local-server and verified-backup smoke checks, and the current development installer is `dist/desktop/installer/NDHI-LabRecords-Setup-0.1.4-dev-x64.exe`.
+The source-level launcher, fresh-runtime smoke path, manifest, and verified backup foundation have been validated. PyInstaller `6.20.0` is installed in the project virtual environment through Python's Windows trust store, without bypassing TLS certificate checks. Inno Setup `6.7.3` is installed too. The normal windowed package now passes the automated local-server and verified-backup smoke checks, and the current development installer is `dist/desktop/installer/NDHI-LabRecords-Setup-0.1.4-dev-x64.exe`. The source installer script now attempts a verified pre-update backup before replacing binaries when an existing runtime database is present; rebuild and Windows-test the installer before treating that behavior as validated.
 
 The first installed `0.1.0-dev` build was manually launched successfully on the development PC. Its running installed edition also created and re-verified a backup archive under `%ProgramData%\NDHI\LabRecords\backups`, proving that the online SQLite backup foundation works against the installed runtime while the local server is active. `0.1.1-dev` fixed misleading success-exit log entries. `0.1.2-dev` made LAN access the no-hassle default. `0.1.3-dev` added LAN copy links, QR, and readiness cards. `0.1.4-dev` is the current QR reliability build using `segno`, full QR view, and SVG download.
 
-This is a testable development installer, not a clinic release. Manual installed-app QA, Defender-enabled clean-PC QA, real-printer QA, restore drills, automatic backup scheduling, external backup configuration, upgrade safety, and Authenticode signing are still required.
+This is a testable development installer, not a clinic release. Manual installed-app QA, Defender-enabled clean-PC QA, real-printer QA, restore drills, automatic backup scheduling, Windows upgrade-flow QA, and Authenticode signing are still required.
 
 ## Product Identity
 
@@ -137,18 +137,24 @@ NDHI-LabRecords.exe --backup-now --reason manual
 NDHI-LabRecords.exe --verify-backup <archive.zip>
 ```
 
+`Settings -> Desktop app` now exposes local backup status, external backup folder configuration, a manual verified-backup action, latest-backup verification actions, and a retention count for local/external archives.
+
+During installer upgrades, `tools\desktop\installer.iss` checks for an existing runtime database under `%ProgramData%\NDHI\LabRecords`. If one exists, Setup runs the currently installed executable before file replacement:
+
+```powershell
+NDHI-LabRecords.exe --backup-now --data-dir "%ProgramData%\NDHI\LabRecords" --reason pre-update
+```
+
+Fresh installs without a runtime database skip this step. If patient data exists but the previous executable is missing, or if the pre-update backup exits nonzero, Setup aborts before replacing application files.
+
 ### Backup work still required before clinic release
 
 - automatic debounced and daily schedules;
-- retention policy;
-- external destination configuration;
-- settings UI with backup-health status;
 - safe restore workflow with emergency pre-restore snapshot;
-- pre-update backup triggered by installer upgrade;
 - restore drill on a clean PC;
 - failure notification when external backup becomes stale.
 
-The local verified archive foundation is real, but it is not equivalent to a complete disaster-recovery system yet.
+The local/external verified archive foundation is real, but it is not equivalent to a complete disaster-recovery system yet.
 
 ## Compatibility Policy
 
@@ -200,6 +206,8 @@ The build script:
 5. verifies `/api/health`;
 6. creates and validates a disposable backup;
 7. compiles the final setup executable with Inno Setup.
+
+The generated setup executable also contains the pre-update backup hook from `tools\desktop\installer.iss`. Validate it by installing an older development build, creating a runtime record, upgrading with the new installer, and confirming a `pre-update` backup archive exists before the installed files are replaced.
 
 ## Clinic Release Gates
 

@@ -16,6 +16,9 @@
 #define AppExeName "NDHI-LabRecords.exe"
 #define FirewallRuleName "NDHI Laboratory Records LAN"
 #define AppPort "8114"
+#define RuntimeDataDir "NDHI\LabRecords"
+#define PrimaryDatabasePath "NDHI\LabRecords\database\ndhi_labrecords.db"
+#define LegacyDatabasePath "NDHI\LabRecords\naic_medtech.db"
 
 [Setup]
 AppId={{4CB23F19-BA42-44ED-A0A9-A783A4B73590}
@@ -55,6 +58,61 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"
 Filename: "{app}\{#AppExeName}"; Description: "Launch {#AppName}"; Flags: nowait postinstall skipifsilent
 
 [Code]
+function RuntimeDatabaseExists(): Boolean;
+begin
+  Result :=
+    FileExists(ExpandConstant('{commonappdata}\{#PrimaryDatabasePath}')) or
+    FileExists(ExpandConstant('{commonappdata}\{#LegacyDatabasePath}'));
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  ExistingExe: String;
+  RuntimeDataPath: String;
+  BackupParams: String;
+  ResultCode: Integer;
+begin
+  Result := '';
+  if not RuntimeDatabaseExists() then
+  begin
+    Log('Skipping pre-update backup because no runtime database exists.');
+    Exit;
+  end;
+
+  ExistingExe := ExpandConstant('{app}\{#AppExeName}');
+  RuntimeDataPath := ExpandConstant('{commonappdata}\{#RuntimeDataDir}');
+  if not FileExists(ExistingExe) then
+  begin
+    Result :=
+      'Existing NDHI Laboratory Records data was found, but Setup could not find the installed application executable needed to create a verified pre-update backup.' + #13#10 + #13#10 +
+      'Expected executable:' + #13#10 + ExistingExe + #13#10 + #13#10 +
+      'Setup stopped without changing the installed files. Create a manual backup or restore the existing installation before upgrading.';
+    Exit;
+  end;
+
+  Log('Creating verified pre-update backup with existing installed executable: ' + ExistingExe);
+  BackupParams := '--backup-now --data-dir "' + RuntimeDataPath + '" --reason pre-update';
+  if not Exec(ExistingExe, BackupParams, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+  begin
+    Result :=
+      'Setup could not start the verified pre-update backup.' + #13#10 + #13#10 +
+      'Executable:' + #13#10 + ExistingExe + #13#10 + #13#10 +
+      'Setup stopped without changing the installed files.';
+    Exit;
+  end;
+
+  if ResultCode <> 0 then
+  begin
+    Result :=
+      'The verified pre-update backup failed with exit code ' + IntToStr(ResultCode) + '.' + #13#10 + #13#10 +
+      'Setup stopped without changing the installed files. Check the logs under:' + #13#10 +
+      RuntimeDataPath + '\logs';
+    Exit;
+  end;
+
+  Log('Verified pre-update backup completed successfully.');
+end;
+
 procedure ConfigureFirewallRule();
 var
   ResultCode: Integer;

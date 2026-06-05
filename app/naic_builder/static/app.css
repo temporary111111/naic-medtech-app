@@ -895,6 +895,11 @@ button.subtle[aria-pressed="true"] {
   margin-inline: auto;
 }
 
+.form-editor.pane-content {
+  max-width: 980px;
+  margin-inline: auto;
+}
+
 .editor-card,
 .section-card,
 .item-card,
@@ -1030,8 +1035,8 @@ button.subtle[aria-pressed="true"] {
 
 .content-workspace-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
   align-items: start;
 }
 
@@ -1071,73 +1076,9 @@ button.subtle[aria-pressed="true"] {
   grid-column: 1 / -1;
 }
 
-.content-input-preview {
-  position: sticky;
-  top: calc(var(--builder-sticky-top, 102px) + 10px);
-  display: grid;
-  gap: 12px;
-  max-height: calc(100vh - var(--builder-sticky-top, 102px) - 24px);
-  min-width: 0;
-  overflow: hidden;
-  padding: 12px;
-  border: 1px solid rgba(68, 54, 40, 0.08);
-  border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.62);
-}
-
-.content-input-preview-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  align-items: start;
-}
-
-.content-input-preview-head h4 {
-  margin-top: 3px;
-  font-size: 16px;
-}
-
 .live-pill.compact {
   padding: 4px 8px;
   font-size: 11px;
-}
-
-.content-input-preview-paper {
-  display: grid;
-  gap: 10px;
-  min-height: 0;
-  overflow: auto;
-  padding-right: 4px;
-  scrollbar-gutter: stable;
-}
-
-.content-input-preview .preview-section {
-  padding: 10px;
-  gap: 10px;
-}
-
-.content-input-preview .preview-section-head h4 {
-  font-size: 13px;
-}
-
-.content-input-preview .preview-grid {
-  grid-template-columns: 1fr;
-  gap: 8px;
-}
-
-.content-input-preview .preview-field,
-.content-input-preview .preview-group {
-  padding: 9px;
-}
-
-.content-input-preview .preview-field input,
-.content-input-preview .preview-field select {
-  padding: 8px 10px;
-  border-radius: 12px;
-}
-
-.workspace-shell.preview-open .content-input-preview {
-  display: none;
 }
 
 .item-organizer {
@@ -2919,12 +2860,6 @@ textarea:focus,
     overflow: visible;
   }
 
-  .content-input-preview {
-    position: static;
-    max-height: none;
-    overflow: visible;
-  }
-
   .preview-panel {
     position: static;
     height: auto;
@@ -3326,22 +3261,6 @@ textarea:focus,
   gap: 12px;
 }
 
-.shell .content-input-preview {
-  border-color: color-mix(in srgb, var(--line) 88%, transparent);
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--panel) 76%, transparent),
-      color-mix(in srgb, var(--surface-elevated) 82%, transparent)
-    );
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-
-.shell .content-input-preview .preview-section {
-  border-color: color-mix(in srgb, var(--line) 84%, transparent);
-  background: color-mix(in srgb, var(--surface-elevated) 72%, transparent);
-}
-
 .shell .preview-card {
   background: transparent;
   border-color: transparent;
@@ -3666,8 +3585,7 @@ html[data-theme="dark"] .shell .add-details[open] summary {
 html[data-theme="dark"] .shell .preview-section,
 html[data-theme="dark"] .shell .preview-field,
 html[data-theme="dark"] .shell .preview-paper,
-html[data-theme="dark"] .shell .preview-group,
-html[data-theme="dark"] .shell .content-input-preview {
+html[data-theme="dark"] .shell .preview-group {
   border-color: rgba(181, 208, 216, 0.1);
   background:
     linear-gradient(180deg, rgba(23, 40, 46, 0.74), rgba(16, 29, 35, 0.78));
@@ -3804,10 +3722,6 @@ html[data-theme="dark"] .shell .identity-check {
     text-align: center;
   }
 
-  .shell .content-workspace-grid {
-    grid-template-columns: 1fr;
-  }
-
   .shell .content-builder-column,
   .shell .section-card.is-focused .nested-items,
   .shell .item-card.group-card.is-focused .nested-items {
@@ -3815,12 +3729,6 @@ html[data-theme="dark"] .shell .identity-check {
   }
 
   .shell .content-builder-column > .section-organizer {
-    position: static;
-    max-height: none;
-    overflow: visible;
-  }
-
-  .shell .content-input-preview {
     position: static;
     max-height: none;
     overflow: visible;
@@ -3885,10 +3793,6 @@ html[data-theme="dark"] .shell .identity-check {
 
   .shell .preview-index {
     position: static;
-  }
-
-  .shell .content-input-preview {
-    display: none;
   }
 
   .shell .preview-grid {

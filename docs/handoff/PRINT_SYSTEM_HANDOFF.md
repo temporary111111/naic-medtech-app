@@ -41,11 +41,11 @@ Implemented:
 - Compact result-grid layout now compresses consecutive ordinary scalar fields into a two-column print grid when useful.
 - Print output now uses a modern exam identity band powered by each form's `accent_color`, with automatic dark/light title text for readable contrast. This intentionally keeps the old template's quick color-identification value without copying the old Word layout.
 - Known seeded NAIC forms now get legacy-guided default accent colors when their print color is still the generic default: Blood Bank magenta, Hematology/Coag red, Blood Chemistry green, Serology orange, Clinical Microscopy cyan/yellow depending form, ABG purple, and Microbiology black.
-- A first real-form fit audit improved the current sample set from 5 `long` forms to 0 `long` forms; remaining estimate status is 15 `likely` and 3 `tight`.
+- A first real-form fit audit improved the seeded sample set from 5 `long` forms to 0 `long` forms.
 - The remaining tight forms, OGTT, Semen, and Serology, were exported through Chromium PDF QA as one A4 page each after the generic print spacing pass.
 - A clinic-like stress pass with longer patient names, case numbers, requesting physician, medtech/pathologist names, remarks, and release fields still exported OGTT, Semen, and Serology as one A4 page each.
-- Actual `/records/{id}/print` smoke now passes for all 18 current forms by creating temporary completed records and checking the real route; the QA script snapshots/restores the runtime DB by default so the smoke run does not leave QA rows behind.
-- Browser PDF QA now generates A4 PDFs from real `/records/{id}/print` pages through Playwright, checks the resulting PDF page counts, restores the runtime DB by default, and currently passes all 18 forms as one-page A4 PDFs.
+- Actual `/records/{id}/print` smoke now passes for all 16 current forms by creating temporary completed records and checking the real route; the QA script snapshots/restores the runtime DB by default so the smoke run does not leave QA rows behind.
+- Browser PDF QA generates A4 PDFs from real `/records/{id}/print` pages through Playwright, checks the resulting PDF page counts, and restores the runtime DB by default. Rerun it on Windows for the current 16 forms; the WSL run is currently blocked by missing Playwright/Chromium Linux shared-library dependencies.
 - Signatories now support a generic `stamp_image` input type for a full uploaded stamp image that already contains signature, name, and license. This is not pathologist-specific; any signatory slot can use it.
 
 Code paths:
@@ -102,7 +102,7 @@ Code paths:
   - launches a temporary local server, signs a session cookie, exports A4 PDFs, and checks page counts
   - refreshes ignored artifacts and `report.json` under `output/print-qa/`
   - restores the runtime DB by default unless `--keep-records` is used
-  - current `--all` run passes all 18 forms at one A4 page each
+  - rerun `--all` on Windows for the current 16 forms; WSL currently lacks the Linux system libraries needed by Playwright Chromium
 
 ## Config Shapes
 `record_identity` lives under `block_schema.meta.record_identity`.
@@ -265,7 +265,7 @@ Use those patterns as reference only. The new app should produce a better, clean
 - The builder page-fit signal is an estimate only. Browser print preview remains the final confirmation.
 - Chromium PDF QA now confirms OGTT, Semen, and Serology as one A4 page each with sample data; rerun real-device checks after real clinic data are reviewed.
 - Chromium PDF stress QA also confirms OGTT, Semen, and Serology as one A4 page each with longer clinic-like values.
-- Current automated fit audit after compact grid: 15 likely, 3 tight, 0 long across the current 18-form sample set.
+- Current automated fit audit after compact grid: 0 long estimates across the seeded sample set.
 - Top summary is off by default for patient-facing output because patient information is expected to print from the form body. It can be enabled only when a clinic explicitly wants a duplicate quick strip.
 - Current summary configuration is row-based and simple. There are no conditional expressions yet.
 - Empty-field hiding affects result body rows only; enabled summary rows still show configured summary information.
@@ -315,9 +315,9 @@ Phase 2E browser/PDF QA is now landed:
 Phase 2F actual-record print smoke is now landed:
 - `/records/{id}/print` now receives `document.fit_estimate`.
 - The real record print toolbar shows an estimated fit badge.
-- `tools/scripts/print_record_qa.py --all` passes across all current 18 forms.
+- `tools/scripts/print_record_qa.py --all` passes across all current 16 forms.
 - The script uses temporary completed records and restores the runtime DB by default; use `--keep-records` only for manual inspection.
-- `tools/scripts/print_pdf_qa.py --all` generates real A4 PDFs through Playwright, fails when any generated PDF exceeds the configured page limit, and currently passes all 18 forms as one-page A4 PDFs.
+- `tools/scripts/print_pdf_qa.py --all` generates real A4 PDFs through Playwright and fails when any generated PDF exceeds the configured page limit. Rerun it on Windows for the current 16 forms; the WSL run is blocked by missing Chromium shared-library dependencies.
 
 Next print QA should focus on:
 - real clinic device/browser behavior
