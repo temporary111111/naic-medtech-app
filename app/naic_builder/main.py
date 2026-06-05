@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
+from .backup import create_verified_backup, local_backup_status, verify_latest_backup_archive
 from .config import APP_TITLE, PRODUCT_ID, SESSION_SECRET, SIGNATORY_UPLOADS_DIR, STATIC_DIR, TEMPLATES_DIR
 from .database import SessionLocal, ensure_runtime_schema, get_session
 from .desktop_settings import (
@@ -380,6 +381,7 @@ def render_settings_desktop_page(
             "browser_status": detect_desktop_browsers(),
             "lan_access": lan_access_details(),
             "desktop_status": desktop_runtime_status(desktop_settings),
+            "backup_status": local_backup_status(),
             "error_message": error_message,
             "success_message": success_message,
         },
@@ -1696,7 +1698,13 @@ def settings_clinic_logo_file(session: Session = Depends(get_session)) -> FileRe
 
 @app.get("/settings/desktop", response_class=HTMLResponse)
 def settings_desktop_page(request: Request) -> HTMLResponse:
-    success_message = "Saved the desktop app settings." if request.query_params.get("saved") == "1" else ""
+    success_message = ""
+    if request.query_params.get("saved") == "1":
+        success_message = "Saved the desktop app settings."
+    elif request.query_params.get("backup") == "created":
+        success_message = "Created and verified a local backup."
+    elif request.query_params.get("backup") == "verified":
+        success_message = "Verified the latest local backup."
     return render_settings_desktop_page(request, success_message=success_message)
 
 
@@ -1722,6 +1730,32 @@ def settings_desktop_lan_qr(download: str = "") -> Response:
         media_type="image/svg+xml",
         headers=headers,
     )
+
+
+@app.post("/settings/desktop/backup-now")
+def settings_desktop_backup_now_page(request: Request) -> Response:
+    try:
+        create_verified_backup(reason="manual-app")
+    except Exception as exc:
+        return render_settings_desktop_page(
+            request,
+            error_message=f"Backup failed: {exc}",
+            status_code=500,
+        )
+    return RedirectResponse(url="/settings/desktop?backup=created", status_code=303)
+
+
+@app.post("/settings/desktop/backup-verify-latest")
+def settings_desktop_backup_verify_latest_page(request: Request) -> Response:
+    try:
+        verify_latest_backup_archive()
+    except Exception as exc:
+        return render_settings_desktop_page(
+            request,
+            error_message=f"Backup verification failed: {exc}",
+            status_code=500,
+        )
+    return RedirectResponse(url="/settings/desktop?backup=verified", status_code=303)
 
 
 @app.get("/settings/desktop/lan-qr", response_class=HTMLResponse)

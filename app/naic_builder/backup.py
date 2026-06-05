@@ -27,6 +27,7 @@ from .config import (
 
 BACKUP_FORMAT_VERSION = 1
 SESSION_SECRET_FILENAME = "session-secret.txt"
+BACKUP_ARCHIVE_PATTERN = "NDHI-LabRecords-Backup-*.zip"
 
 
 def utc_timestamp() -> str:
@@ -37,9 +38,68 @@ def archive_timestamp() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S%fZ")
 
 
+def file_size_label(size_bytes: int) -> str:
+    units = ("B", "KB", "MB", "GB")
+    value = float(size_bytes)
+    unit = units[0]
+    for unit in units:
+        if value < 1024 or unit == units[-1]:
+            break
+        value /= 1024
+    return f"{int(value)} {unit}" if unit == "B" else f"{value:.1f} {unit}"
+
+
+def timestamp_label(value: datetime) -> str:
+    local_value = value.astimezone()
+    tz_name = local_value.tzname() or "local"
+    return f"{local_value.strftime('%b %d, %Y %I:%M %p')} {tz_name}"
+
+
 def safe_reason(reason: str) -> str:
     compact = re.sub(r"[^a-z0-9_-]+", "-", str(reason or "").strip().lower()).strip("-")
     return compact or "manual"
+
+
+def serialize_backup_archive(path: Path) -> dict[str, Any]:
+    stat = path.stat()
+    modified_at = datetime.fromtimestamp(stat.st_mtime, timezone.utc)
+    return {
+        "name": path.name,
+        "path": str(path.resolve()),
+        "size_bytes": stat.st_size,
+        "size_label": file_size_label(stat.st_size),
+        "modified_at_utc": modified_at.isoformat(),
+        "modified_label": timestamp_label(modified_at),
+    }
+
+
+def list_backup_archives(*, limit: int = 5, backup_dir: Path | None = None) -> list[dict[str, Any]]:
+    source_dir = (backup_dir or BACKUPS_DIR).expanduser()
+    if not source_dir.is_dir():
+        return []
+    archives = sorted(
+        (path for path in source_dir.glob(BACKUP_ARCHIVE_PATTERN) if path.is_file()),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    return [serialize_backup_archive(path) for path in archives[:limit]]
+
+
+def local_backup_status(*, limit: int = 5) -> dict[str, Any]:
+    archives = list_backup_archives(limit=limit)
+    return {
+        "backup_dir": str(BACKUPS_DIR.expanduser().resolve()),
+        "archives": archives,
+        "latest": archives[0] if archives else None,
+        "count": len(archives),
+    }
+
+
+def verify_latest_backup_archive() -> dict[str, Any]:
+    archives = list_backup_archives(limit=1)
+    if not archives:
+        raise FileNotFoundError("No local backup archive found.")
+    return verify_backup_archive(Path(archives[0]["path"]))
 
 
 def sha256_file(path: Path) -> str:

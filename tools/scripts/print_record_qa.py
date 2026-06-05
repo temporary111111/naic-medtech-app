@@ -128,6 +128,37 @@ def apply_stress_values(
         apply_stress_values(block.get("children"), values, normalize_items_func)
 
 
+def build_required_signatory_meta(block_schema: dict[str, Any]) -> dict[str, Any]:
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    slots = meta.get("signatories") if isinstance(meta.get("signatories"), list) else []
+    signatories: dict[str, dict[str, str]] = {}
+
+    for slot in slots:
+        if not isinstance(slot, dict) or not slot.get("required"):
+            continue
+        slot_id = compact_text(slot.get("id"))
+        input_type = compact_text(slot.get("input_type")).lower()
+        if not slot_id:
+            continue
+
+        if input_type == "person_dropdown":
+            options = slot.get("options") if isinstance(slot.get("options"), list) else []
+            option_id = ""
+            for option in options:
+                if isinstance(option, dict) and compact_text(option.get("id")):
+                    option_id = compact_text(option.get("id"))
+                    break
+            if option_id:
+                signatories[slot_id] = {"option_id": option_id}
+        elif input_type == "manual":
+            signatories[slot_id] = {
+                "name": "Print QA Signatory",
+                "license": "000000",
+            }
+
+    return {"signatories": signatories} if signatories else {}
+
+
 def first_active_user_id() -> int | None:
     from naic_builder.database import SessionLocal
     from naic_builder.models import User
@@ -183,17 +214,18 @@ def create_completed_print_qa_record(slug: str, *, actor_user_id: int | None) ->
         block_schema, _ = load_block_storage_document(version)
         values = build_sample_print_values(normalize_items(block_schema.get("blocks")))
         apply_stress_values(block_schema.get("blocks"), values, normalize_items)
+        indexed_meta = build_required_signatory_meta(block_schema)
 
         created = create_record(
             session,
-            RecordCreatePayload(form_slug=slug, values=values),
+            RecordCreatePayload(form_slug=slug, values=values, indexed_meta=indexed_meta),
             actor_user_id=actor_user_id,
         )
         created_record_id = int(created["id"])
         completed = complete_record(
             session,
             created_record_id,
-            RecordUpdatePayload(values=values),
+            RecordUpdatePayload(values=values, indexed_meta=indexed_meta),
             actor_user_id=actor_user_id,
         )
         record = get_record_or_none(session, created_record_id)

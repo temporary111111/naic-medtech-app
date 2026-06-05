@@ -103,6 +103,54 @@
             <button class="primary-button" type="submit">Save desktop settings</button>
           </div>
         </form>
+
+        <section class="panel settings-utility-card">
+          <div class="section-head settings-utility-head">
+            <div>
+              <p class="eyebrow">Local backup</p>
+              <h2>Verified backup</h2>
+            </div>
+            <span class="settings-utility-pill">SQLite + uploads</span>
+          </div>
+
+          <div class="settings-utility-section">
+            {% if backup_status.latest %}
+            <article class="user-card user-card--compact">
+              <div class="user-card-main">
+                <div class="user-card-copy">
+                  <div class="user-card-title-row">
+                    <h3>{{ backup_status.latest.name }}</h3>
+                    <span class="status-chip" data-status="active">{{ backup_status.latest.size_label }}</span>
+                  </div>
+                  <p>Created {{ backup_status.latest.modified_label }}</p>
+                </div>
+              </div>
+            </article>
+            {% else %}
+            <div class="empty-state empty-state--plain">
+              <h3>No local backup yet</h3>
+              <p class="panel-copy">Create a verified backup before real clinic data is entered.</p>
+            </div>
+            {% endif %}
+          </div>
+
+          <div class="settings-utility-section">
+            <label class="field-stack">
+              <span>Backup folder</span>
+              <input type="text" value="{{ backup_status.backup_dir }}" readonly>
+              <p class="field-help">Local backups stay on this PC. External backup and restore workflow are still separate release tasks.</p>
+            </label>
+          </div>
+
+          <div class="settings-utility-actions">
+            <form method="post" action="/settings/desktop/backup-now" class="inline-action-form">
+              <button class="primary-button" type="submit">Create verified backup</button>
+            </form>
+            <form method="post" action="/settings/desktop/backup-verify-latest" class="inline-action-form">
+              <button class="ghost-button" type="submit" {% if not backup_status.latest %}disabled{% endif %}>Verify latest</button>
+            </form>
+          </div>
+        </section>
       </div>
 
       <aside class="panel settings-utility-card settings-utility-card--aside">

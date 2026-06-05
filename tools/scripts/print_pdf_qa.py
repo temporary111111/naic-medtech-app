@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import socket
@@ -173,7 +174,8 @@ def count_pdf_pages(path: Path) -> int:
 
 
 def playwright_executable() -> str:
-    executable = shutil.which("npx.cmd") or shutil.which("npx")
+    executable = shutil.which("npx.cmd") if os.name == "nt" else shutil.which("npx")
+    executable = executable or shutil.which("npx")
     if not executable:
         raise RuntimeError("npx was not found. Install Node.js/npm before running browser PDF QA.")
     return executable
