@@ -1,0 +1,100 @@
+{% extends "_authenticated_shell.html" %}
+{% set shell_active = "settings" %}
+{% set settings_active = "desktop" %}
+
+{% block html_title %}LAN QR Code | {{ app_title }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}">
+{% endblock %}
+
+{% block shell_eyebrow %}Settings{% endblock %}
+{% block shell_title %}LAN QR code{% endblock %}
+{% block shell_description %}{% endblock %}
+
+{% block page_header_nav %}
+  <a class="page-back-link" href="/settings/desktop">Back to desktop settings</a>
+{% endblock %}
+
+{% block topbar_actions %}
+  <a class="primary-button" href="/settings/desktop/lan-qr.svg?download=1">Download QR</a>
+{% endblock %}
+
+{% block content %}
+  <div class="auth-shell">
+    {% include "settings/_settings_nav.html" %}
+
+    <section class="settings-utility-grid">
+      <div class="settings-utility-main">
+        <article class="panel settings-utility-card">
+          <div class="section-head settings-utility-head">
+            <div>
+              <p class="eyebrow">Scan or send</p>
+              <h2>Same-network access QR</h2>
+            </div>
+            <span class="status-chip" data-status="{{ 'active' if desktop_status.network.status == 'ready' else 'pending' }}">{{ desktop_status.network.label }}</span>
+          </div>
+
+          <div class="settings-utility-section">
+            <div class="lan-qr-full">
+              <img src="/settings/desktop/lan-qr.svg" alt="QR code for {{ lan_access.qr_url }}">
+            </div>
+          </div>
+
+          <div class="settings-utility-section">
+            <label class="field-stack">
+              <span>QR contains</span>
+              <input type="text" value="{{ lan_access.qr_url }}" readonly>
+              <p class="field-help">{{ lan_access.qr_url_label }}. This is chosen for better phone/tablet scanning reliability.</p>
+            </label>
+          </div>
+
+          <div class="settings-utility-actions">
+            <button class="ghost-button" type="button" data-copy-value="{{ lan_access.qr_url }}">Copy QR link</button>
+            <a class="ghost-button" href="{{ lan_access.qr_url }}">Open QR link</a>
+            <a class="primary-button" href="/settings/desktop/lan-qr.svg?download=1">Download QR SVG</a>
+          </div>
+        </article>
+      </div>
+
+      <aside class="panel settings-utility-card settings-utility-card--aside">
+        <div class="section-head settings-utility-head">
+          <div>
+            <p class="eyebrow">For staff</p>
+            <h2>Instructions</h2>
+          </div>
+        </div>
+
+        <div class="settings-utility-section">
+          <div class="lan-guidance">
+            <strong>Use this only on the clinic network</strong>
+            <p>Keep the host PC turned on. Staff can scan this QR on a phone/tablet or download the SVG and send it to another clinic PC.</p>
+          </div>
+        </div>
+
+        <div class="settings-utility-section">
+          <label class="field-stack">
+            <span>Hostname link</span>
+            <input type="text" value="{{ lan_access.hostname_url }}" readonly>
+            <p class="field-help">Cleaner for PCs when hostname lookup works.</p>
+          </label>
+        </div>
+
+        {% if lan_access.ip_urls %}
+        <div class="settings-utility-section">
+          <label class="field-stack">
+            <span>IP fallback link</span>
+            <input type="text" value="{{ lan_access.ip_urls[0] }}" readonly>
+            <p class="field-help">Most reliable for phones and tablets on the same network.</p>
+          </label>
+        </div>
+        {% endif %}
+      </aside>
+    </section>
+  </div>
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{{ url_for('static', path='settings.js') }}" defer></script>
+{% endblock %}

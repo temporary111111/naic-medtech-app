@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import socket
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,7 @@ from .config import CONFIG_DIR
 DESKTOP_CONFIG_FILENAME = "desktop.json"
 DEFAULT_DESKTOP_PORT = 8114
 DEFAULT_NETWORK_MODE = "lan"
+FIREWALL_RULE_NAME = "NDHI Laboratory Records LAN"
 SUPPORTED_BROWSER_PREFERENCES = ("auto", "edge", "chrome", "default")
 SUPPORTED_NETWORK_MODES = ("local", "lan")
 BROWSER_PREFERENCE_OPTIONS = [
@@ -135,6 +137,96 @@ def detect_desktop_browsers() -> dict[str, dict[str, str | bool]]:
     }
 
 
+def detect_firewall_rule() -> dict[str, str]:
+    if os.name != "nt":
+        return {
+            "status": "unknown",
+            "label": "Not checked",
+            "detail": "Firewall status is only checked on Windows.",
+        }
+    try:
+        result = subprocess.run(
+            [
+                "netsh",
+                "advfirewall",
+                "firewall",
+                "show",
+                "rule",
+                f"name={FIREWALL_RULE_NAME}",
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=2,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return {
+            "status": "unknown",
+            "label": "Not checked",
+            "detail": "Windows Firewall status could not be checked.",
+        }
+
+    output = f"{result.stdout}\n{result.stderr}"
+    if result.returncode != 0 or "No rules match" in output:
+        return {
+            "status": "warning",
+            "label": "Needs check",
+            "detail": "The installer firewall rule was not detected.",
+        }
+    if "Enabled:" in output and "Yes" not in output:
+        return {
+            "status": "warning",
+            "label": "Disabled",
+            "detail": "The firewall rule exists but may be disabled.",
+        }
+    return {
+        "status": "ready",
+        "label": "Ready",
+        "detail": "Firewall rule is installed for same-network access.",
+    }
+
+
+def desktop_runtime_status(settings: dict[str, str] | None = None) -> dict[str, dict[str, str]]:
+    resolved_settings = settings or read_desktop_settings()
+    network_mode = normalize_network_mode(resolved_settings.get("network_mode"))
+    runtime_mode = normalize_network_mode(os.environ.get("NDHI_LABRECORDS_NETWORK_MODE"))
+    bind_host = str(os.environ.get("NDHI_LABRECORDS_BIND_HOST") or "")
+
+    if network_mode != "lan":
+        network_status = {
+            "status": "disabled",
+            "label": "This PC only",
+            "detail": "Same-network access is off.",
+        }
+    elif runtime_mode == "lan" and bind_host == "0.0.0.0":
+        network_status = {
+            "status": "ready",
+            "label": "Ready",
+            "detail": "This server is accepting same-network connections.",
+        }
+    else:
+        network_status = {
+            "status": "warning",
+            "label": "Restart needed",
+            "detail": "Restart the desktop app/server so LAN mode can take effect.",
+        }
+
+    return {
+        "network": network_status,
+        "firewall": detect_firewall_rule(),
+        "host": {
+            "status": "ready",
+            "label": local_hostname(),
+            "detail": "Keep this host PC turned on while other clinic PCs use the app.",
+        },
+        "port": {
+            "status": "ready",
+            "label": str(DEFAULT_DESKTOP_PORT),
+            "detail": "Default app port. Staff should use the links below instead of typing this manually.",
+        },
+    }
+
+
 def local_hostname() -> str:
     return (os.environ.get("COMPUTERNAME") or socket.gethostname() or "this-computer").strip()
 
@@ -166,10 +258,14 @@ def local_lan_ipv4_addresses() -> list[str]:
 def lan_access_details(port: int = DEFAULT_DESKTOP_PORT) -> dict[str, Any]:
     hostname = local_hostname()
     ip_addresses = local_lan_ipv4_addresses()
+    ip_urls = [f"http://{address}:{port}" for address in ip_addresses]
+    qr_url = ip_urls[0] if ip_urls else f"http://{hostname}:{port}"
     return {
         "hostname": hostname,
         "port": port,
         "hostname_url": f"http://{hostname}:{port}",
-        "ip_urls": [f"http://{address}:{port}" for address in ip_addresses],
+        "ip_urls": ip_urls,
         "has_ip_fallback": bool(ip_addresses),
+        "qr_url": qr_url,
+        "qr_url_label": "IP fallback link" if ip_urls else "Hostname link",
     }

@@ -1,9 +1,51 @@
 (() => {
+  const copyText = async (value) => {
+    const text = String(value || "");
+    if (!text) {
+      return false;
+    }
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        // Fall back to the selection-based copy path below.
+      }
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.select();
+    let copied = false;
+    try {
+      copied = document.execCommand("copy");
+    } catch {
+      copied = false;
+    }
+    textarea.remove();
+    return copied;
+  };
+
+  const copyButtons = Array.from(document.querySelectorAll("[data-copy-value]"));
+  copyButtons.forEach((button) => {
+    const defaultLabel = button.textContent || "Copy link";
+    button.addEventListener("click", async () => {
+      const copied = await copyText(button.dataset.copyValue);
+      button.textContent = copied ? "Copied" : "Copy failed";
+      window.setTimeout(() => {
+        button.textContent = defaultLabel;
+      }, 1400);
+    });
+  });
+
   const userSearch = document.getElementById("userSearch");
   const userCards = Array.from(document.querySelectorAll("[data-user-card]"));
   const filterButtons = Array.from(document.querySelectorAll("[data-user-filter]"));
   const emptyState = document.querySelector("[data-user-empty]");
-
   if (!userCards.length) {
     return;
   }

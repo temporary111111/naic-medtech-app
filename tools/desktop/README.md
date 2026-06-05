@@ -38,7 +38,7 @@ Admins can edit the same local preference from `Settings -> Desktop app`. The se
 { "network_mode": "lan" }
 ```
 
-Allowed values are `local` and `lan`. `local` binds the server to `127.0.0.1`. `lan` binds the server to `0.0.0.0` so other trusted clinic devices on the same LAN can open the app using the hostname/IP URLs shown in Settings. Keep the port at `8114` unless there is a specific support reason to change it.
+Allowed values are `local` and `lan`. `local` binds the server to `127.0.0.1`. `lan` binds the server to `0.0.0.0` so other trusted clinic devices on the same LAN can open the app using the hostname/IP URLs shown in Settings. Settings also provides copy buttons, readiness cards, and a downloadable QR code generated locally with `segno`. Keep the port at `8114` unless there is a specific support reason to change it.
 
 The installer automatically creates a Windows Firewall rule named `NDHI Laboratory Records LAN` for TCP `8114`, limited to Private/Domain network profiles and the local subnet. The helper script is only a support fallback if firewall configuration is removed or damaged:
 

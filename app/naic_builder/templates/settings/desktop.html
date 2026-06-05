@@ -81,8 +81,8 @@
             {% endfor %}
           </div>
 
-          <div class="settings-utility-section">
-            {% for option in network_options %}
+        <div class="settings-utility-section">
+          {% for option in network_options %}
             <article class="user-card user-card--compact">
               <div class="user-card-main">
                 <div class="user-card-copy">
@@ -111,21 +111,53 @@
             <p class="eyebrow">LAN access</p>
             <h2>This PC</h2>
           </div>
+          <span class="status-chip" data-status="{{ 'active' if desktop_status.network.status == 'ready' else 'pending' }}">{{ desktop_status.network.label }}</span>
         </div>
 
         <div class="settings-utility-section">
-          <label class="field-stack">
-            <span>Use this on another clinic PC</span>
-            <input type="text" value="{{ lan_access.hostname_url }}" readonly>
-            <p class="field-help">Recommended link. Works when Windows/network hostname lookup is available.</p>
-          </label>
+          <div class="lan-status-grid">
+            {% for key, item in desktop_status.items() %}
+            <article class="lan-status-card" data-status="{{ item.status }}">
+              <span>{{ key | replace('_', ' ') }}</span>
+              <strong>{{ item.label }}</strong>
+              <p>{{ item.detail }}</p>
+            </article>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="settings-utility-section">
+          <div class="lan-guidance">
+            <strong>How to use on another clinic PC</strong>
+            <p>Keep this host PC open and connected to the clinic network. On the other PC, open the recommended link below in a browser and log in normally.</p>
+          </div>
+        </div>
+
+        <div class="settings-utility-section">
+          <div class="lan-link-block">
+            <label class="field-stack">
+              <span>Recommended link</span>
+              <input type="text" value="{{ lan_access.hostname_url }}" readonly>
+              <p class="field-help">Use this first. It is easier than remembering an IP address.</p>
+            </label>
+            <div class="lan-link-actions">
+              <button class="ghost-button" type="button" data-copy-value="{{ lan_access.hostname_url }}">Copy link</button>
+              <a class="ghost-button" href="{{ lan_access.hostname_url }}">Open link</a>
+            </div>
+          </div>
 
           {% if lan_access.ip_urls %}
-          <label class="field-stack">
-            <span>If the first link does not work</span>
-            <input type="text" value="{{ lan_access.ip_urls[0] }}" readonly>
-            <p class="field-help">Fallback link using this PC's local network address.</p>
-          </label>
+          <div class="lan-link-block">
+            <label class="field-stack">
+              <span>Fallback link</span>
+              <input type="text" value="{{ lan_access.ip_urls[0] }}" readonly>
+              <p class="field-help">Use this if the recommended link does not open from another PC.</p>
+            </label>
+            <div class="lan-link-actions">
+              <button class="ghost-button" type="button" data-copy-value="{{ lan_access.ip_urls[0] }}">Copy link</button>
+              <a class="ghost-button" href="{{ lan_access.ip_urls[0] }}">Open link</a>
+            </div>
+          </div>
           {% else %}
           <div class="banner">
             No LAN IP address was detected yet. Connect this PC to the clinic network, then refresh this page.
@@ -137,6 +169,22 @@
             Same-network access is currently off. Select "Same network / LAN" and save before using these links.
           </div>
           {% endif %}
+        </div>
+
+        <div class="settings-utility-section">
+          <div class="lan-qr-card">
+            <div class="lan-qr-frame">
+              <img src="/settings/desktop/lan-qr.svg" alt="QR code for {{ lan_access.qr_url }}">
+            </div>
+            <div class="lan-guidance">
+              <strong>QR for phone or tablet</strong>
+              <p>Scan this on a device connected to the same clinic Wi-Fi/LAN. QR uses: {{ lan_access.qr_url }}</p>
+              <div class="lan-link-actions">
+                <a class="ghost-button" href="/settings/desktop/lan-qr">Open full QR</a>
+                <a class="ghost-button" href="/settings/desktop/lan-qr.svg?download=1">Download QR</a>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="settings-utility-section">
@@ -161,4 +209,8 @@
       </aside>
     </section>
   </div>
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{{ url_for('static', path='settings.js') }}" defer></script>
 {% endblock %}

@@ -7,7 +7,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlencode
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -20,10 +20,12 @@ from .desktop_settings import (
     BROWSER_PREFERENCE_OPTIONS,
     NETWORK_MODE_OPTIONS,
     detect_desktop_browsers,
+    desktop_runtime_status,
     lan_access_details,
     read_desktop_settings,
     save_desktop_settings,
 )
+from .qr import qr_svg_bytes
 from .schemas import (
     AccountRequestPayload,
     ClinicProfilePayload,
@@ -366,16 +368,18 @@ def render_settings_desktop_page(
     success_message: str = "",
     status_code: int = 200,
 ) -> HTMLResponse:
+    desktop_settings = settings_override or read_desktop_settings()
     return templates.TemplateResponse(
         request=request,
         name="settings/desktop.html",
         context={
             "app_title": APP_TITLE,
-            "desktop_settings": settings_override or read_desktop_settings(),
+            "desktop_settings": desktop_settings,
             "browser_options": BROWSER_PREFERENCE_OPTIONS,
             "network_options": NETWORK_MODE_OPTIONS,
             "browser_status": detect_desktop_browsers(),
             "lan_access": lan_access_details(),
+            "desktop_status": desktop_runtime_status(desktop_settings),
             "error_message": error_message,
             "success_message": success_message,
         },
@@ -1704,6 +1708,35 @@ async def save_settings_desktop_page(request: Request):
         network_mode=str(form.get("network_mode") or ""),
     )
     return RedirectResponse(url="/settings/desktop?saved=1", status_code=303)
+
+
+@app.get("/settings/desktop/lan-qr.svg")
+def settings_desktop_lan_qr(download: str = "") -> Response:
+    lan_access = lan_access_details()
+    svg = qr_svg_bytes(str(lan_access.get("qr_url") or ""))
+    headers = {"Cache-Control": "no-store"}
+    if download == "1":
+        headers["Content-Disposition"] = 'attachment; filename="ndhi-lan-access-qr.svg"'
+    return Response(
+        content=svg,
+        media_type="image/svg+xml",
+        headers=headers,
+    )
+
+
+@app.get("/settings/desktop/lan-qr", response_class=HTMLResponse)
+def settings_desktop_lan_qr_page(request: Request) -> HTMLResponse:
+    lan_access = lan_access_details()
+    return templates.TemplateResponse(
+        request=request,
+        name="settings/lan_qr.html",
+        context={
+            "app_title": APP_TITLE,
+            "lan_access": lan_access,
+            "desktop_settings": read_desktop_settings(),
+            "desktop_status": desktop_runtime_status(),
+        },
+    )
 
 
 @app.get("/settings/users", response_class=HTMLResponse)
