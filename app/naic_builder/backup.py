@@ -85,6 +85,10 @@ def list_backup_archives(*, limit: int = 5, backup_dir: Path | None = None) -> l
     return [serialize_backup_archive(path) for path in archives[:limit]]
 
 
+def normalize_backup_destination(value: str | Path | None) -> str:
+    return str(value or "").strip()
+
+
 def local_backup_status(*, limit: int = 5) -> dict[str, Any]:
     archives = list_backup_archives(limit=limit)
     return {
@@ -95,10 +99,132 @@ def local_backup_status(*, limit: int = 5) -> dict[str, Any]:
     }
 
 
+def external_backup_status(destination: str | Path | None, *, limit: int = 5) -> dict[str, Any]:
+    destination_text = normalize_backup_destination(destination)
+    if not destination_text:
+        return {
+            "configured": False,
+            "status": "disabled",
+            "label": "Not configured",
+            "detail": "Add a folder path to keep a second copy outside this PC.",
+            "backup_dir": "",
+            "archives": [],
+            "latest": None,
+            "count": 0,
+        }
+
+    backup_dir = Path(destination_text).expanduser()
+    if backup_dir.exists() and not backup_dir.is_dir():
+        return {
+            "configured": True,
+            "status": "error",
+            "label": "Check path",
+            "detail": "The configured external backup path is not a folder.",
+            "backup_dir": str(backup_dir),
+            "archives": [],
+            "latest": None,
+            "count": 0,
+        }
+
+    archives = list_backup_archives(limit=limit, backup_dir=backup_dir)
+    if backup_dir.is_dir():
+        status = "ready"
+        label = "Ready" if archives else "Empty"
+        detail = "External backup folder is available."
+    else:
+        status = "warning"
+        label = "Not found"
+        detail = "The folder is not currently available. Connect the external drive or choose another path."
+
+    return {
+        "configured": True,
+        "status": status,
+        "label": label,
+        "detail": detail,
+        "backup_dir": str(backup_dir),
+        "archives": archives,
+        "latest": archives[0] if archives else None,
+        "count": len(archives),
+    }
+
+
+def backup_health_summary(
+    local_status: dict[str, Any],
+    external_status: dict[str, Any],
+) -> dict[str, str]:
+    local_latest = local_status.get("latest") if isinstance(local_status, dict) else None
+    external_latest = external_status.get("latest") if isinstance(external_status, dict) else None
+    external_configured = bool(external_status.get("configured")) if isinstance(external_status, dict) else False
+    external_state = str(external_status.get("status") or "") if isinstance(external_status, dict) else ""
+
+    if not local_latest:
+        return {
+            "status": "warning",
+            "chip_status": "pending",
+            "label": "No backup yet",
+            "title": "Create the first backup before clinic use",
+            "detail": "There is no verified local backup archive yet. Create one before real patient records are entered.",
+        }
+
+    if not external_configured:
+        return {
+            "status": "warning",
+            "chip_status": "pending",
+            "label": "Local only",
+            "title": "Local backup is available",
+            "detail": "The latest local backup is verified. Add an external folder to keep a second copy outside this PC.",
+        }
+
+    if external_state == "error":
+        return {
+            "status": "error",
+            "chip_status": "disabled",
+            "label": "External path issue",
+            "title": "Check the external backup path",
+            "detail": "Local backup is available, but the configured external backup path is not usable.",
+        }
+
+    if external_state == "warning":
+        return {
+            "status": "warning",
+            "chip_status": "pending",
+            "label": "External missing",
+            "title": "External backup folder is not available",
+            "detail": "Local backup is available, but the external drive or folder is not currently reachable.",
+        }
+
+    if not external_latest:
+        return {
+            "status": "warning",
+            "chip_status": "pending",
+            "label": "External empty",
+            "title": "External folder is ready",
+            "detail": "Create a backup now to write and verify the first external copy.",
+        }
+
+    return {
+        "status": "ready",
+        "chip_status": "active",
+        "label": "Local + external",
+        "title": "Backups are ready",
+        "detail": "The latest local backup and external copy are both available for verification.",
+    }
+
+
 def verify_latest_backup_archive() -> dict[str, Any]:
     archives = list_backup_archives(limit=1)
     if not archives:
         raise FileNotFoundError("No local backup archive found.")
+    return verify_backup_archive(Path(archives[0]["path"]))
+
+
+def verify_latest_external_backup_archive(destination: str | Path | None) -> dict[str, Any]:
+    destination_text = normalize_backup_destination(destination)
+    if not destination_text:
+        raise FileNotFoundError("No external backup folder is configured.")
+    archives = list_backup_archives(limit=1, backup_dir=Path(destination_text).expanduser())
+    if not archives:
+        raise FileNotFoundError("No external backup archive found.")
     return verify_backup_archive(Path(archives[0]["path"]))
 
 
@@ -188,6 +314,28 @@ def create_verified_backup(*, reason: str = "manual", destination_dir: Path | No
     os.replace(partial_path, archive_path)
     verify_backup_archive(archive_path)
     return archive_path
+
+
+def copy_backup_archive_to_destination(source_path: Path, destination: str | Path | None) -> Path | None:
+    destination_text = normalize_backup_destination(destination)
+    if not destination_text:
+        return None
+
+    resolved_source = source_path.expanduser().resolve()
+    if not resolved_source.is_file():
+        raise FileNotFoundError(f"Backup archive not found: {resolved_source}")
+
+    target_dir = Path(destination_text).expanduser()
+    if target_dir.exists() and not target_dir.is_dir():
+        raise NotADirectoryError(f"External backup path is not a folder: {target_dir}")
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    target_path = target_dir / resolved_source.name
+    partial_path = target_path.with_suffix(".zip.partial")
+    shutil.copy2(resolved_source, partial_path)
+    os.replace(partial_path, target_path)
+    verify_backup_archive(target_path)
+    return target_path
 
 
 def validate_archive_member(member_name: str) -> None:

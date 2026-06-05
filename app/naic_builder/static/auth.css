@@ -48,6 +48,78 @@
   color: var(--accent);
 }
 
+.backup-health-banner {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--panel-strong) 88%, transparent),
+      color-mix(in srgb, var(--surface-elevated) 92%, transparent)
+    );
+  box-shadow: var(--shadow-soft);
+}
+
+.backup-health-banner[data-status="ready"] {
+  border-color: color-mix(in srgb, var(--success) 28%, transparent);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--success) 10%, var(--panel-strong)),
+      color-mix(in srgb, var(--surface-elevated) 94%, transparent)
+    );
+}
+
+.backup-health-banner[data-status="warning"] {
+  border-color: color-mix(in srgb, var(--warm) 32%, transparent);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--warm) 11%, var(--panel-strong)),
+      color-mix(in srgb, var(--surface-elevated) 94%, transparent)
+    );
+}
+
+.backup-health-banner[data-status="error"] {
+  border-color: color-mix(in srgb, var(--danger) 32%, transparent);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--danger) 10%, var(--panel-strong)),
+      color-mix(in srgb, var(--surface-elevated) 94%, transparent)
+    );
+}
+
+.backup-health-banner__copy {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.backup-health-banner__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.backup-health-banner h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.backup-health-banner p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .account-main {
   gap: 18px;
 }

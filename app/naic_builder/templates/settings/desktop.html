@@ -30,6 +30,19 @@
         <div class="banner success">{{ success_message }}</div>
         {% endif %}
 
+        <section class="backup-health-banner" data-status="{{ backup_health.status }}">
+          <div class="backup-health-banner__copy">
+            <div class="backup-health-banner__title-row">
+              <h2>{{ backup_health.title }}</h2>
+              <span class="status-chip" data-status="{{ backup_health.chip_status }}">{{ backup_health.label }}</span>
+            </div>
+            <p>{{ backup_health.detail }}</p>
+          </div>
+          <form method="post" action="/settings/desktop/backup-now" class="inline-action-form">
+            <button class="primary-button" type="submit">Create backup</button>
+          </form>
+        </section>
+
         <form id="desktopSettingsForm" method="post" action="/settings/desktop" class="panel settings-utility-card">
           <div class="section-head settings-utility-head">
             <div>
@@ -60,6 +73,14 @@
                 {% endfor %}
               </select>
               <p class="field-help">Use LAN only on the trusted clinic network. It takes effect when the desktop server starts.</p>
+            </label>
+          </div>
+
+          <div class="settings-utility-section">
+            <label class="field-stack">
+              <span>External backup folder</span>
+              <input name="external_backup_dir" type="text" value="{{ desktop_settings.external_backup_dir or '' }}" placeholder="Example: E:\NDHI LabRecords Backups">
+              <p class="field-help">Optional. Use a USB drive or external folder that is available on this host PC.</p>
             </label>
           </div>
 
@@ -138,7 +159,43 @@
             <label class="field-stack">
               <span>Backup folder</span>
               <input type="text" value="{{ backup_status.backup_dir }}" readonly>
-              <p class="field-help">Local backups stay on this PC. External backup and restore workflow are still separate release tasks.</p>
+              <p class="field-help">Local backups stay on this PC. Configure an external folder above for a second verified copy.</p>
+            </label>
+          </div>
+
+          <div class="settings-utility-section">
+            <article class="user-card user-card--compact">
+              <div class="user-card-main">
+                <div class="user-card-copy">
+                  <div class="user-card-title-row">
+                    <h3>External copy</h3>
+                    <span class="status-chip" data-status="{{ 'active' if external_backup_status.status == 'ready' else ('disabled' if external_backup_status.status == 'disabled' else 'pending') }}">{{ external_backup_status.label }}</span>
+                  </div>
+                  <p>{{ external_backup_status.detail }}</p>
+                  {% if external_backup_status.backup_dir %}
+                  <p>{{ external_backup_status.backup_dir }}</p>
+                  {% endif %}
+                  {% if external_backup_status.latest %}
+                  <p>Latest: {{ external_backup_status.latest.name }} - {{ external_backup_status.latest.modified_label }}</p>
+                  {% endif %}
+                </div>
+              </div>
+            </article>
+          </div>
+
+          {% if external_backup_status.configured and external_backup_status.status != 'ready' %}
+          <div class="settings-utility-section">
+            <div class="banner">
+              The local backup will still be created if the external folder is unavailable, but the external copy needs the configured drive or folder to be connected.
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="settings-utility-section">
+            <label class="field-stack">
+              <span>External backup path</span>
+              <input type="text" value="{{ external_backup_status.backup_dir or 'Not configured' }}" readonly>
+              <p class="field-help">The app verifies copied backup archives after writing them to the external folder.</p>
             </label>
           </div>
 
@@ -148,6 +205,9 @@
             </form>
             <form method="post" action="/settings/desktop/backup-verify-latest" class="inline-action-form">
               <button class="ghost-button" type="submit" {% if not backup_status.latest %}disabled{% endif %}>Verify latest</button>
+            </form>
+            <form method="post" action="/settings/desktop/backup-verify-external-latest" class="inline-action-form">
+              <button class="ghost-button" type="submit" {% if not external_backup_status.latest %}disabled{% endif %}>Verify external</button>
             </form>
           </div>
         </section>

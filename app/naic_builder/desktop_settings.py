@@ -67,26 +67,45 @@ def normalize_network_mode(value: Any) -> str:
     return mode if mode in SUPPORTED_NETWORK_MODES else DEFAULT_NETWORK_MODE
 
 
-def read_desktop_settings() -> dict[str, str]:
-    config_path = desktop_config_path()
-    if not config_path.exists():
-        return {"browser_preference": "auto", "network_mode": DEFAULT_NETWORK_MODE}
-    try:
-        raw_config = json.loads(config_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return {"browser_preference": "auto", "network_mode": DEFAULT_NETWORK_MODE}
-    if not isinstance(raw_config, dict):
-        return {"browser_preference": "auto", "network_mode": DEFAULT_NETWORK_MODE}
+def normalize_external_backup_dir(value: Any) -> str:
+    return str(value or "").strip()
+
+
+def default_desktop_settings() -> dict[str, str]:
     return {
-        "browser_preference": normalize_browser_preference(raw_config.get("browser_preference")),
-        "network_mode": normalize_network_mode(raw_config.get("network_mode")),
+        "browser_preference": "auto",
+        "network_mode": DEFAULT_NETWORK_MODE,
+        "external_backup_dir": "",
     }
 
 
-def save_desktop_settings(*, browser_preference: str, network_mode: str) -> dict[str, str]:
+def read_desktop_settings() -> dict[str, str]:
+    config_path = desktop_config_path()
+    if not config_path.exists():
+        return default_desktop_settings()
+    try:
+        raw_config = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return default_desktop_settings()
+    if not isinstance(raw_config, dict):
+        return default_desktop_settings()
+    return {
+        "browser_preference": normalize_browser_preference(raw_config.get("browser_preference")),
+        "network_mode": normalize_network_mode(raw_config.get("network_mode")),
+        "external_backup_dir": normalize_external_backup_dir(raw_config.get("external_backup_dir")),
+    }
+
+
+def save_desktop_settings(
+    *,
+    browser_preference: str,
+    network_mode: str,
+    external_backup_dir: str = "",
+) -> dict[str, str]:
     settings = {
         "browser_preference": normalize_browser_preference(browser_preference),
         "network_mode": normalize_network_mode(network_mode),
+        "external_backup_dir": normalize_external_backup_dir(external_backup_dir),
     }
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     desktop_config_path().write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")

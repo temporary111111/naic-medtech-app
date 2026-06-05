@@ -14,7 +14,15 @@ from sqlalchemy.orm import Session
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from .backup import create_verified_backup, local_backup_status, verify_latest_backup_archive
+from .backup import (
+    copy_backup_archive_to_destination,
+    backup_health_summary,
+    create_verified_backup,
+    external_backup_status,
+    local_backup_status,
+    verify_latest_backup_archive,
+    verify_latest_external_backup_archive,
+)
 from .config import APP_TITLE, PRODUCT_ID, SESSION_SECRET, SIGNATORY_UPLOADS_DIR, STATIC_DIR, TEMPLATES_DIR
 from .database import SessionLocal, ensure_runtime_schema, get_session
 from .desktop_settings import (
@@ -370,6 +378,8 @@ def render_settings_desktop_page(
     status_code: int = 200,
 ) -> HTMLResponse:
     desktop_settings = settings_override or read_desktop_settings()
+    backup_status = local_backup_status()
+    external_status = external_backup_status(desktop_settings.get("external_backup_dir"))
     return templates.TemplateResponse(
         request=request,
         name="settings/desktop.html",
@@ -381,7 +391,9 @@ def render_settings_desktop_page(
             "browser_status": detect_desktop_browsers(),
             "lan_access": lan_access_details(),
             "desktop_status": desktop_runtime_status(desktop_settings),
-            "backup_status": local_backup_status(),
+            "backup_status": backup_status,
+            "external_backup_status": external_status,
+            "backup_health": backup_health_summary(backup_status, external_status),
             "error_message": error_message,
             "success_message": success_message,
         },
@@ -1703,8 +1715,12 @@ def settings_desktop_page(request: Request) -> HTMLResponse:
         success_message = "Saved the desktop app settings."
     elif request.query_params.get("backup") == "created":
         success_message = "Created and verified a local backup."
+    elif request.query_params.get("backup") == "created_external":
+        success_message = "Created and verified local and external backups."
     elif request.query_params.get("backup") == "verified":
         success_message = "Verified the latest local backup."
+    elif request.query_params.get("backup") == "external_verified":
+        success_message = "Verified the latest external backup."
     return render_settings_desktop_page(request, success_message=success_message)
 
 
@@ -1714,6 +1730,7 @@ async def save_settings_desktop_page(request: Request):
     save_desktop_settings(
         browser_preference=str(form.get("browser_preference") or ""),
         network_mode=str(form.get("network_mode") or ""),
+        external_backup_dir=str(form.get("external_backup_dir") or ""),
     )
     return RedirectResponse(url="/settings/desktop?saved=1", status_code=303)
 
@@ -1734,14 +1751,26 @@ def settings_desktop_lan_qr(download: str = "") -> Response:
 
 @app.post("/settings/desktop/backup-now")
 def settings_desktop_backup_now_page(request: Request) -> Response:
+    desktop_settings = read_desktop_settings()
+    external_backup_dir = str(desktop_settings.get("external_backup_dir") or "")
     try:
-        create_verified_backup(reason="manual-app")
+        backup_path = create_verified_backup(reason="manual-app")
     except Exception as exc:
         return render_settings_desktop_page(
             request,
             error_message=f"Backup failed: {exc}",
             status_code=500,
         )
+    try:
+        external_backup_path = copy_backup_archive_to_destination(backup_path, external_backup_dir)
+    except Exception as exc:
+        return render_settings_desktop_page(
+            request,
+            error_message=f"Local backup was created and verified, but the external copy failed: {exc}",
+            status_code=500,
+        )
+    if external_backup_path is not None:
+        return RedirectResponse(url="/settings/desktop?backup=created_external", status_code=303)
     return RedirectResponse(url="/settings/desktop?backup=created", status_code=303)
 
 
@@ -1756,6 +1785,20 @@ def settings_desktop_backup_verify_latest_page(request: Request) -> Response:
             status_code=500,
         )
     return RedirectResponse(url="/settings/desktop?backup=verified", status_code=303)
+
+
+@app.post("/settings/desktop/backup-verify-external-latest")
+def settings_desktop_backup_verify_external_latest_page(request: Request) -> Response:
+    desktop_settings = read_desktop_settings()
+    try:
+        verify_latest_external_backup_archive(str(desktop_settings.get("external_backup_dir") or ""))
+    except Exception as exc:
+        return render_settings_desktop_page(
+            request,
+            error_message=f"External backup verification failed: {exc}",
+            status_code=500,
+        )
+    return RedirectResponse(url="/settings/desktop?backup=external_verified", status_code=303)
 
 
 @app.get("/settings/desktop/lan-qr", response_class=HTMLResponse)
