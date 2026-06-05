@@ -20,6 +20,7 @@ from .backup import (
     create_verified_backup,
     external_backup_status,
     local_backup_status,
+    prune_backup_archives,
     verify_latest_backup_archive,
     verify_latest_external_backup_archive,
 )
@@ -1731,6 +1732,7 @@ async def save_settings_desktop_page(request: Request):
         browser_preference=str(form.get("browser_preference") or ""),
         network_mode=str(form.get("network_mode") or ""),
         external_backup_dir=str(form.get("external_backup_dir") or ""),
+        backup_retention_count=str(form.get("backup_retention_count") or ""),
     )
     return RedirectResponse(url="/settings/desktop?saved=1", status_code=303)
 
@@ -1753,8 +1755,10 @@ def settings_desktop_lan_qr(download: str = "") -> Response:
 def settings_desktop_backup_now_page(request: Request) -> Response:
     desktop_settings = read_desktop_settings()
     external_backup_dir = str(desktop_settings.get("external_backup_dir") or "")
+    backup_retention_count = int(desktop_settings.get("backup_retention_count") or 30)
     try:
         backup_path = create_verified_backup(reason="manual-app")
+        prune_backup_archives(keep_count=backup_retention_count)
     except Exception as exc:
         return render_settings_desktop_page(
             request,
@@ -1763,6 +1767,11 @@ def settings_desktop_backup_now_page(request: Request) -> Response:
         )
     try:
         external_backup_path = copy_backup_archive_to_destination(backup_path, external_backup_dir)
+        if external_backup_path is not None:
+            prune_backup_archives(
+                keep_count=backup_retention_count,
+                backup_dir=Path(external_backup_dir).expanduser(),
+            )
     except Exception as exc:
         return render_settings_desktop_page(
             request,

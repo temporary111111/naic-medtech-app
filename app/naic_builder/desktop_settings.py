@@ -14,6 +14,9 @@ from .config import CONFIG_DIR
 DESKTOP_CONFIG_FILENAME = "desktop.json"
 DEFAULT_DESKTOP_PORT = 8114
 DEFAULT_NETWORK_MODE = "lan"
+DEFAULT_BACKUP_RETENTION_COUNT = 30
+MIN_BACKUP_RETENTION_COUNT = 5
+MAX_BACKUP_RETENTION_COUNT = 365
 FIREWALL_RULE_NAME = "NDHI Laboratory Records LAN"
 SUPPORTED_BROWSER_PREFERENCES = ("auto", "edge", "chrome", "default")
 SUPPORTED_NETWORK_MODES = ("local", "lan")
@@ -71,15 +74,24 @@ def normalize_external_backup_dir(value: Any) -> str:
     return str(value or "").strip()
 
 
-def default_desktop_settings() -> dict[str, str]:
+def normalize_backup_retention_count(value: Any) -> int:
+    try:
+        count = int(value)
+    except (TypeError, ValueError):
+        count = DEFAULT_BACKUP_RETENTION_COUNT
+    return max(MIN_BACKUP_RETENTION_COUNT, min(count, MAX_BACKUP_RETENTION_COUNT))
+
+
+def default_desktop_settings() -> dict[str, Any]:
     return {
         "browser_preference": "auto",
         "network_mode": DEFAULT_NETWORK_MODE,
         "external_backup_dir": "",
+        "backup_retention_count": DEFAULT_BACKUP_RETENTION_COUNT,
     }
 
 
-def read_desktop_settings() -> dict[str, str]:
+def read_desktop_settings() -> dict[str, Any]:
     config_path = desktop_config_path()
     if not config_path.exists():
         return default_desktop_settings()
@@ -93,6 +105,7 @@ def read_desktop_settings() -> dict[str, str]:
         "browser_preference": normalize_browser_preference(raw_config.get("browser_preference")),
         "network_mode": normalize_network_mode(raw_config.get("network_mode")),
         "external_backup_dir": normalize_external_backup_dir(raw_config.get("external_backup_dir")),
+        "backup_retention_count": normalize_backup_retention_count(raw_config.get("backup_retention_count")),
     }
 
 
@@ -101,11 +114,13 @@ def save_desktop_settings(
     browser_preference: str,
     network_mode: str,
     external_backup_dir: str = "",
-) -> dict[str, str]:
+    backup_retention_count: Any = DEFAULT_BACKUP_RETENTION_COUNT,
+) -> dict[str, Any]:
     settings = {
         "browser_preference": normalize_browser_preference(browser_preference),
         "network_mode": normalize_network_mode(network_mode),
         "external_backup_dir": normalize_external_backup_dir(external_backup_dir),
+        "backup_retention_count": normalize_backup_retention_count(backup_retention_count),
     }
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     desktop_config_path().write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")

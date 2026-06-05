@@ -74,15 +74,30 @@ def serialize_backup_archive(path: Path) -> dict[str, Any]:
 
 
 def list_backup_archives(*, limit: int = 5, backup_dir: Path | None = None) -> list[dict[str, Any]]:
+    archives = list_backup_archive_paths(backup_dir=backup_dir)
+    return [serialize_backup_archive(path) for path in archives[:limit]]
+
+
+def list_backup_archive_paths(*, backup_dir: Path | None = None) -> list[Path]:
     source_dir = (backup_dir or BACKUPS_DIR).expanduser()
     if not source_dir.is_dir():
         return []
-    archives = sorted(
+    return sorted(
         (path for path in source_dir.glob(BACKUP_ARCHIVE_PATTERN) if path.is_file()),
         key=lambda path: path.stat().st_mtime,
         reverse=True,
     )
-    return [serialize_backup_archive(path) for path in archives[:limit]]
+
+
+def prune_backup_archives(*, keep_count: int, backup_dir: Path | None = None) -> list[dict[str, Any]]:
+    archives = list_backup_archive_paths(backup_dir=backup_dir)
+    resolved_keep_count = max(1, int(keep_count or 1))
+    expired_archives = archives[resolved_keep_count:]
+    deleted: list[dict[str, Any]] = []
+    for archive_path in expired_archives:
+        deleted.append(serialize_backup_archive(archive_path))
+        archive_path.unlink()
+    return deleted
 
 
 def normalize_backup_destination(value: str | Path | None) -> str:

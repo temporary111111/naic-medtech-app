@@ -85,6 +85,14 @@
           </div>
 
           <div class="settings-utility-section">
+            <label class="field-stack">
+              <span>Backups to keep</span>
+              <input name="backup_retention_count" type="number" min="5" max="365" step="1" value="{{ desktop_settings.backup_retention_count or 30 }}">
+              <p class="field-help">After a new verified backup, older local and external backup archives beyond this count are removed.</p>
+            </label>
+          </div>
+
+          <div class="settings-utility-section">
             {% for option in browser_options %}
             <article class="user-card user-card--compact">
               <div class="user-card-main">
@@ -159,7 +167,7 @@
             <label class="field-stack">
               <span>Backup folder</span>
               <input type="text" value="{{ backup_status.backup_dir }}" readonly>
-              <p class="field-help">Local backups stay on this PC. Configure an external folder above for a second verified copy.</p>
+              <p class="field-help">Local backups stay on this PC. The app keeps the latest {{ desktop_settings.backup_retention_count or 30 }} backup archives.</p>
             </label>
           </div>
 
