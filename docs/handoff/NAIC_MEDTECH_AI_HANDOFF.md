@@ -3,6 +3,24 @@
 ## Purpose
 This document explains the core product concept for the NDHI Laboratory Records app so another AI can continue implementation without re-discovering the domain context.
 
+## Handoff Readiness Snapshot
+As of June 5, 2026, the codebase is continuation-ready for another AI if it starts from this document and the focused handoff docs listed below.
+
+Current repo state:
+- core records/forms/builder/settings/auth foundations are implemented
+- recursive builder concept is implemented in the live app, not just in the standalone replica
+- patient-facing browser-print output is implemented through the builder-driven print model
+- automated print smoke and browser PDF page-count QA pass across the current 18 seeded forms
+- local-first Windows desktop installer foundation exists and has a current `0.1.4-dev` QR/LAN reliability build
+- same-network LAN access defaults on for fresh desktop installs; Settings shows hostname/IP links and a downloadable QR code
+
+Still not clinic-release-complete:
+- manual installed-app QA on a clean Windows machine
+- real clinic device/browser/printer QA
+- real production data QA
+- backup scheduling, external backup destination, restore drill, and pre-update backup flow
+- Authenticode signing before distributing a serious release build
+
 ## Project Summary
 The client is a clinic/laboratory that needs an internal app to make laboratory operations faster during daily use.
 
@@ -34,10 +52,11 @@ not as a:
 Current status snapshot:
 - the builder and records foundations have landed
 - the recursive builder integration is now browser-audited and stabilized across duplicate-form startup, nested editing, copy/remove, hidden advanced-block ordering, save/reload, light/dark, desktop, tablet, and mobile
-- the current active product area is patient-facing print configuration and real clinic-device print QA
+- the patient-facing print foundation is implemented and should now be validated against real clinic devices, real records, and real printer settings
 - print should continue from the builder-driven `record_identity` and `print_config` model
 - a local-first Windows desktop-installer foundation now exists under `tools/desktop/`; continue from `docs/handoff/DESKTOP_INSTALLER_ARCHITECTURE.md`
-- the desktop layer intentionally keeps FastAPI as the product core: a launcher starts a localhost-only server and opens a browser-powered app window
+- the desktop layer intentionally keeps FastAPI as the product core: a launcher starts the local server and opens a browser-powered app window
+- fresh desktop installs default to LAN mode so same-network clinic devices can connect with the hostname/IP/QR shown in Settings
 - the verified backup foundation is real, but automatic scheduling, external copies, safe restore, and pre-update backup are still required before clinic release
 
 ## Historical Phase 1 Priority
@@ -971,12 +990,14 @@ These should be treated as safe defaults, not as final product truth.
 ## What Another AI Should Do First
 When continuing implementation, the next AI should:
 
-1. Read `docs/handoff/NAIC_MEDTECH_AI_CONTEXT.json`
-2. Read `docs/handoff/PRINT_SYSTEM_HANDOFF.md`
-3. Skim `docs/handoff/BUILDER_V2_PLAN.md` and `docs/handoff/FLEXIBLE_BUILDER_FOUNDATION.md`
-4. Treat the app as schema-driven and form-version-driven
-5. Continue the existing builder-driven print config model
-6. Avoid hardcoding individual lab forms, patient-info zones, or old template layouts
+1. Read this file first.
+2. Read `docs/handoff/NAIC_MEDTECH_AI_CONTEXT.json`.
+3. Read `docs/handoff/PRINT_SYSTEM_HANDOFF.md` for print state and rules.
+4. Read `docs/handoff/DESKTOP_INSTALLER_ARCHITECTURE.md` before touching installer, LAN, browser, or backup behavior.
+5. Skim `docs/handoff/BUILDER_V2_PLAN.md` and `docs/handoff/FLEXIBLE_BUILDER_FOUNDATION.md` before changing builder architecture.
+6. Treat the app as schema-driven and form-version-driven.
+7. Continue the existing builder-driven print config model.
+8. Avoid hardcoding individual lab forms, patient-info zones, signatory roles, or old template layouts.
 
 ## What Another AI Should Avoid
 - Do not build one screen per exam.

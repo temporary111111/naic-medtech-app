@@ -8,9 +8,9 @@ The installed shortcut launches `NDHI-LabRecords.exe`. The launcher:
 
 1. creates the persistent runtime folders under `%ProgramData%\NDHI\LabRecords`;
 2. generates a machine-local session secret if needed;
-3. starts the FastAPI server on `127.0.0.1:8114` if it is not already healthy;
+3. starts the FastAPI server on `0.0.0.0:8114` in default LAN mode, or `127.0.0.1:8114` in local-only mode, if it is not already healthy;
 4. waits for `/api/health`;
-5. opens the configured browser in dedicated app mode, with Edge as the safe default.
+5. opens the host PC through `http://127.0.0.1:8114` in the configured browser/app-mode window, with Edge as the safe default.
 
 Browser preference is intentionally a launcher/runtime setting, not an installer-only decision. The installed launcher reads:
 

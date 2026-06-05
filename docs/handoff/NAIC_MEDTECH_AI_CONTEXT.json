@@ -9,7 +9,48 @@
   "active_builder_direction_doc": "docs/handoff/BUILDER_V2_PLAN.md",
   "active_print_system_doc": "docs/handoff/PRINT_SYSTEM_HANDOFF.md",
   "active_desktop_installer_doc": "docs/handoff/DESKTOP_INSTALLER_ARCHITECTURE.md",
-  "main_goal_status": "core_done_cleanup_remaining",
+  "main_goal_status": "continuation_ready_real_world_qa_remaining",
+  "handoff_status": {
+    "last_refreshed": "2026-06-05",
+    "continuation_readiness": "ready_for_another_ai_if_it_reads_the_handoff_docs_first",
+    "current_priority": "real_world_validation_before_clinic_release",
+    "must_not_reopen_without_evidence": [
+      "schema-driven builder architecture",
+      "builder-driven print configuration",
+      "local-first FastAPI desktop launcher architecture",
+      "LAN-on-by-default desktop setting for no-hassle same-network access"
+    ],
+    "human_or_client_input_still_needed": [
+      "manual QA of the installed app",
+      "real clinic browser/printer behavior",
+      "real production record samples",
+      "backup restore expectations and external backup destination",
+      "final clinic release/signing decision"
+    ]
+  },
+  "desktop_installer_status": {
+    "active_doc": "docs/handoff/DESKTOP_INSTALLER_ARCHITECTURE.md",
+    "current_dev_installer": "dist/desktop/installer/NDHI-LabRecords-Setup-0.1.4-dev-x64.exe",
+    "current_version": "0.1.4-dev",
+    "implemented": [
+      "PyInstaller plus Inno Setup packaging foundation",
+      "persistent installed data under %ProgramData%\\NDHI\\LabRecords",
+      "replaceable app binaries under %ProgramFiles%\\NDHI\\LabRecords",
+      "browser preference setting with auto, Edge, Chrome, and default-browser modes",
+      "LAN mode defaults on for fresh installs and binds to 0.0.0.0:8114",
+      "host PC still opens through 127.0.0.1:8114",
+      "installer-created Windows Firewall rule limited to Private/Domain local subnet",
+      "Settings -> Desktop app shows hostname/IP links, readiness cards, copy actions, full QR view, and downloadable SVG QR",
+      "QR is generated locally with segno and prefers IP fallback when available"
+    ],
+    "not_release_complete": [
+      "clean Windows PC installed-app QA",
+      "Defender/antivirus-enabled QA",
+      "real LAN scan/connect QA on clinic-like network",
+      "backup schedule, external copy, restore drill, and pre-update backup",
+      "Authenticode signing"
+    ]
+  },
   "locked_ui_direction": {
     "design_language": "clinical_depth_luxe",
     "status": "authenticated_shell_content_first_compact_work_surface_public_auth_settings_ia_account_profile_clinic_profile_settings_utility_recursive_builder_browser_qa_and_print_configuration_phase_2f_pass_landed",
@@ -407,7 +448,7 @@
     "view_only"
   ],
   "print_system_status": {
-    "phase": "phase_2e_compact_result_grid_pass_landed",
+    "phase": "phase_2f_actual_record_print_smoke_and_pdf_qa_landed",
     "active_doc": "docs/handoff/PRINT_SYSTEM_HANDOFF.md",
     "core_decisions": [
       "print output is patient-facing and should be compact",
@@ -454,13 +495,16 @@
       "real production records and the clinic's actual browser/printer settings still need final real-device print QA",
       "current output is browser-print based, not a dedicated server-side PDF engine"
     ],
-    "next_recommended_phase": "phase_2e_real_device_and_real_data_print_qa"
+    "next_recommended_phase": "real_device_real_data_print_qa_and_release_readiness"
   },
-  "next_major_build_target": "print_template_configuration_phase_2e",
+  "next_major_build_target": "real_world_installed_app_qa_and_release_readiness",
   "next_major_build_scope": [
-    "test print output across real forms and long-form edge cases with actual clinic-like values",
+    "test print output with real clinic records and real printer/browser settings",
+    "test installed desktop app behavior on a clean Windows PC",
+    "test same-network LAN access from another trusted clinic device using hostname, IP fallback, and QR",
+    "finish backup scheduling, external backup destination, restore drill, and pre-update backup behavior",
     "verify real clinic device/browser behavior",
-    "consider section/result accent behavior only if real print review proves it useful",
+    "consider print design overrides only if real print review proves a concrete need",
     "treat non-print UI work as secondary cleanup unless direct issues appear"
   ],
   "source_of_truth": {

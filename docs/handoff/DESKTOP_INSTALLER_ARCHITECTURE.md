@@ -31,8 +31,8 @@ NDHI Laboratory Records desktop shortcut
   -> NDHI-LabRecords.exe launcher
   -> ensure persistent runtime folders and machine-local session secret
   -> start bundled FastAPI server if /api/health is not already healthy
-  -> bind only to 127.0.0.1:8114
-  -> open the configured browser in dedicated app mode
+  -> bind to 0.0.0.0:8114 in default LAN mode, or 127.0.0.1:8114 in local-only mode
+  -> open the host PC through 127.0.0.1:8114 in the configured browser/app-mode window
   -> default-browser fallback only if app-mode browser launch cannot be satisfied
 ```
 
