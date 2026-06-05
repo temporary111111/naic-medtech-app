@@ -27,6 +27,7 @@ BROWSER_PREFERENCE_ENV = "NDHI_LABRECORDS_BROWSER"
 NETWORK_MODE_ENV = "NDHI_LABRECORDS_NETWORK_MODE"
 SUPPORTED_BROWSERS = {"auto", "edge", "chrome", "default"}
 SUPPORTED_NETWORK_MODES = {"local", "lan"}
+DEFAULT_NETWORK_MODE = "lan"
 CREATE_NO_WINDOW = 0x08000000
 DETACHED_PROCESS = 0x00000008
 _PROCESS_STREAMS = []
@@ -76,7 +77,7 @@ def normalize_browser_preference(value: str | None) -> str:
 
 def normalize_network_mode(value: str | None) -> str:
     mode = (value or "").strip().lower()
-    return mode if mode in SUPPORTED_NETWORK_MODES else "local"
+    return mode if mode in SUPPORTED_NETWORK_MODES else DEFAULT_NETWORK_MODE
 
 
 def read_desktop_config(data_dir: Path) -> dict[str, str]:

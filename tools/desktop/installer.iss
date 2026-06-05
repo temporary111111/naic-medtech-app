@@ -14,6 +14,8 @@
 #define AppName "NDHI Laboratory Records"
 #define AppPublisher "Naic Doctors Hospital, Incorporated"
 #define AppExeName "NDHI-LabRecords.exe"
+#define FirewallRuleName "NDHI Laboratory Records LAN"
+#define AppPort "8114"
 
 [Setup]
 AppId={{4CB23F19-BA42-44ED-A0A9-A783A4B73590}
@@ -51,3 +53,54 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "Launch {#AppName}"; Flags: nowait postinstall skipifsilent
+
+[Code]
+procedure ConfigureFirewallRule();
+var
+  ResultCode: Integer;
+  AppPath: String;
+begin
+  AppPath := ExpandConstant('{app}\{#AppExeName}');
+  Exec(
+    ExpandConstant('{sys}\netsh.exe'),
+    'advfirewall firewall delete rule name="{#FirewallRuleName}"',
+    '',
+    SW_HIDE,
+    ewWaitUntilTerminated,
+    ResultCode
+  );
+  Exec(
+    ExpandConstant('{sys}\netsh.exe'),
+    'advfirewall firewall add rule name="{#FirewallRuleName}" dir=in action=allow protocol=TCP localport={#AppPort} profile=private,domain remoteip=localsubnet program="' + AppPath + '" enable=yes',
+    '',
+    SW_HIDE,
+    ewWaitUntilTerminated,
+    ResultCode
+  );
+end;
+
+procedure RemoveFirewallRule();
+var
+  ResultCode: Integer;
+begin
+  Exec(
+    ExpandConstant('{sys}\netsh.exe'),
+    'advfirewall firewall delete rule name="{#FirewallRuleName}"',
+    '',
+    SW_HIDE,
+    ewWaitUntilTerminated,
+    ResultCode
+  );
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+    ConfigureFirewallRule();
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usUninstall then
+    RemoveFirewallRule();
+end;

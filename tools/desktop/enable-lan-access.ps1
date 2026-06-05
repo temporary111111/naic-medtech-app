@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [int]$Port = 8114,
-    [string]$RuleName = "NDHI Laboratory Records LAN"
+    [string]$RuleName = "NDHI Laboratory Records LAN",
+    [string]$ProgramPath = "$env:ProgramFiles\NDHI\LabRecords\NDHI-LabRecords.exe"
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,19 +16,23 @@ if (-not $isAdmin) {
 
 $existingRule = Get-NetFirewallRule -DisplayName $RuleName -ErrorAction SilentlyContinue
 if ($existingRule) {
-    Enable-NetFirewallRule -DisplayName $RuleName | Out-Null
-    Write-Host "LAN firewall rule is already present and enabled: $RuleName"
-    return
+    Remove-NetFirewallRule -DisplayName $RuleName
 }
 
-New-NetFirewallRule `
-    -DisplayName $RuleName `
-    -Direction Inbound `
-    -Action Allow `
-    -Protocol TCP `
-    -LocalPort $Port `
-    -Profile Private,Domain `
-    -Description "Allows trusted clinic LAN devices to open NDHI Laboratory Records on TCP port $Port." |
-    Out-Null
+$rule = @{
+    DisplayName = $RuleName
+    Direction = "Inbound"
+    Action = "Allow"
+    Protocol = "TCP"
+    LocalPort = $Port
+    Profile = "Private", "Domain"
+    RemoteAddress = "LocalSubnet"
+    Description = "Allows trusted clinic LAN devices to open NDHI Laboratory Records on TCP port $Port."
+}
+if (Test-Path -LiteralPath $ProgramPath -PathType Leaf) {
+    $rule.Program = $ProgramPath
+}
 
-Write-Host "Created LAN firewall rule: $RuleName on TCP port $Port for Private/Domain networks."
+New-NetFirewallRule @rule | Out-Null
+
+Write-Host "Created LAN firewall rule: $RuleName on TCP port $Port for Private/Domain local subnet networks."

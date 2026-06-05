@@ -12,6 +12,7 @@ from .config import CONFIG_DIR
 
 DESKTOP_CONFIG_FILENAME = "desktop.json"
 DEFAULT_DESKTOP_PORT = 8114
+DEFAULT_NETWORK_MODE = "lan"
 SUPPORTED_BROWSER_PREFERENCES = ("auto", "edge", "chrome", "default")
 SUPPORTED_NETWORK_MODES = ("local", "lan")
 BROWSER_PREFERENCE_OPTIONS = [
@@ -38,14 +39,14 @@ BROWSER_PREFERENCE_OPTIONS = [
 ]
 NETWORK_MODE_OPTIONS = [
     {
-        "value": "local",
-        "label": "This PC only",
-        "description": "Safest default. Only this computer can open the app.",
-    },
-    {
         "value": "lan",
         "label": "Same network / LAN",
-        "description": "Other clinic PCs on the same Wi-Fi or local network can open the app.",
+        "description": "Recommended default. Other clinic PCs on the same Wi-Fi or local network can open the app.",
+    },
+    {
+        "value": "local",
+        "label": "This PC only",
+        "description": "Only this computer can open the app.",
     },
 ]
 
@@ -61,19 +62,19 @@ def normalize_browser_preference(value: Any) -> str:
 
 def normalize_network_mode(value: Any) -> str:
     mode = str(value or "").strip().lower()
-    return mode if mode in SUPPORTED_NETWORK_MODES else "local"
+    return mode if mode in SUPPORTED_NETWORK_MODES else DEFAULT_NETWORK_MODE
 
 
 def read_desktop_settings() -> dict[str, str]:
     config_path = desktop_config_path()
     if not config_path.exists():
-        return {"browser_preference": "auto", "network_mode": "local"}
+        return {"browser_preference": "auto", "network_mode": DEFAULT_NETWORK_MODE}
     try:
         raw_config = json.loads(config_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return {"browser_preference": "auto", "network_mode": "local"}
+        return {"browser_preference": "auto", "network_mode": DEFAULT_NETWORK_MODE}
     if not isinstance(raw_config, dict):
-        return {"browser_preference": "auto", "network_mode": "local"}
+        return {"browser_preference": "auto", "network_mode": DEFAULT_NETWORK_MODE}
     return {
         "browser_preference": normalize_browser_preference(raw_config.get("browser_preference")),
         "network_mode": normalize_network_mode(raw_config.get("network_mode")),
