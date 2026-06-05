@@ -7,7 +7,7 @@
 {% block body_attrs %}data-initial-form-slug="{{ initial_form_slug or '' }}" data-initial-builder-mode="{{ initial_builder_mode or '' }}"{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{{ url_for('static', path='app.css') }}?v=20260531-builder-recursive-qa">
+  <link rel="stylesheet" href="{{ url_for('static', path='app.css') }}?v=20260605-builder-calm">
 {% endblock %}
 
 {% block shell_eyebrow %}Builder{% endblock %}
@@ -138,5 +138,5 @@
 
 {% block page_scripts %}
   <script src="{{ url_for('static', path='vendor/sortable.min.js') }}" defer></script>
-  <script src="{{ url_for('static', path='app.js') }}?v=20260531-builder-recursive-qa" defer></script>
+  <script src="{{ url_for('static', path='app.js') }}?v=20260605-builder-calm" defer></script>
 {% endblock %}

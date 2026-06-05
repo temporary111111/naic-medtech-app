@@ -1582,6 +1582,92 @@ button.subtle[aria-pressed="true"] {
   border-top: 1px solid rgba(68, 54, 40, 0.12);
 }
 
+.identity-editor-summary,
+.options-editor-summary,
+.signatory-config-summary,
+.print-settings-summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.identity-editor-summary::-webkit-details-marker,
+.options-editor-summary::-webkit-details-marker,
+.signatory-config-summary::-webkit-details-marker,
+.print-settings-summary::-webkit-details-marker {
+  display: none;
+}
+
+.identity-editor-summary,
+.options-editor-summary,
+.print-settings-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--panel-strong) 62%, transparent);
+  color: var(--text);
+}
+
+.identity-editor-summary::after,
+.options-editor-summary::after,
+.print-settings-summary::after {
+  content: "+";
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--line) 86%, transparent);
+  border-radius: 999px;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.identity-editor[open] > .identity-editor-summary::after,
+.options-editor[open] > .options-editor-summary::after,
+.print-settings-section[open] > .print-settings-summary::after {
+  content: "-";
+}
+
+.identity-editor-summary > span,
+.options-editor-summary > span,
+.print-settings-summary > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.identity-editor-summary strong,
+.options-editor-summary strong,
+.print-settings-summary strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.identity-editor-summary small,
+.options-editor-summary small,
+.print-settings-summary small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.identity-editor-body {
+  display: grid;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+.identity-editor:not([open]) > .identity-editor-body,
+.options-editor:not([open]) > .options-editor-body,
+.signatory-config-details:not([open]) > .signatory-config-body,
+.print-settings-section:not([open]) > .print-settings-body {
+  display: none;
+}
+
 .identity-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -1671,12 +1757,31 @@ button.subtle[aria-pressed="true"] {
   gap: 12px;
 }
 
-.print-body-options,
 .print-signature-editor {
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--panel-strong);
+}
+
+.print-settings-section {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--panel-strong) 72%, transparent);
+}
+
+.print-settings-section[open] {
+  border-color: color-mix(in srgb, var(--accent) 18%, var(--line) 82%);
+}
+
+.print-settings-body {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
 }
 
 .print-color-input {
@@ -1770,6 +1875,88 @@ button.subtle[aria-pressed="true"] {
   border-radius: var(--radius-sm);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--panel-strong) 88%, transparent), color-mix(in srgb, var(--panel) 78%, transparent));
+}
+
+.signatory-config-details {
+  gap: 0;
+}
+
+.signatory-config-details[open] {
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--line) 78%);
+}
+
+.signatory-config-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 26px;
+  gap: 14px;
+  align-items: center;
+}
+
+.signatory-config-summary > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.signatory-config-summary strong {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 17px;
+  line-height: 1.08;
+}
+
+.signatory-config-summary::after {
+  content: "+";
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid color-mix(in srgb, var(--line) 86%, transparent);
+  border-radius: 999px;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.signatory-config-details[open] > .signatory-config-summary::after {
+  content: "-";
+}
+
+.signatory-summary-meta {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.signatory-summary-meta span,
+.field-compact-summary span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--line) 86%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel-strong) 66%, transparent);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.signatory-config-body {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
+}
+
+.signatory-config-actions {
+  justify-content: flex-end;
 }
 
 .signatory-config-head {
@@ -3320,6 +3507,23 @@ textarea:focus,
   box-shadow: none;
 }
 
+.shell .field-compact-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  margin-top: -2px;
+  padding-left: 42px;
+}
+
+.shell .field-detail-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+}
+
 .shell .recursive-container-card.is-open {
   box-shadow: none;
 }
@@ -3352,12 +3556,23 @@ textarea:focus,
 }
 
 .shell .options-editor {
-  padding-top: 2px;
-  border-top: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+  margin-top: 2px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--line) 84%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--panel-strong) 54%, transparent);
 }
 
-.shell .options-editor .card-head {
-  align-items: center;
+.shell .options-editor-body {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
+}
+
+.shell .options-editor .option-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .shell .options-editor .options-list {
@@ -3474,6 +3689,11 @@ html[data-theme="dark"] .shell .preview-image-upload {
 html[data-theme="dark"] .shell .section-card,
 html[data-theme="dark"] .shell .item-card,
 html[data-theme="dark"] .shell .signatory-config-card,
+html[data-theme="dark"] .shell .print-settings-section,
+html[data-theme="dark"] .shell .identity-editor-summary,
+html[data-theme="dark"] .shell .options-editor,
+html[data-theme="dark"] .shell .options-editor-summary,
+html[data-theme="dark"] .shell .print-settings-summary,
 html[data-theme="dark"] .shell .option-focus-card,
 html[data-theme="dark"] .shell .section-organizer-item,
 html[data-theme="dark"] .shell .item-organizer-item,
@@ -3487,6 +3707,8 @@ html[data-theme="dark"] .shell .outline-subitem {
 html[data-theme="dark"] .shell .section-card.is-open,
 html[data-theme="dark"] .shell .item-card.is-open,
 html[data-theme="dark"] .shell .signatory-config-card:focus-within,
+html[data-theme="dark"] .shell .signatory-config-details[open],
+html[data-theme="dark"] .shell .print-settings-section[open],
 html[data-theme="dark"] .shell .outline-item.active,
 html[data-theme="dark"] .shell .outline-subitem.active,
 html[data-theme="dark"] .shell .section-organizer-item.active,
@@ -3517,6 +3739,24 @@ html[data-theme="dark"] .shell .field-details-toggle:focus-visible {
 html[data-theme="dark"] .shell .options-editor .option-row {
   border-color: rgba(181, 208, 216, 0.1);
   background: rgba(255, 255, 255, 0.035);
+}
+
+html[data-theme="dark"] .shell .field-compact-summary span,
+html[data-theme="dark"] .shell .signatory-summary-meta span,
+html[data-theme="dark"] .shell .identity-editor-summary::after,
+html[data-theme="dark"] .shell .options-editor-summary::after,
+html[data-theme="dark"] .shell .print-settings-summary::after,
+html[data-theme="dark"] .shell .signatory-config-summary::after {
+  border-color: rgba(181, 208, 216, 0.11);
+  background: rgba(255, 255, 255, 0.045);
+  color: color-mix(in srgb, var(--muted) 72%, var(--text) 28%);
+}
+
+html[data-theme="dark"] .shell .field-detail-panel,
+html[data-theme="dark"] .shell .options-editor-body,
+html[data-theme="dark"] .shell .print-settings-body,
+html[data-theme="dark"] .shell .signatory-config-body {
+  border-color: rgba(181, 208, 216, 0.1);
 }
 
 html[data-theme="dark"] .shell .field-required-toggle,
@@ -3647,6 +3887,10 @@ html[data-theme="dark"] .shell .identity-check {
     position: static;
   }
 
+  .shell .content-input-preview {
+    display: none;
+  }
+
   .shell .preview-grid {
     grid-template-columns: 1fr;
   }
@@ -3670,6 +3914,25 @@ html[data-theme="dark"] .shell .identity-check {
 
   .signatory-config-head {
     display: grid;
+  }
+
+  .signatory-config-summary {
+    grid-template-columns: minmax(0, 1fr) 26px;
+  }
+
+  .signatory-config-summary::after {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .signatory-summary-meta {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    padding-right: 0;
+  }
+
+  .shell .field-compact-summary {
+    padding-left: 0;
   }
 
   .signatory-toggle-grid {

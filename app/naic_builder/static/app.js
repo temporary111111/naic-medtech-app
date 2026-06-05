@@ -1787,7 +1787,9 @@ async function resolveDirtyBeforeContinue() {
 }
 
 function syncShellState() {
-  const previewVisible = state.ui.previewOpen && Boolean(state.draft);
+  const previewPane = String(state.ui.focusPane || defaultFocusPane());
+  const inputPreviewAllowed = previewPane === "setup" || previewPane === "content";
+  const previewVisible = state.ui.previewOpen && inputPreviewAllowed && Boolean(state.draft);
   if (libraryDrawerEl) {
     libraryDrawerEl.hidden = !state.ui.libraryOpen;
     if (state.ui.libraryOpen) {
@@ -1852,9 +1854,15 @@ function openLibrary() {
 }
 
 function togglePreview() {
-  state.ui.previewOpen = !state.ui.previewOpen;
-  renderShellSummary();
-  syncShellState();
+  const previewPane = String(state.ui.focusPane || defaultFocusPane());
+  const shouldOpen = !state.ui.previewOpen || previewPane !== "content";
+  if (shouldOpen) {
+    state.ui.focusPane = "content";
+    state.ui.previewOpen = true;
+  } else {
+    state.ui.previewOpen = false;
+  }
+  renderAll();
 }
 
 function renderShellSummary() {
@@ -2865,38 +2873,43 @@ function renderRecordIdentitySettings() {
   ].join("");
 
   return `
-    <section class="identity-editor">
-      <div class="reference-editor-head">
-        <span class="reference-range-title">Record labels</span>
-      </div>
+    <details class="identity-editor identity-editor--advanced">
+      <summary class="identity-editor-summary">
+        <span>
+          <strong>Record list labels</strong>
+          <small>Optional search and display setup</small>
+        </span>
+      </summary>
       ${fields.length ? `
-        <div class="inline-grid identity-grid">
-          <label>
-            <span>Primary</span>
-            <select data-bind="record_identity.primary_field_id">
-              ${fieldOptions}
-            </select>
-          </label>
-          <label>
-            <span>Secondary</span>
-            <select data-bind="record_identity.secondary_field_id">
-              ${secondaryOptions}
-            </select>
-          </label>
-        </div>
-        <div class="identity-search-list">
-          <span>Search fields</span>
-          <div>
-            ${fields.map((field) => `
-              <label class="identity-check">
-                <input type="checkbox" data-action="identity-search-field" data-field-id="${escapeHtml(field.id)}" ${searchableIds.has(field.id) ? "checked" : ""}>
-                <span>${escapeHtml(field.pathLabel)}</span>
-              </label>
-            `).join("")}
+        <div class="identity-editor-body">
+          <div class="inline-grid identity-grid">
+            <label>
+              <span>Primary</span>
+              <select data-bind="record_identity.primary_field_id">
+                ${fieldOptions}
+              </select>
+            </label>
+            <label>
+              <span>Secondary</span>
+              <select data-bind="record_identity.secondary_field_id">
+                ${secondaryOptions}
+              </select>
+            </label>
+          </div>
+          <div class="identity-search-list">
+            <span>Search fields</span>
+            <div>
+              ${fields.map((field) => `
+                <label class="identity-check">
+                  <input type="checkbox" data-action="identity-search-field" data-field-id="${escapeHtml(field.id)}" ${searchableIds.has(field.id) ? "checked" : ""}>
+                  <span>${escapeHtml(field.pathLabel)}</span>
+                </label>
+              `).join("")}
+            </div>
           </div>
         </div>
       ` : '<div class="empty-state">Add fields in Content first.</div>'}
-    </section>
+    </details>
   `;
 }
 
@@ -3090,98 +3103,102 @@ function renderSignatoryCard(slot, index, totalCount) {
   const isStampImage = slot.input_type === "stamp_image";
   const usesOptions = slot.input_type === "person_dropdown" || slot.input_type === "fixed";
   return `
-    <article class="signatory-config-card" data-signatory-id="${escapeHtml(slot.id)}">
-      <div class="signatory-config-head">
+    <details class="signatory-config-card signatory-config-details" data-signatory-id="${escapeHtml(slot.id)}">
+      <summary class="signatory-config-summary">
         <div>
           <span class="signatory-index">Signature ${index + 1}</span>
           <strong>${escapeHtml(slot.label || "Signatory")}</strong>
         </div>
-        <div class="row-actions">
+        <span class="signatory-summary-meta">${renderSignatoryCompactSummary(slot)}</span>
+      </summary>
+
+      <div class="signatory-config-body">
+        <div class="row-actions signatory-config-actions">
           <button class="ghost mini" type="button" data-action="move-signatory" data-id="${escapeHtml(slot.id)}" data-direction="up" ${index === 0 ? "disabled" : ""}>Up</button>
           <button class="ghost mini" type="button" data-action="move-signatory" data-id="${escapeHtml(slot.id)}" data-direction="down" ${index === totalCount - 1 ? "disabled" : ""}>Down</button>
           <button class="ghost mini warn" type="button" data-action="remove-signatory" data-id="${escapeHtml(slot.id)}">Remove</button>
         </div>
-      </div>
 
-      <div class="setup-grid">
-        <label>
-          <span>Role label</span>
-          <input data-action="signatory-field" data-id="${escapeHtml(slot.id)}" data-key="label" value="${escapeHtml(slot.label)}" placeholder="Example: Medical Technologist">
-        </label>
-        <label>
-          <span>Type</span>
-          <select data-action="signatory-field" data-id="${escapeHtml(slot.id)}" data-key="input_type">
-            ${renderSignatoryTypeOptions(slot.input_type)}
-          </select>
-        </label>
-      </div>
-
-      <div class="print-toggle-grid signatory-toggle-grid${isStampImage ? " is-compact" : ""}">
-        ${isStampImage ? "" : `
-        <label class="identity-check">
-          <input type="checkbox" data-action="signatory-toggle" data-id="${escapeHtml(slot.id)}" data-key="required" ${slot.required ? "checked" : ""}>
-          <span>Required</span>
-        </label>
-        `}
-        <label class="identity-check">
-          <input type="checkbox" data-action="signatory-toggle" data-id="${escapeHtml(slot.id)}" data-key="show_on_print" ${slot.show_on_print ? "checked" : ""}>
-          <span>Show on print</span>
-        </label>
-        ${isStampImage ? "" : `
-        <label class="identity-check">
-          <input type="checkbox" data-action="signatory-toggle" data-id="${escapeHtml(slot.id)}" data-key="show_license" ${slot.show_license ? "checked" : ""}>
-          <span>Show license</span>
-        </label>
-        <label class="identity-check">
-          <input type="checkbox" data-action="signatory-toggle" data-id="${escapeHtml(slot.id)}" data-key="signature_line" ${slot.signature_line ? "checked" : ""}>
-          <span>Signature line</span>
-        </label>
-        `}
-      </div>
-
-      ${isStampImage ? `
-        <div class="signatory-stamp-editor">
-          <div class="signatory-stamp-preview-frame">
-            ${slot.stamp_image_url
-              ? `<img class="signatory-stamp-preview" src="${escapeHtml(slot.stamp_image_url)}" alt="${escapeHtml(slot.stamp_image_filename || slot.label || "Signatory stamp")}">`
-              : `<span>No stamp image uploaded</span>`}
-          </div>
-          <label class="stacked-input">
-            <span>Stamp image</span>
-            <input type="file" accept="image/png,image/jpeg,image/webp" data-action="signatory-stamp-upload" data-id="${escapeHtml(slot.id)}">
-          </label>
-          <p class="signatory-upload-note">Use a cropped image that already contains the signature, printed name, and license text.</p>
-        </div>
-      ` : ""}
-
-      ${usesOptions ? `
         <div class="setup-grid">
           <label>
-            <span>Default</span>
-            <select data-action="signatory-field" data-id="${escapeHtml(slot.id)}" data-key="default_option_id">
-              ${renderSignatoryDefaultOptions(slot)}
+            <span>Role label</span>
+            <input data-action="signatory-field" data-id="${escapeHtml(slot.id)}" data-key="label" value="${escapeHtml(slot.label)}" placeholder="Example: Medical Technologist">
+          </label>
+          <label>
+            <span>Type</span>
+            <select data-action="signatory-field" data-id="${escapeHtml(slot.id)}" data-key="input_type">
+              ${renderSignatoryTypeOptions(slot.input_type)}
             </select>
           </label>
         </div>
-        <label class="stacked-input">
-          <span>People</span>
-          <textarea data-action="signatory-options" data-id="${escapeHtml(slot.id)}" rows="6" placeholder="One person per line: Name | License">${escapeHtml(optionsText)}</textarea>
-        </label>
-      ` : ""}
 
-      ${isManual ? `
-        <div class="setup-grid">
-          <label>
-            <span>Default name</span>
-            <input data-action="signatory-field" data-id="${escapeHtml(slot.id)}" data-key="manual_name" value="${escapeHtml(slot.manual_name)}">
+        <div class="print-toggle-grid signatory-toggle-grid${isStampImage ? " is-compact" : ""}">
+          ${isStampImage ? "" : `
+          <label class="identity-check">
+            <input type="checkbox" data-action="signatory-toggle" data-id="${escapeHtml(slot.id)}" data-key="required" ${slot.required ? "checked" : ""}>
+            <span>Required</span>
           </label>
-          <label>
-            <span>Default license</span>
-            <input data-action="signatory-field" data-id="${escapeHtml(slot.id)}" data-key="manual_license" value="${escapeHtml(slot.manual_license)}">
+          `}
+          <label class="identity-check">
+            <input type="checkbox" data-action="signatory-toggle" data-id="${escapeHtml(slot.id)}" data-key="show_on_print" ${slot.show_on_print ? "checked" : ""}>
+            <span>Show on print</span>
           </label>
+          ${isStampImage ? "" : `
+          <label class="identity-check">
+            <input type="checkbox" data-action="signatory-toggle" data-id="${escapeHtml(slot.id)}" data-key="show_license" ${slot.show_license ? "checked" : ""}>
+            <span>Show license</span>
+          </label>
+          <label class="identity-check">
+            <input type="checkbox" data-action="signatory-toggle" data-id="${escapeHtml(slot.id)}" data-key="signature_line" ${slot.signature_line ? "checked" : ""}>
+            <span>Signature line</span>
+          </label>
+          `}
         </div>
-      ` : ""}
-    </article>
+
+        ${isStampImage ? `
+          <div class="signatory-stamp-editor">
+            <div class="signatory-stamp-preview-frame">
+              ${slot.stamp_image_url
+                ? `<img class="signatory-stamp-preview" src="${escapeHtml(slot.stamp_image_url)}" alt="${escapeHtml(slot.stamp_image_filename || slot.label || "Signatory stamp")}">`
+                : `<span>No stamp image uploaded</span>`}
+            </div>
+            <label class="stacked-input">
+              <span>Stamp image</span>
+              <input type="file" accept="image/png,image/jpeg,image/webp" data-action="signatory-stamp-upload" data-id="${escapeHtml(slot.id)}">
+            </label>
+            <p class="signatory-upload-note">Use a cropped image that already contains the signature, printed name, and license text.</p>
+          </div>
+        ` : ""}
+
+        ${usesOptions ? `
+          <div class="setup-grid">
+            <label>
+              <span>Default</span>
+              <select data-action="signatory-field" data-id="${escapeHtml(slot.id)}" data-key="default_option_id">
+                ${renderSignatoryDefaultOptions(slot)}
+              </select>
+            </label>
+          </div>
+          <label class="stacked-input">
+            <span>People</span>
+            <textarea data-action="signatory-options" data-id="${escapeHtml(slot.id)}" rows="6" placeholder="One person per line: Name | License">${escapeHtml(optionsText)}</textarea>
+          </label>
+        ` : ""}
+
+        ${isManual ? `
+          <div class="setup-grid">
+            <label>
+              <span>Default name</span>
+              <input data-action="signatory-field" data-id="${escapeHtml(slot.id)}" data-key="manual_name" value="${escapeHtml(slot.manual_name)}">
+            </label>
+            <label>
+              <span>Default license</span>
+              <input data-action="signatory-field" data-id="${escapeHtml(slot.id)}" data-key="manual_license" value="${escapeHtml(slot.manual_license)}">
+            </label>
+          </div>
+        ` : ""}
+        </div>
+    </details>
   `;
 }
 
@@ -3240,120 +3257,142 @@ function renderPrintCard() {
 
       <div class="print-config-layout">
         <div class="print-config-controls">
-          <div class="setup-grid">
-            <label>
-              <span>Header color</span>
-              <input class="print-color-input" type="color" data-action="print-config-color" data-key="accent_color" value="${escapeHtml(config.accent_color)}">
-            </label>
-            <label>
-              <span>Density</span>
-              <select data-bind="print_config.density">
-                <option value="compact"${config.density === "compact" ? " selected" : ""}>Compact</option>
-                <option value="comfortable"${config.density === "comfortable" ? " selected" : ""}>Comfortable</option>
-              </select>
-            </label>
-            <label>
-              <span>Font</span>
-              <select data-bind="print_config.font_family">
-                ${renderPrintFontOptions(config.font_family)}
-              </select>
-            </label>
-          </div>
-
-          <div class="print-toggle-grid">
-            <label class="identity-check">
-              <input type="checkbox" data-action="print-config-toggle" data-key="show_logo" ${config.show_logo ? "checked" : ""}>
-              <span>Logo</span>
-            </label>
-            <label class="identity-check">
-              <input type="checkbox" data-action="print-config-toggle" data-key="show_clinic_info" ${config.show_clinic_info ? "checked" : ""}>
-              <span>Clinic details</span>
-            </label>
-            <label class="identity-check">
-              <input type="checkbox" data-action="print-config-toggle" data-key="show_status" ${config.show_status ? "checked" : ""}>
-              <span>Status</span>
-            </label>
-            <label class="identity-check">
-              <input type="checkbox" data-action="print-config-toggle" data-key="show_summary" ${config.show_summary ? "checked" : ""}>
-              <span>Top summary</span>
-            </label>
-            <label class="identity-check">
-              <input type="checkbox" data-action="print-config-toggle" data-key="show_signatures" ${config.show_signatures ? "checked" : ""}>
-              <span>Signatures</span>
-            </label>
-          </div>
-
-          <section class="print-body-options">
-            <div class="reference-editor-head">
-              <span class="reference-range-title">Result body</span>
-              <p>These affect the printed result rows, containers, images, and tables.</p>
-            </div>
-            <div class="print-toggle-grid">
-              <label class="identity-check">
-                <input type="checkbox" data-action="print-config-toggle" data-key="hide_empty_fields" ${config.hide_empty_fields ? "checked" : ""}>
-                <span>Hide empty fields</span>
-              </label>
-              <label class="identity-check">
-                <input type="checkbox" data-action="print-config-toggle" data-key="show_section_titles" ${config.show_section_titles ? "checked" : ""}>
-                <span>Top container headings</span>
-              </label>
-              <label class="identity-check">
-                <input type="checkbox" data-action="print-config-toggle" data-key="show_group_titles" ${config.show_group_titles ? "checked" : ""}>
-                <span>Nested container headings</span>
-              </label>
-            </div>
-            <div class="setup-grid">
-              <label>
-                <span>Image size</span>
-                <select data-bind="print_config.image_size">
-                  <option value="small"${config.image_size === "small" ? " selected" : ""}>Small</option>
-                  <option value="medium"${config.image_size === "medium" ? " selected" : ""}>Medium</option>
-                  <option value="large"${config.image_size === "large" ? " selected" : ""}>Large</option>
-                </select>
-              </label>
-              <label>
-                <span>Table density</span>
-                <select data-bind="print_config.table_density">
-                  <option value="compact"${config.table_density === "compact" ? " selected" : ""}>Compact</option>
-                  <option value="comfortable"${config.table_density === "comfortable" ? " selected" : ""}>Comfortable</option>
-                </select>
-              </label>
-              <label>
-                <span>Result layout</span>
-                <select data-bind="print_config.result_layout">
-                  <option value="compact_grid"${config.result_layout === "compact_grid" ? " selected" : ""}>Compact grid</option>
-                  <option value="rows"${config.result_layout === "rows" ? " selected" : ""}>Rows</option>
-                </select>
-              </label>
-            </div>
-          </section>
-
-          <section class="print-signature-editor">
-            <div class="reference-editor-head">
-              <span class="reference-range-title">Signatories</span>
-              <p>Configured separately so they do not behave like ordinary result fields.</p>
-            </div>
-            <button class="ghost mini" type="button" data-action="focus-pane" data-pane="signatories">Edit signatories</button>
-          </section>
-
-          ${config.show_summary ? `
-            <section class="print-summary-editor">
-              <div class="reference-editor-head print-summary-head">
-                <span class="reference-range-title">Top summary</span>
-                <button class="ghost mini" type="button" data-action="add-print-summary">Add row</button>
+          <details class="print-settings-section" open>
+            <summary class="print-settings-summary">
+              <span>
+                <strong>Header and style</strong>
+                <small>Color, density, font, and header visibility</small>
+              </span>
+            </summary>
+            <div class="print-settings-body">
+              <div class="setup-grid">
+                <label>
+                  <span>Header color</span>
+                  <input class="print-color-input" type="color" data-action="print-config-color" data-key="accent_color" value="${escapeHtml(config.accent_color)}">
+                </label>
+                <label>
+                  <span>Density</span>
+                  <select data-bind="print_config.density">
+                    <option value="compact"${config.density === "compact" ? " selected" : ""}>Compact</option>
+                    <option value="comfortable"${config.density === "comfortable" ? " selected" : ""}>Comfortable</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Font</span>
+                  <select data-bind="print_config.font_family">
+                    ${renderPrintFontOptions(config.font_family)}
+                  </select>
+                </label>
               </div>
-              <div class="print-summary-list">
-                ${summaryItems.map((item, index) => renderPrintSummaryRow(item, index, fields, summaryItems.length)).join("")}
+
+              <div class="print-toggle-grid">
+                <label class="identity-check">
+                  <input type="checkbox" data-action="print-config-toggle" data-key="show_logo" ${config.show_logo ? "checked" : ""}>
+                  <span>Logo</span>
+                </label>
+                <label class="identity-check">
+                  <input type="checkbox" data-action="print-config-toggle" data-key="show_clinic_info" ${config.show_clinic_info ? "checked" : ""}>
+                  <span>Clinic details</span>
+                </label>
+                <label class="identity-check">
+                  <input type="checkbox" data-action="print-config-toggle" data-key="show_status" ${config.show_status ? "checked" : ""}>
+                  <span>Status</span>
+                </label>
+                <label class="identity-check">
+                  <input type="checkbox" data-action="print-config-toggle" data-key="show_summary" ${config.show_summary ? "checked" : ""}>
+                  <span>Top summary</span>
+                </label>
+                <label class="identity-check">
+                  <input type="checkbox" data-action="print-config-toggle" data-key="show_signatures" ${config.show_signatures ? "checked" : ""}>
+                  <span>Signatures</span>
+                </label>
               </div>
-            </section>
-          ` : `
-            <section class="print-summary-editor print-summary-editor--quiet">
-              <div class="reference-editor-head">
-                <span class="reference-range-title">Top summary hidden</span>
-                <p>Patient information will print from the form body, avoiding duplicate name, date, and case number fields.</p>
+            </div>
+          </details>
+
+          <details class="print-settings-section print-body-options">
+            <summary class="print-settings-summary">
+              <span>
+                <strong>Result body</strong>
+                <small>Rows, containers, images, and tables</small>
+              </span>
+            </summary>
+            <div class="print-settings-body">
+              <div class="print-toggle-grid">
+                <label class="identity-check">
+                  <input type="checkbox" data-action="print-config-toggle" data-key="hide_empty_fields" ${config.hide_empty_fields ? "checked" : ""}>
+                  <span>Hide empty fields</span>
+                </label>
+                <label class="identity-check">
+                  <input type="checkbox" data-action="print-config-toggle" data-key="show_section_titles" ${config.show_section_titles ? "checked" : ""}>
+                  <span>Top container headings</span>
+                </label>
+                <label class="identity-check">
+                  <input type="checkbox" data-action="print-config-toggle" data-key="show_group_titles" ${config.show_group_titles ? "checked" : ""}>
+                  <span>Nested container headings</span>
+                </label>
               </div>
-            </section>
-          `}
+              <div class="setup-grid">
+                <label>
+                  <span>Image size</span>
+                  <select data-bind="print_config.image_size">
+                    <option value="small"${config.image_size === "small" ? " selected" : ""}>Small</option>
+                    <option value="medium"${config.image_size === "medium" ? " selected" : ""}>Medium</option>
+                    <option value="large"${config.image_size === "large" ? " selected" : ""}>Large</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Table density</span>
+                  <select data-bind="print_config.table_density">
+                    <option value="compact"${config.table_density === "compact" ? " selected" : ""}>Compact</option>
+                    <option value="comfortable"${config.table_density === "comfortable" ? " selected" : ""}>Comfortable</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Result layout</span>
+                  <select data-bind="print_config.result_layout">
+                    <option value="compact_grid"${config.result_layout === "compact_grid" ? " selected" : ""}>Compact grid</option>
+                    <option value="rows"${config.result_layout === "rows" ? " selected" : ""}>Rows</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+          </details>
+
+          <details class="print-settings-section" ${config.show_summary ? "open" : ""}>
+            <summary class="print-settings-summary">
+              <span>
+                <strong>Signatures and summary</strong>
+                <small>${config.show_summary ? `${summaryItems.length} summary rows` : "Summary hidden"}</small>
+              </span>
+            </summary>
+            <div class="print-settings-body">
+              <section class="print-signature-editor">
+                <div class="reference-editor-head">
+                  <span class="reference-range-title">Signatories</span>
+                </div>
+                <button class="ghost mini" type="button" data-action="focus-pane" data-pane="signatories">Edit signatories</button>
+              </section>
+
+              ${config.show_summary ? `
+                <section class="print-summary-editor">
+                  <div class="reference-editor-head print-summary-head">
+                    <span class="reference-range-title">Top summary</span>
+                    <button class="ghost mini" type="button" data-action="add-print-summary">Add row</button>
+                  </div>
+                  <div class="print-summary-list">
+                    ${summaryItems.map((item, index) => renderPrintSummaryRow(item, index, fields, summaryItems.length)).join("")}
+                  </div>
+                </section>
+              ` : `
+                <section class="print-summary-editor print-summary-editor--quiet">
+                  <div class="reference-editor-head">
+                    <span class="reference-range-title">Top summary hidden</span>
+                  </div>
+                </section>
+              `}
+            </div>
+          </details>
         </div>
 
         ${renderPrintSummaryPreview(config)}
@@ -4023,6 +4062,63 @@ function summarizeItem(item) {
   return INPUT_TYPES.find((item) => item.id === inputType)?.label || "Text";
 }
 
+function inputTypeLabel(inputType) {
+  return INPUT_TYPES.find((item) => item.id === inputType)?.label || "Text";
+}
+
+function renderFieldCompactSummary(item, inputType) {
+  const props = getNodeProps(item);
+  const meta = [];
+  const reference = compactText(getInputReferenceText(item));
+  const unit = compactText(getInputUnitHint(item));
+  const range = inputNormalRangeLabel(item);
+
+  if (props.required) {
+    meta.push("Required");
+  }
+  if (inputType === "choice") {
+    const optionCount = getInputOptions(item).length;
+    meta.push(`${optionCount} ${optionCount === 1 ? "choice" : "choices"}`);
+  }
+  if (inputType === "number" && range) {
+    meta.push(range);
+  } else if (reference) {
+    meta.push(`Ref ${reference}`);
+  }
+  if (unit) {
+    meta.push(unit);
+  }
+
+  return `
+    <div class="field-compact-summary" aria-label="Field summary">
+      ${meta.length
+        ? meta.slice(0, 4).map((item) => `<span>${escapeHtml(item)}</span>`).join("")
+        : '<span>Optional</span>'}
+    </div>
+  `;
+}
+
+function signatoryInputTypeLabel(inputType) {
+  return SIGNATORY_INPUT_TYPES.find((item) => item.id === inputType)?.label || "Person choice";
+}
+
+function renderSignatoryCompactSummary(slot) {
+  const meta = [signatoryInputTypeLabel(slot.input_type)];
+  const optionCount = normalizeArray(slot.options).length;
+  if (slot.input_type === "person_dropdown" || slot.input_type === "fixed") {
+    meta.push(`${optionCount} ${optionCount === 1 ? "person" : "people"}`);
+  }
+  if (slot.input_type === "stamp_image") {
+    meta.push(slot.stamp_image_url ? "Stamp uploaded" : "No stamp");
+  }
+  if (slot.required && slot.input_type !== "stamp_image") {
+    meta.push("Required");
+  }
+  meta.push(slot.show_on_print ? "Prints" : "Hidden on print");
+
+  return meta.map((item) => `<span>${escapeHtml(item)}</span>`).join("");
+}
+
 function renderItemOrganizerItem(item, path, index, active) {
     const isGroup = item.kind === "field_group";
     const isUtility = isUtilityBlockNode(item);
@@ -4137,84 +4233,86 @@ function renderItemCard(item, path, options = {}) {
               ` : ""}
             ` : ""}
           ` : `
-            <div class="field-inline-editor">
-              <div class="inline-grid item-basics-grid compact">
-                <label>
-                  <span>Name</span>
-                  <input class="item-title-input" data-path="${encodePath(path)}" data-bind="name" value="${escapeHtml(item.name || "")}" placeholder="Example: Color">
-                </label>
-                <label>
-                  <span>Input</span>
-                  <select data-action="item-input-type" data-path="${encodePath(path)}">
-                    ${INPUT_TYPES.map((item) => `<option value="${item.id}"${item.id === inputType ? " selected" : ""}>${item.label}</option>`).join("")}
-                  </select>
-                </label>
-              </div>
-            </div>
-
             ${open ? `
-              <label class="field-required-toggle">
-                <span>Required before completion</span>
-                <input type="checkbox" data-action="field-required" data-path="${encodePath(path)}" ${getNodeProps(item).required ? "checked" : ""}>
-              </label>
-
-              ${inputType === "image" ? `
-                <section class="reference-editor image-answer-editor">
-                  <div class="reference-editor-head">
-                    <p>One image will be uploaded when this form is filled up.</p>
-                  </div>
-                </section>
-              ` : `
-                <section class="reference-editor">
+              <div class="field-detail-panel">
+                <div class="field-inline-editor">
                   <div class="inline-grid item-basics-grid compact">
                     <label>
-                      <span>Reference</span>
-                      <input data-path="${encodePath(path)}" data-bind="reference_text" value="${escapeHtml(getInputReferenceText(item) || "")}" placeholder="${inputType === "choice" ? "Example: Negative" : "Example: 4.5 - 11.0"}">
+                      <span>Name</span>
+                      <input class="item-title-input" data-path="${encodePath(path)}" data-bind="name" value="${escapeHtml(item.name || "")}" placeholder="Example: Color">
                     </label>
                     <label>
-                      <span>Unit</span>
-                      <input data-path="${encodePath(path)}" data-bind="unit_hint" value="${escapeHtml(getInputUnitHint(item) || "")}" placeholder="Example: mg/dL">
+                      <span>Input</span>
+                      <select data-action="item-input-type" data-path="${encodePath(path)}">
+                        ${INPUT_TYPES.map((item) => `<option value="${item.id}"${item.id === inputType ? " selected" : ""}>${item.label}</option>`).join("")}
+                      </select>
                     </label>
                   </div>
-                  ${inputType === "number" ? `
-                    <div class="reference-range">
-                      <div class="reference-range-head">
-                        <span class="reference-range-title">Normal range</span>
-                        <p>Used for abnormal highlighting in print.</p>
-                      </div>
-                      <div class="inline-grid reference-range-grid">
-                        <label>
-                          <span>From</span>
-                          <input type="number" step="any" data-path="${encodePath(path)}" data-bind="normal_min" value="${escapeHtml(getInputNormalMin(item) || "")}" placeholder="Example: 4.5">
-                        </label>
-                        <label>
-                          <span>To</span>
-                          <input type="number" step="any" data-path="${encodePath(path)}" data-bind="normal_max" value="${escapeHtml(getInputNormalMax(item) || "")}" placeholder="Example: 11.0">
-                        </label>
-                      </div>
+                </div>
+
+                <label class="field-required-toggle">
+                  <span>Required before completion</span>
+                  <input type="checkbox" data-action="field-required" data-path="${encodePath(path)}" ${getNodeProps(item).required ? "checked" : ""}>
+                </label>
+
+                ${inputType === "image" ? `
+                  <section class="reference-editor image-answer-editor">
+                    <div class="reference-editor-head">
+                      <p>One image will be uploaded when this form is filled up.</p>
                     </div>
-                  ` : ""}
-                </section>
-              `}
+                  </section>
+                ` : `
+                  <section class="reference-editor">
+                    <div class="inline-grid item-basics-grid compact">
+                      <label>
+                        <span>Reference</span>
+                        <input data-path="${encodePath(path)}" data-bind="reference_text" value="${escapeHtml(getInputReferenceText(item) || "")}" placeholder="${inputType === "choice" ? "Example: Negative" : "Example: 4.5 - 11.0"}">
+                      </label>
+                      <label>
+                        <span>Unit</span>
+                        <input data-path="${encodePath(path)}" data-bind="unit_hint" value="${escapeHtml(getInputUnitHint(item) || "")}" placeholder="Example: mg/dL">
+                      </label>
+                    </div>
+                    ${inputType === "number" ? `
+                      <div class="reference-range">
+                        <div class="reference-range-head">
+                          <span class="reference-range-title">Normal range</span>
+                          <p>Used for abnormal highlighting in print.</p>
+                        </div>
+                        <div class="inline-grid reference-range-grid">
+                          <label>
+                            <span>From</span>
+                            <input type="number" step="any" data-path="${encodePath(path)}" data-bind="normal_min" value="${escapeHtml(getInputNormalMin(item) || "")}" placeholder="Example: 4.5">
+                          </label>
+                          <label>
+                            <span>To</span>
+                            <input type="number" step="any" data-path="${encodePath(path)}" data-bind="normal_max" value="${escapeHtml(getInputNormalMax(item) || "")}" placeholder="Example: 11.0">
+                          </label>
+                        </div>
+                      </div>
+                    ` : ""}
+                  </section>
+                `}
 
-              ${inputType === "choice" ? renderOptionsEditor(item, path) : ""}
+                ${inputType === "choice" ? renderOptionsEditor(item, path) : ""}
 
-              ${state.ui.advancedMode ? `
-                <details class="advanced">
-                  <summary>Advanced</summary>
-                  <div class="advanced-grid">
-                    <label>
-                      <span>Key</span>
-                      <input data-path="${encodePath(path)}" data-bind="key" value="${escapeHtml(getNodeKey(item) || "")}">
-                    </label>
-                    <label style="grid-column: 1 / -1;">
-                      <span>Notes</span>
-                      <textarea data-path="${encodePath(path)}" data-bind="notes" data-format="lines">${escapeHtml(getNodeNotes(item).join("\n"))}</textarea>
-                    </label>
-                  </div>
-                </details>
-              ` : ""}
-            ` : ""}
+                ${state.ui.advancedMode ? `
+                  <details class="advanced">
+                    <summary>Advanced</summary>
+                    <div class="advanced-grid">
+                      <label>
+                        <span>Key</span>
+                        <input data-path="${encodePath(path)}" data-bind="key" value="${escapeHtml(getNodeKey(item) || "")}">
+                      </label>
+                      <label style="grid-column: 1 / -1;">
+                        <span>Notes</span>
+                        <textarea data-path="${encodePath(path)}" data-bind="notes" data-format="lines">${escapeHtml(getNodeNotes(item).join("\n"))}</textarea>
+                      </label>
+                    </div>
+                  </details>
+                ` : ""}
+              </div>
+            ` : renderFieldCompactSummary(item, inputType)}
           `}
         </article>
       `;
@@ -4346,38 +4444,39 @@ function renderItemCard(item, path, options = {}) {
 function renderOptionsEditor(field, path) {
     const options = getInputOptions(field);
     return `
-      <section class="item-stack options-editor">
-        <div class="card-head">
-          <div>
-            <div class="card-title-row">
-              <h4>Options</h4>
-            </div>
-          </div>
+      <details class="item-stack options-editor options-editor-details" ${options.length ? "" : "open"}>
+        <summary class="options-editor-summary">
+          <span>
+            <strong>Choices</strong>
+            <small>${options.length ? `${options.length} configured` : "No choices yet"}</small>
+          </span>
+        </summary>
+        <div class="options-editor-body">
           <div class="option-actions">
             <button class="ghost mini" type="button" data-action="add-option" data-path="${encodePath(path)}">Add option</button>
           </div>
-        </div>
-      ${options.length ? `
-        <div class="options-list">
-          ${options.map((option, index) => `
-            <div class="option-row">
-              <label class="option-focus-input">
-                <span>Choice ${index + 1}</span>
-                <input data-action="option-name" data-path="${encodePath(path)}" data-index="${index}" value="${escapeHtml(option.name || "")}" placeholder="Example: Positive">
-              </label>
-              <label class="option-focus-toggle">
-                <span>Normal</span>
-                <input type="checkbox" data-action="option-normal" data-path="${encodePath(path)}" data-index="${index}" ${option.is_normal ? "checked" : ""}>
-              </label>
-              <div class="row-actions option-inline-actions">
-                <button class="ghost mini" type="button" data-action="duplicate-option" data-path="${encodePath(path)}" data-index="${index}">Copy</button>
-                <button class="ghost mini warn" type="button" data-action="delete-option" data-path="${encodePath(path)}" data-index="${index}">Remove</button>
-              </div>
+          ${options.length ? `
+            <div class="options-list">
+              ${options.map((option, index) => `
+                <div class="option-row">
+                  <label class="option-focus-input">
+                    <span>Choice ${index + 1}</span>
+                    <input data-action="option-name" data-path="${encodePath(path)}" data-index="${index}" value="${escapeHtml(option.name || "")}" placeholder="Example: Positive">
+                  </label>
+                  <label class="option-focus-toggle">
+                    <span>Normal</span>
+                    <input type="checkbox" data-action="option-normal" data-path="${encodePath(path)}" data-index="${index}" ${option.is_normal ? "checked" : ""}>
+                  </label>
+                  <div class="row-actions option-inline-actions">
+                    <button class="ghost mini" type="button" data-action="duplicate-option" data-path="${encodePath(path)}" data-index="${index}">Copy</button>
+                    <button class="ghost mini warn" type="button" data-action="delete-option" data-path="${encodePath(path)}" data-index="${index}">Remove</button>
+                  </div>
+                </div>
+              `).join("")}
             </div>
-          `).join("")}
-        </div>
-      ` : '<div class="empty-state">No options yet. Add one when you are ready.</div>'}
-    </section>
+          ` : '<div class="empty-state">Add the choices shown in the dropdown.</div>'}
+              </div>
+      </details>
   `;
 }
 
