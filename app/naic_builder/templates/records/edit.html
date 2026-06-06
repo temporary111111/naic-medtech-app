@@ -5,7 +5,7 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20260607-sticky-entry-actions">
 {% endblock %}
 
 {% block shell_eyebrow %}Records{% endblock %}
@@ -18,7 +18,6 @@
 
 {% block topbar_actions %}
   <a class="ghost-button" href="/records/{{ record.id }}{% if history_query %}?{{ history_query }}{% endif %}">View</a>
-  <a class="ghost-button" href="/records/{{ record.id }}/print{% if history_query %}?{{ history_query }}{% endif %}">Print</a>
   {% if record.status == "draft" %}
   <form method="post" action="/records/{{ record.id }}/delete-draft" class="inline-danger-form" data-confirm="Delete this draft? This keeps the audit trail but removes it from the work queue.">
     {% if history_return_url %}
@@ -338,9 +337,9 @@
 
         <div class="entry-actions">
           <p class="entry-save-state" data-dirty-state>All changes saved.</p>
-          <button class="ghost-button" type="submit" name="action" value="draft" data-save-draft>Save draft</button>
-          <button class="ghost-button" type="submit" name="action" value="complete_print">Complete and print</button>
-          <button class="primary-button" type="submit" name="action" value="complete">Complete</button>
+          <button class="ghost-button entry-action-secondary" type="submit" name="action" value="draft" data-save-draft data-submit-status="Saving draft...">Save draft</button>
+          <button class="ghost-button entry-action-print" type="submit" name="action" value="complete_print" data-submit-status="Completing and opening print...">Complete and print</button>
+          <button class="primary-button entry-action-complete" type="submit" name="action" value="complete" data-submit-status="Completing...">Complete</button>
         </div>
       </form>
     </section>
@@ -348,5 +347,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', path='records.js') }}?v=20260607-history-live-search" defer></script>
+  <script src="{{ url_for('static', path='records.js') }}?v=20260607-sticky-entry-actions" defer></script>
 {% endblock %}

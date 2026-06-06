@@ -18,7 +18,6 @@
 
 {% block topbar_actions %}
   {% if record.status == "draft" %}
-  <a class="ghost-button" href="/records/{{ record.id }}/print{% if history_query %}?{{ history_query }}{% endif %}">Print</a>
   <a class="primary-button" href="/records/{{ record.id }}/edit{% if history_query %}?{{ history_query }}{% endif %}">Continue editing</a>
   {% elif record.status == "completed" %}
   <a class="primary-button" href="/records/{{ record.id }}/print{% if history_query %}?{{ history_query }}{% endif %}">Print</a>

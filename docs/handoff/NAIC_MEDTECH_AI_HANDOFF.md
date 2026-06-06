@@ -401,6 +401,7 @@ What exists now:
   - `Complete` requires the form's required patient identity fields, such as Name and Case Number
   - `Complete` also enforces form-design-required field answers
   - `Complete and print` uses the same validation and then redirects directly to `/records/{id}/print`
+  - normal `Print` is completed-only now: draft edit/view no longer expose a generic `Print` action, direct draft `/records/{id}/print` redirects back to edit with a clear warning, and `Complete and print` remains the validated print path while editing a draft
   - the edit screen now shows a quiet completion checklist when something is missing
 - record cleanup now follows a safety-first lifecycle model:
   - draft records can be soft-deleted through `Delete draft`; this sets status `deleted`, hides the draft from normal work/history lists, and preserves audit data in `indexed_meta.lifecycle.deleted`
@@ -421,6 +422,7 @@ What exists now:
 - record forms are safer now too:
   - `edit` now shows a quiet dirty-state label instead of leaving save state implicit
   - browser leave protection now warns before a medtech accidentally navigates away with unsaved record changes
+  - `Save draft`, `Complete and print`, and `Complete` now stay available in a fixed bottom action dock with action-specific progress text
 - record entry, record view, and print now render utility blocks more honestly too: note text, divider captions, and sample tables no longer fall back to generic placeholder cards
 - the record header is more clinic-ready too: new, edit, view, and print resolve generic record identity/search hints from builder fields instead of relying on a hardcoded patient panel
 - records are stored separately from forms and point to a frozen `form_version_id`
@@ -437,6 +439,8 @@ Current intentional limits:
 - record statuses are intentionally minimal right now:
   - `draft`
   - `completed`
+  - `deleted` for soft-deleted drafts
+  - `voided` for completed records invalidated with an audit reason
 
 What the next AI should continue from here:
 - run real clinic-device and real-data print QA before reopening major builder architecture debates

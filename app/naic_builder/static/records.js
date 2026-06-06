@@ -200,7 +200,7 @@
         button.addEventListener("click", () => {
           allowUnload = true;
           if (statusEl) {
-            statusEl.textContent = "Saving...";
+            statusEl.textContent = button.dataset.submitStatus || "Saving...";
             statusEl.classList.remove("is-dirty");
           }
         });

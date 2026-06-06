@@ -7,7 +7,7 @@ import threading
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlencode
+from urllib.parse import parse_qs, parse_qsl, urlencode, urlsplit, urlunsplit
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
@@ -651,6 +651,25 @@ def url_with_notice(url: str, notice: str) -> str:
     return f"{url}{separator}{urlencode({'notice': notice})}"
 
 
+def url_with_query_param(url: str, key: str, value: str) -> str:
+    parsed = urlsplit(url)
+    query_params = [
+        (param_key, param_value)
+        for param_key, param_value in parse_qsl(parsed.query, keep_blank_values=True)
+        if param_key != key
+    ]
+    query_params.append((key, value))
+    return urlunsplit(
+        (
+            parsed.scheme,
+            parsed.netloc,
+            parsed.path,
+            urlencode(query_params),
+            parsed.fragment,
+        )
+    )
+
+
 def safe_records_history_return(value: str | None) -> str:
     candidate = str(value or "").strip()
     if not candidate or candidate.startswith("//"):
@@ -772,6 +791,10 @@ def render_record_edit_page(
     if not resolved_success_message and request.query_params.get("saved") == "1":
         resolved_success_message = "Saved the draft."
 
+    resolved_error_message = error_message
+    if not resolved_error_message and request.query_params.get("print_blocked") == "1":
+        resolved_error_message = "Complete this record before printing the final result."
+
     resolved_validation_issues = validation_issues or []
     if record.status == "draft" and not resolved_validation_issues:
         resolved_validation_issues = list_record_completion_issues(
@@ -788,7 +811,7 @@ def render_record_edit_page(
         context={
             "app_title": APP_TITLE,
             "record": serialize_record(record, include_entry_schema=True),
-            "error_message": error_message,
+            "error_message": resolved_error_message,
             "success_message": resolved_success_message,
             "validation_issues": resolved_validation_issues,
             "back_href": history_return_url or ("/records/history" if back_to_history else "/records"),
@@ -847,6 +870,13 @@ def render_record_print_page(
     record = get_record_or_none(session, record_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Record not found.")
+    if record.status == "deleted":
+        raise HTTPException(status_code=404, detail="Record not found.")
+    if record.status == "draft":
+        edit_url = f"/records/{record_id}/edit"
+        if request.url.query:
+            edit_url = f"{edit_url}?{request.url.query}"
+        return redirect_for_html(url_with_query_param(edit_url, "print_blocked", "1"))
     if record.status != "completed":
         return redirect_for_html(f"/records/{record_id}")
 
