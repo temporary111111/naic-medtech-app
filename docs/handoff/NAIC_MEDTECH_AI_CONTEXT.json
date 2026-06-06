@@ -159,6 +159,7 @@
       "/records/{id} now shows a read-only record view",
       "records now surface quiet accountability metadata too: created by, last updated by, and the latest activity timestamp are visible in the live records flow",
       "record completion is calmer but stricter now too: drafts still stay flexible, but Complete now enforces configured record identity fields plus any builder-marked required field answers from the form design",
+      "record entry now also offers Complete and print, using the same completion validation before redirecting directly to /records/{id}/print",
       "record-entry polish is calmer now too: ordinary draft saves return with a quiet Saved the draft banner, Sex now uses the same standard select in create and edit, and the image file hint no longer shows the old broken separator artifact",
       "record edit is more self-guiding now too: draft records already show a quiet readiness panel while editing, and that same panel flips between blocked and ready-to-complete states instead of waiting for a failed submit first",
       "record edit and view now start faster too: the older heavy record hero/meta stack was replaced by a lighter compact summary shell, and deeper audit metadata now lives in a calmer collapsible Record info area instead of dominating the top of the page",

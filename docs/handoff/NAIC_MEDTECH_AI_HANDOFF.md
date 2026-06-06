@@ -400,6 +400,7 @@ What exists now:
   - drafts remain flexible
   - `Complete` requires the form's required patient identity fields, such as Name and Case Number
   - `Complete` also enforces form-design-required field answers
+  - `Complete and print` uses the same validation and then redirects directly to `/records/{id}/print`
   - the edit screen now shows a quiet completion checklist when something is missing
 - record cleanup now follows a safety-first lifecycle model:
   - draft records can be soft-deleted through `Delete draft`; this sets status `deleted`, hides the draft from normal work/history lists, and preserves audit data in `indexed_meta.lifecycle.deleted`

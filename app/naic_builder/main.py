@@ -1219,7 +1219,7 @@ async def update_record_page(
     current_query = request.url.query
 
     try:
-        if action == "complete":
+        if action in {"complete", "complete_print"}:
             completed = complete_record(
                 session,
                 record_id,
@@ -1227,7 +1227,11 @@ async def update_record_page(
                 preserve_asset_fields=True,
                 actor_user_id=current_user_id(request),
             )
-            redirect_url = f"/records/{completed['id']}"
+            redirect_url = (
+                f"/records/{completed['id']}/print"
+                if action == "complete_print"
+                else f"/records/{completed['id']}"
+            )
             if current_query:
                 redirect_url = f"{redirect_url}?{current_query}"
             return RedirectResponse(url=redirect_url, status_code=303)
