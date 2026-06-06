@@ -41,7 +41,7 @@
 
     <section class="app-section records-section">
       <div class="app-section__head records-history-head">
-        <div class="app-section__copy">
+        <div class="app-section__copy" data-history-summary>
           <p class="eyebrow">History</p>
           {% if status_filter == 'draft' %}
           <h2>{{ matching_count }} draft record{{ '' if matching_count == 1 else 's' }}</h2>
@@ -63,31 +63,28 @@
         </div>
 
         <div class="records-history-controls">
-          <form method="get" action="/records/history" class="records-search-form records-search-form--history" data-auto-submit-search>
+          <form method="get" action="/records/history" class="records-search-form records-search-form--history" data-history-search>
             {% if status_filter != 'completed' %}
             <input type="hidden" name="status" value="{{ status_filter }}">
             {% endif %}
             <label class="records-search-input">
               <span>Search</span>
-              <input type="search" name="q" value="{{ search_query }}" placeholder="Record, form, key, or value">
+              <input type="search" name="q" value="{{ search_query }}" placeholder="Record, form, key, or value" data-history-search-input>
             </label>
-            <div class="record-filter-pills">
+            <div class="record-filter-pills" data-history-filters>
               <a class="record-filter-pill{% if status_filter == 'completed' %} is-active{% endif %}" href="/records/history{% if search_query %}?q={{ search_query | urlencode }}{% endif %}">Completed</a>
               <a class="record-filter-pill{% if status_filter == 'draft' %} is-active{% endif %}" href="/records/history?status=draft{% if search_query %}&q={{ search_query | urlencode }}{% endif %}">Drafts</a>
               <a class="record-filter-pill{% if status_filter == 'voided' %} is-active{% endif %}" href="/records/history?status=voided{% if search_query %}&q={{ search_query | urlencode }}{% endif %}">Voided</a>
               <a class="record-filter-pill{% if status_filter == 'all' %} is-active{% endif %}" href="/records/history?status=all{% if search_query %}&q={{ search_query | urlencode }}{% endif %}">All</a>
             </div>
             <div class="records-search-actions">
-              {% if search_query or status_filter != 'completed' %}
-              <a class="ghost-button" href="/records/history">Clear</a>
-              {% endif %}
-              <button class="primary-button" type="submit">Search</button>
+              <button class="ghost-button" type="button" data-history-search-clear {% if not search_query %}hidden{% endif %}>Clear</button>
             </div>
           </form>
         </div>
       </div>
 
-      <div class="record-list app-scroll-region app-scroll-region--list">
+      <div class="record-list app-scroll-region app-scroll-region--list" data-history-results>
         {% if matching_records %}
           {% for record in matching_records %}
             {{ render_record_card(record, true, history_return_url) }}
@@ -100,6 +97,7 @@
         {% endif %}
       </div>
 
+      <div data-history-pagination>
       {% if history_total_pages > 1 %}
       <nav class="records-pagination" aria-label="Records history pages">
         <div class="records-pagination__summary">
@@ -111,6 +109,7 @@
         </div>
       </nav>
       {% endif %}
+      </div>
     </section>
 
     {% include "records/_record_start_modal.html" %}
@@ -118,5 +117,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', path='records.js') }}" defer></script>
+  <script src="{{ url_for('static', path='records.js') }}?v=20260607-history-live-search" defer></script>
 {% endblock %}

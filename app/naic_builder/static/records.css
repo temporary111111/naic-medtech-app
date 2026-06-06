@@ -171,6 +171,10 @@
   width: 100%;
 }
 
+.records-search-form--history.is-loading .records-search-input {
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--line));
+}
+
 .records-search-form--history .records-search-input {
   min-width: 0;
 }
@@ -569,6 +573,11 @@
   display: grid;
   gap: 14px;
   align-content: start;
+}
+
+.record-list.is-loading {
+  opacity: 0.68;
+  transition: opacity 120ms ease;
 }
 
 .record-card {

@@ -14,35 +14,134 @@
     });
   };
 
-  const setupAutoSubmitSearch = () => {
-    document.querySelectorAll("[data-auto-submit-search]").forEach((form) => {
-      if (form.dataset.autoSubmitReady === "true") {
+  const setupHistorySearch = () => {
+    document.querySelectorAll("[data-history-search]").forEach((form) => {
+      if (form.dataset.historySearchReady === "true") {
         return;
       }
-      form.dataset.autoSubmitReady = "true";
+      form.dataset.historySearchReady = "true";
 
-      const input = form.querySelector('input[type="search"]');
+      const input = form.querySelector("[data-history-search-input]");
+      const clearButton = form.querySelector("[data-history-search-clear]");
+      const summaryEl = document.querySelector("[data-history-summary]");
+      const filtersEl = document.querySelector("[data-history-filters]");
+      const resultsEl = document.querySelector("[data-history-results]");
+      const paginationEl = document.querySelector("[data-history-pagination]");
       if (!input) {
         return;
       }
 
       let timer = 0;
-      let lastSubmitted = String(input.value || "").trim();
+      let currentRequest = null;
+      let lastRequestedUrl = "";
 
-      input.addEventListener("input", () => {
-        const nextValue = String(input.value || "").trim();
-        window.clearTimeout(timer);
-        if (nextValue === lastSubmitted) {
-          return;
-        }
-        timer = window.setTimeout(() => {
-          const currentValue = String(input.value || "").trim();
-          if (currentValue === lastSubmitted) {
+      const buildSearchUrl = () => {
+        const url = new URL(form.action || window.location.href, window.location.origin);
+        const formData = new FormData(form);
+        url.search = "";
+
+        formData.forEach((value, key) => {
+          const text = String(value || "").trim();
+          if (!text) {
             return;
           }
-          lastSubmitted = currentValue;
-          form.requestSubmit();
-        }, currentValue ? 420 : 180);
+          if (key === "status" && text === "completed") {
+            return;
+          }
+          url.searchParams.set(key, text);
+        });
+
+        return url;
+      };
+
+      const updateFromDocument = (html) => {
+        const nextDoc = new DOMParser().parseFromString(html, "text/html");
+        const nextSummary = nextDoc.querySelector("[data-history-summary]");
+        const nextFilters = nextDoc.querySelector("[data-history-filters]");
+        const nextResults = nextDoc.querySelector("[data-history-results]");
+        const nextPagination = nextDoc.querySelector("[data-history-pagination]");
+
+        if (summaryEl && nextSummary) {
+          summaryEl.innerHTML = nextSummary.innerHTML;
+        }
+        if (filtersEl && nextFilters) {
+          filtersEl.innerHTML = nextFilters.innerHTML;
+        }
+        if (resultsEl && nextResults) {
+          resultsEl.innerHTML = nextResults.innerHTML;
+        }
+        if (paginationEl && nextPagination) {
+          paginationEl.innerHTML = nextPagination.innerHTML;
+        }
+
+        setupConfirmActions();
+      };
+
+      const setLoading = (value) => {
+        form.classList.toggle("is-loading", value);
+        resultsEl?.classList.toggle("is-loading", value);
+      };
+
+      const runSearch = async ({ replaceUrl = true } = {}) => {
+        const url = buildSearchUrl();
+        const urlText = `${url.pathname}${url.search}`;
+        if (urlText === lastRequestedUrl) {
+          return;
+        }
+        lastRequestedUrl = urlText;
+
+        if (currentRequest) {
+          currentRequest.abort();
+        }
+
+        const request = new AbortController();
+        currentRequest = request;
+        if (clearButton) {
+          clearButton.hidden = !String(input.value || "").trim();
+        }
+        setLoading(true);
+
+        try {
+          const response = await fetch(urlText, {
+            headers: { "X-Requested-With": "fetch" },
+            signal: request.signal,
+          });
+          if (!response.ok) {
+            throw new Error(`History search failed: ${response.status}`);
+          }
+          updateFromDocument(await response.text());
+          if (replaceUrl) {
+            window.history.replaceState({}, "", urlText);
+          }
+        } catch (error) {
+          if (error.name !== "AbortError") {
+            console.error(error);
+          }
+        } finally {
+          if (currentRequest === request) {
+            setLoading(false);
+          }
+        }
+      };
+
+      input.addEventListener("input", () => {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(() => {
+          runSearch();
+        }, String(input.value || "").trim() ? 140 : 60);
+      });
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        window.clearTimeout(timer);
+        runSearch();
+      });
+
+      clearButton?.addEventListener("click", () => {
+        input.value = "";
+        window.clearTimeout(timer);
+        runSearch();
+        input.focus();
       });
     });
   };
@@ -252,5 +351,5 @@
   setupRecordFormPickers();
   setupRecordStartModal();
   setupConfirmActions();
-  setupAutoSubmitSearch();
+  setupHistorySearch();
 })();
