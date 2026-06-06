@@ -3246,6 +3246,15 @@ textarea:focus,
   opacity: 1;
 }
 
+.shell .content-view-details summary,
+.shell .section-card:not(.is-open) .content-view-details summary,
+.shell .item-card:not(.is-open) .content-view-details summary {
+  border-color: color-mix(in srgb, var(--line) 92%, transparent);
+  background: color-mix(in srgb, var(--surface-elevated) 74%, transparent);
+  color: color-mix(in srgb, var(--muted) 84%, var(--text) 16%);
+  box-shadow: none;
+}
+
 .shell .add-details summary:hover,
 .shell .add-details summary:focus-visible,
 .shell .add-details[open] summary {

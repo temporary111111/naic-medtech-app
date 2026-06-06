@@ -2031,6 +2031,24 @@ function toggleFieldDetails(path) {
   renderEditor();
 }
 
+function expandAllContent() {
+  const containerPathKeys = collectContainerPathKeys(state.draft?.block_schema, ["block_schema"]);
+  state.ui.openSectionPaths = [...new Set(containerPathKeys)];
+  state.ui.focusPane = "content";
+  renderEditor();
+  setStatus(containerPathKeys.length ? "All containers expanded" : "No containers to expand");
+}
+
+function collapseAllContent() {
+  state.ui.openSectionPaths = [];
+  state.ui.openFieldDetailPaths = [];
+  state.ui.activeItemPath = null;
+  state.ui.activeOptionToken = null;
+  state.ui.focusPane = "content";
+  renderEditor();
+  setStatus("Content collapsed");
+}
+
 function toggleSetup() {
   state.ui.setupOpen = !state.ui.setupOpen;
   renderEditor();
@@ -3535,13 +3553,14 @@ function renderNodeActionMenu(path) {
     `;
   }
 
-function renderAddMenu(items, label = "Add") {
+function renderAddMenu(items, label = "Add", extraClass = "") {
     const entries = normalizeArray(items).filter((item) => item?.action && item?.label);
     if (!entries.length) {
       return "";
     }
+    const className = ["action-details", "add-details", extraClass].filter(Boolean).join(" ");
     return `
-      <details class="action-details add-details">
+      <details class="${escapeHtml(className)}">
         <summary aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${escapeHtml(label)}</summary>
         <div class="action-menu">
           ${entries.map((item) => `
@@ -3666,6 +3685,10 @@ function renderContentCard() {
         ]
       : []),
   ];
+  const viewItems = [
+    { action: "expand-content", label: "Expand all" },
+    { action: "collapse-content", label: "Collapse all" },
+  ];
 
   return `
     <section class="editor-card content-editor-card">
@@ -3677,6 +3700,7 @@ function renderContentCard() {
           </div>
         </div>
         <div class="top-actions">
+          ${entries.length ? renderAddMenu(viewItems, "View", "content-view-details") : ""}
           ${renderAddMenu(addItems)}
         </div>
       </div>
@@ -5159,6 +5183,14 @@ async function handleEditorClick(event) {
   }
   if (action === "add-content-table") {
     insertTopLevelContentBlock("table");
+    return;
+  }
+  if (action === "expand-content") {
+    expandAllContent();
+    return;
+  }
+  if (action === "collapse-content") {
+    collapseAllContent();
     return;
   }
   if (action === "toggle-setup") {
