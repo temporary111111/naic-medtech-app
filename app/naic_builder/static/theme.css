@@ -486,6 +486,18 @@ html[data-theme="dark"] .preview-field select:disabled {
   border-color: color-mix(in srgb, var(--success) 28%, transparent);
 }
 
+.record-status-chip[data-status="voided"] {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 28%, transparent);
+}
+
+.record-status-chip[data-status="deleted"] {
+  background: rgba(127, 146, 154, 0.12);
+  color: var(--muted);
+  border-color: var(--line);
+}
+
 .record-status-chip[data-status="draft"],
 .status-chip[data-status="pending"] {
   background: var(--warm-soft);
@@ -508,6 +520,13 @@ html[data-theme="dark"] .record-status-chip[data-status="completed"] {
   box-shadow: none;
 }
 
+html[data-theme="dark"] .record-status-chip[data-status="voided"] {
+  background: rgba(221, 133, 120, 0.16);
+  color: #dd8578;
+  border-color: transparent;
+  box-shadow: none;
+}
+
 .status-chip[data-status="disabled"] {
   background: rgba(127, 146, 154, 0.12);
   color: var(--muted);
@@ -521,7 +540,8 @@ html[data-theme="dark"] .record-status-chip[data-status="completed"] {
   color: var(--success);
 }
 
-.banner.error {
+.banner.error,
+.error-banner {
   border-color: color-mix(in srgb, var(--danger) 28%, transparent);
   background: var(--danger-soft);
   color: var(--danger);

@@ -66,6 +66,7 @@ from .services import (
     create_initial_admin,
     create_container,
     delete_container,
+    delete_draft_record,
     get_clinic_profile,
     delete_record_asset,
     create_form,
@@ -109,6 +110,7 @@ from .services import (
     approve_user_account,
     update_record,
     update_form,
+    void_completed_record,
 )
 
 
@@ -644,6 +646,11 @@ def records_history_url(
     return f"/records/history?{urlencode(query)}" if query else "/records/history"
 
 
+def url_with_notice(url: str, notice: str) -> str:
+    separator = "&" if "?" in url else "?"
+    return f"{url}{separator}{urlencode({'notice': notice})}"
+
+
 def safe_records_history_return(value: str | None) -> str:
     candidate = str(value or "").strip()
     if not candidate or candidate.startswith("//"):
@@ -670,10 +677,12 @@ def render_records_history_page(
     record_start_open: bool = False,
     record_start_error: str = "",
     record_start_selected_slug: str = "",
+    success_message: str = "",
+    error_message: str = "",
     status_code: int = 200,
 ) -> HTMLResponse:
     active_status = (status_filter or "completed").strip().lower()
-    if active_status not in {"completed", "draft", "all"}:
+    if active_status not in {"completed", "draft", "voided", "all"}:
         active_status = "completed"
     query_text = (search_query or "").strip()
     record_status = None if active_status == "all" else active_status
@@ -734,6 +743,8 @@ def render_records_history_page(
             "record_start_open": record_start_open,
             "record_start_error": record_start_error,
             "record_start_selected_slug": record_start_selected_slug,
+            "success_message": success_message,
+            "error_message": error_message,
         },
         status_code=status_code,
     )
@@ -752,6 +763,10 @@ def render_record_edit_page(
     record = get_record_or_none(session, record_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Record not found.")
+    if record.status == "deleted":
+        raise HTTPException(status_code=404, detail="Record not found.")
+    if record.status != "draft":
+        raise HTTPException(status_code=409, detail="Only draft records can be edited.")
 
     resolved_success_message = success_message
     if not resolved_success_message and request.query_params.get("saved") == "1":
@@ -779,6 +794,7 @@ def render_record_edit_page(
             "back_href": history_return_url or ("/records/history" if back_to_history else "/records"),
             "back_label": "Back to history" if back_to_history else "Back to records",
             "history_query": history_query,
+            "history_return_url": history_return_url,
         },
         status_code=status_code,
     )
@@ -789,9 +805,14 @@ def render_record_view_page(
     session: Session,
     *,
     record_id: int,
+    error_message: str = "",
+    success_message: str = "",
+    status_code: int = 200,
 ) -> HTMLResponse:
     record = get_record_or_none(session, record_id)
     if record is None:
+        raise HTTPException(status_code=404, detail="Record not found.")
+    if record.status == "deleted":
         raise HTTPException(status_code=404, detail="Record not found.")
 
     back_to_history = request.query_params.get("from") == "history"
@@ -806,7 +827,14 @@ def render_record_view_page(
             "back_href": history_return_url or ("/records/history" if back_to_history else "/records"),
             "back_label": "Back to history" if back_to_history else "Back to records",
             "history_query": history_query,
+            "history_return_url": history_return_url,
+            "error_message": error_message,
+            "success_message": (
+                success_message
+                or ("Voided the completed record." if request.query_params.get("voided") == "1" else "")
+            ),
         },
+        status_code=status_code,
     )
 
 
@@ -819,6 +847,8 @@ def render_record_print_page(
     record = get_record_or_none(session, record_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Record not found.")
+    if record.status != "completed":
+        return redirect_for_html(f"/records/{record_id}")
 
     clinic_profile = get_clinic_profile(session)
     clinic_logo_url = "/settings/clinic/logo" if clinic_profile.get("has_logo") else ""
@@ -1039,6 +1069,7 @@ def records_home(
     q: str = "",
     status: str = "",
     password_changed: str = "",
+    record_deleted: str = "",
     session: Session = Depends(get_session),
 ) -> HTMLResponse:
     if q or status:
@@ -1046,7 +1077,7 @@ def records_home(
         if q:
             query["q"] = q
         normalized_status = (status or "").strip().lower()
-        if normalized_status in {"completed", "draft", "all"}:
+        if normalized_status in {"completed", "draft", "voided", "all"}:
             query["status"] = normalized_status
         history_url = "/records/history"
         if query:
@@ -1056,7 +1087,13 @@ def records_home(
     return render_records_work_page(
         request,
         session,
-        success_message="Password updated." if password_changed == "1" else "",
+        success_message=(
+            "Password updated."
+            if password_changed == "1"
+            else "Deleted the draft."
+            if record_deleted == "1"
+            else ""
+        ),
     )
 
 
@@ -1071,14 +1108,21 @@ def records_history_page(
     q: str = "",
     status: str = "completed",
     page: int = 1,
+    notice: str = "",
     session: Session = Depends(get_session),
 ) -> HTMLResponse:
+    success_message = ""
+    if notice == "draft_deleted":
+        success_message = "Deleted the draft."
+    elif notice == "record_voided":
+        success_message = "Voided the completed record."
     return render_records_history_page(
         request,
         session,
         search_query=q,
         status_filter=status,
         page=page,
+        success_message=success_message,
     )
 
 
@@ -1152,7 +1196,9 @@ def edit_record_page(
     record = get_record_or_none(session, record_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Record not found.")
-    if record.status == "completed":
+    if record.status == "deleted":
+        raise HTTPException(status_code=404, detail="Record not found.")
+    if record.status != "draft":
         view_url = f"/records/{record_id}"
         if request.url.query:
             view_url = f"{view_url}?{request.url.query}"
@@ -1212,7 +1258,8 @@ async def update_record_page(
             status_code=422,
         )
     except ValueError as exc:
-        if "read-only" in str(exc).lower():
+        error_text = str(exc).lower()
+        if "read-only" in error_text or "only draft" in error_text:
             redirect_url = f"/records/{record_id}"
             if current_query:
                 redirect_url = f"{redirect_url}?{current_query}"
@@ -1229,6 +1276,73 @@ async def update_record_page(
     if current_query:
         redirect_url = f"/records/{record_id}/edit?{current_query}&saved=1"
     return RedirectResponse(url=redirect_url, status_code=303)
+
+
+@app.post("/records/{record_id}/delete-draft")
+async def delete_draft_record_page(
+    record_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> Response:
+    form = await request.form()
+    return_to = str(form.get("return_to") or "").strip().lower()
+    return_url = safe_records_history_return(str(form.get("return_url") or ""))
+    try:
+        delete_draft_record(session, record_id, actor_user_id=current_user_id(request))
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Record not found.") from exc
+    except ValueError as exc:
+        if return_to == "history":
+            return render_records_history_page(
+                request,
+                session,
+                status_filter=str(form.get("return_status") or "draft"),
+                error_message=str(exc),
+                status_code=422,
+            )
+        return render_record_edit_page(
+            request,
+            session,
+            record_id=record_id,
+            error_message=str(exc),
+            status_code=422,
+        )
+
+    if return_to == "history" and return_url:
+        return RedirectResponse(url=url_with_notice(return_url, "draft_deleted"), status_code=303)
+    return RedirectResponse(url="/records?record_deleted=1", status_code=303)
+
+
+@app.post("/records/{record_id}/void")
+async def void_completed_record_page(
+    record_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> Response:
+    form = await request.form()
+    return_url = safe_records_history_return(str(form.get("return_url") or ""))
+    reason = str(form.get("void_reason") or "")
+    try:
+        void_completed_record(
+            session,
+            record_id,
+            reason=reason,
+            actor_user_id=current_user_id(request),
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Record not found.") from exc
+    except ValueError as exc:
+        return render_record_view_page(
+            request,
+            session,
+            record_id=record_id,
+            error_message=str(exc),
+            status_code=422,
+        )
+
+    if return_url:
+        return RedirectResponse(url=url_with_notice(return_url, "record_voided"), status_code=303)
+    return RedirectResponse(url=f"/records/{record_id}?voided=1", status_code=303)
 
 
 @app.post("/records/{record_id}/assets")
@@ -2314,7 +2428,7 @@ def create_record_endpoint(
 @app.get("/api/records/{record_id}")
 def get_record(record_id: int, session: Session = Depends(get_session)) -> dict[str, Any]:
     record = get_record_or_none(session, record_id)
-    if record is None:
+    if record is None or record.status == "deleted":
         raise HTTPException(status_code=404, detail="Record not found.")
     return serialize_record(record, include_entry_schema=True)
 
@@ -2353,6 +2467,40 @@ def complete_record_endpoint(
                 "issues": exc.issues,
             },
         ) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.post("/api/records/{record_id}/delete-draft")
+def delete_draft_record_endpoint(
+    record_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    try:
+        return delete_draft_record(session, record_id, actor_user_id=current_user_id(request))
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Record not found.") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.post("/api/records/{record_id}/void")
+def void_completed_record_endpoint(
+    record_id: int,
+    payload: dict[str, Any],
+    request: Request,
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    try:
+        return void_completed_record(
+            session,
+            record_id,
+            reason=str(payload.get("reason") or ""),
+            actor_user_id=current_user_id(request),
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Record not found.") from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 

@@ -20,7 +20,7 @@
   {% if record.status == "draft" %}
   <a class="ghost-button" href="/records/{{ record.id }}/print{% if history_query %}?{{ history_query }}{% endif %}">Print</a>
   <a class="primary-button" href="/records/{{ record.id }}/edit{% if history_query %}?{{ history_query }}{% endif %}">Continue editing</a>
-  {% else %}
+  {% elif record.status == "completed" %}
   <a class="primary-button" href="/records/{{ record.id }}/print{% if history_query %}?{{ history_query }}{% endif %}">Print</a>
   {% endif %}
 {% endblock %}
@@ -165,10 +165,17 @@
   {% endfor %}
 
   <div class="library-shell record-shell record-shell--entry record-shell--view">
+    {% if success_message %}
+    <div class="success-banner">{{ success_message }}</div>
+    {% endif %}
+    {% if error_message %}
+    <div class="error-banner">{{ error_message }}</div>
+    {% endif %}
+
     <section class="panel record-summary-shell">
       <div class="record-summary-main">
         <div class="record-card-meta-line">
-          <span class="record-status-chip" data-status="{{ record.status }}">{{ record.status }}</span>
+          <span class="record-status-chip" data-status="{{ record.status }}">{{ record.status_label or record.status }}</span>
           <p class="form-card-meta">{{ record.form_name }}</p>
         </div>
         <h2>{{ record.display_title }}</h2>
@@ -209,6 +216,24 @@
       </details>
     </section>
 
+    {% if record.voided_event %}
+    <section class="record-lifecycle-alert record-lifecycle-alert--voided">
+      <div>
+        <p class="eyebrow">Voided record</p>
+        <h3>This result is no longer valid for release.</h3>
+        <p>
+          Voided {{ record.voided_event.at_label or record.voided_event.at_utc }}
+          {% if record.voided_event.by_user %}
+          by {{ record.voided_event.by_user.full_name }}
+          {% endif %}
+          {% if record.voided_event.reason %}
+          - {{ record.voided_event.reason }}
+          {% endif %}
+        </p>
+      </div>
+    </section>
+    {% endif %}
+
     <section class="panel record-values-panel">
       <div class="entry-block-head">
         <p class="eyebrow">Values</p>
@@ -228,5 +253,27 @@
       </div>
       {{ render_signatory_values(record_signatories) }}
     </section>
+
+    {% if record.status == "completed" %}
+    <details class="record-danger-zone">
+      <summary>Void this completed record</summary>
+      <form method="post" action="/records/{{ record.id }}/void" class="record-void-form" data-confirm="Void this completed record? It will stay in history but should no longer be printed as a valid result.">
+        {% if history_return_url %}
+        <input type="hidden" name="return_url" value="{{ history_return_url }}">
+        {% endif %}
+        <label class="entry-field">
+          <div class="entry-field-head">
+            <span>Reason</span>
+            <small class="entry-chip entry-chip-required">Required</small>
+          </div>
+          <textarea name="void_reason" rows="3" placeholder="Example: Wrong patient, duplicate entry, correction needed" required></textarea>
+        </label>
+        <div class="entry-actions">
+          <p class="panel-copy">Voiding preserves the audit trail and removes this result from normal completed output.</p>
+          <button class="ghost-button danger-button" type="submit">Void record</button>
+        </div>
+      </form>
+    </details>
+    {% endif %}
   </div>
 {% endblock %}

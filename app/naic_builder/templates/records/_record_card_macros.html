@@ -15,7 +15,7 @@
 <article class="record-card record-card--compact{% if not record.record_identity.primary_value %} is-unnamed{% endif %}">
   <div class="record-card-copy">
     <div class="record-card-meta-line">
-      <span class="record-status-chip" data-status="{{ record.status }}">{{ record.status }}</span>
+      <span class="record-status-chip" data-status="{{ record.status }}">{{ record.status_label or record.status }}</span>
       <p class="form-card-meta">{{ record.form_name }}</p>
       <span class="record-inline-meta">{{ record.display_subtitle_label }}: {{ record.display_subtitle or "Not set" }}</span>
     </div>
@@ -32,6 +32,15 @@
     {% if record.status == "draft" %}
     <a class="primary-button" href="{{ edit_href }}">Continue</a>
     <a class="ghost-button" href="{{ view_href }}">View</a>
+    <form method="post" action="/records/{{ record.id }}/delete-draft" class="inline-danger-form" data-confirm="Delete this draft? This keeps the audit trail but removes it from the work queue.">
+      {% if from_history %}
+      <input type="hidden" name="return_to" value="history">
+      <input type="hidden" name="return_url" value="{{ return_url }}">
+      {% endif %}
+      <button class="ghost-button danger-button" type="submit">Delete</button>
+    </form>
+    {% elif record.status == "voided" %}
+    <a class="primary-button" href="{{ view_href }}">View</a>
     {% else %}
     <a class="primary-button" href="{{ view_href }}">View</a>
     <a class="ghost-button" href="{{ print_href }}">Print</a>

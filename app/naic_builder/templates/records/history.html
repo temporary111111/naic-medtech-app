@@ -32,12 +32,21 @@
 
 {% block content %}
   <div class="library-shell record-shell records-history">
+    {% if success_message %}
+    <div class="success-banner">{{ success_message }}</div>
+    {% endif %}
+    {% if error_message %}
+    <div class="error-banner">{{ error_message }}</div>
+    {% endif %}
+
     <section class="app-section records-section">
       <div class="app-section__head records-history-head">
         <div class="app-section__copy">
           <p class="eyebrow">History</p>
           {% if status_filter == 'draft' %}
           <h2>{{ matching_count }} draft record{{ '' if matching_count == 1 else 's' }}</h2>
+          {% elif status_filter == 'voided' %}
+          <h2>{{ matching_count }} voided record{{ '' if matching_count == 1 else 's' }}</h2>
           {% elif status_filter == 'all' %}
           <h2>{{ matching_count }} record{{ '' if matching_count == 1 else 's' }} in history</h2>
           {% else %}
@@ -54,7 +63,7 @@
         </div>
 
         <div class="records-history-controls">
-          <form method="get" action="/records/history" class="records-search-form records-search-form--history">
+          <form method="get" action="/records/history" class="records-search-form records-search-form--history" data-auto-submit-search>
             {% if status_filter != 'completed' %}
             <input type="hidden" name="status" value="{{ status_filter }}">
             {% endif %}
@@ -65,6 +74,7 @@
             <div class="record-filter-pills">
               <a class="record-filter-pill{% if status_filter == 'completed' %} is-active{% endif %}" href="/records/history{% if search_query %}?q={{ search_query | urlencode }}{% endif %}">Completed</a>
               <a class="record-filter-pill{% if status_filter == 'draft' %} is-active{% endif %}" href="/records/history?status=draft{% if search_query %}&q={{ search_query | urlencode }}{% endif %}">Drafts</a>
+              <a class="record-filter-pill{% if status_filter == 'voided' %} is-active{% endif %}" href="/records/history?status=voided{% if search_query %}&q={{ search_query | urlencode }}{% endif %}">Voided</a>
               <a class="record-filter-pill{% if status_filter == 'all' %} is-active{% endif %}" href="/records/history?status=all{% if search_query %}&q={{ search_query | urlencode }}{% endif %}">All</a>
             </div>
             <div class="records-search-actions">

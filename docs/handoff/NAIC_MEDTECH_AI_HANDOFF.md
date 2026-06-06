@@ -380,7 +380,9 @@ What exists now:
   - `/records` is the `Work` view for drafts and active entry
   - `/records/history` is the `History` view for completed lookup and search
   - `/records/history?status=draft` is the lookup path for older drafts outside the recent Work queue
+  - `/records/history?status=voided` is the audit path for completed records that were voided
   - `/records/history` now paginates 40 records per page and preserves the current search/filter/page when opening records and returning from view, edit, or print
+  - History search now auto-submits after a short pause, so users no longer need to press Enter for normal lookup
   - `New record` is now modal-first from those views instead of staying as a separate ceremony page
   - choosing a form creates the draft immediately and redirects straight to `/records/{id}/edit`
   - `/records/new` now stays only as the fallback deep-link picker page
@@ -399,6 +401,11 @@ What exists now:
   - `Complete` requires the form's required patient identity fields, such as Name and Case Number
   - `Complete` also enforces form-design-required field answers
   - the edit screen now shows a quiet completion checklist when something is missing
+- record cleanup now follows a safety-first lifecycle model:
+  - draft records can be soft-deleted through `Delete draft`; this sets status `deleted`, hides the draft from normal work/history lists, and preserves audit data in `indexed_meta.lifecycle.deleted`
+  - completed records are not hard-deleted; they can be voided with a required reason, status `voided`, and audit data in `indexed_meta.lifecycle.voided`
+  - voided records are view-only and no longer expose normal print actions
+  - `/records/history?status=all` includes draft, completed, and voided records, but excludes soft-deleted drafts
 - record-entry polish is calmer now too:
   - ordinary draft saves now redirect back with a quiet `Saved the draft.` banner
   - `Sex` now uses the same small standard select in both record create and record edit

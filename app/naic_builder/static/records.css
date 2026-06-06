@@ -672,6 +672,23 @@
   align-items: center;
 }
 
+.inline-danger-form {
+  display: inline-flex;
+  margin: 0;
+}
+
+.danger-button {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 26%, var(--line));
+  background: color-mix(in srgb, var(--danger-soft) 74%, transparent);
+}
+
+.danger-button:hover {
+  border-color: color-mix(in srgb, var(--danger) 44%, transparent);
+  background: color-mix(in srgb, var(--danger-soft) 92%, transparent);
+  color: var(--danger);
+}
+
 .record-card-actions {
   flex-direction: row;
   align-items: center;
@@ -693,6 +710,56 @@
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--panel-strong) 92%, transparent), color-mix(in srgb, var(--panel) 84%, transparent)),
     radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 6%, transparent), transparent 34%);
+}
+
+.record-lifecycle-alert,
+.record-danger-zone {
+  padding: 18px 20px;
+  border-radius: var(--radius-xl);
+  border: 1px solid color-mix(in srgb, var(--danger) 22%, var(--line));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--danger-soft) 54%, transparent), color-mix(in srgb, var(--panel) 86%, transparent)),
+    radial-gradient(circle at top left, color-mix(in srgb, var(--danger) 7%, transparent), transparent 34%);
+  box-shadow: var(--shadow-soft);
+}
+
+.record-lifecycle-alert {
+  display: grid;
+  gap: 8px;
+}
+
+.record-lifecycle-alert h3,
+.record-lifecycle-alert p {
+  margin: 0;
+}
+
+.record-lifecycle-alert h3 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: -0.03em;
+}
+
+.record-lifecycle-alert p:not(.eyebrow) {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.record-danger-zone {
+  display: grid;
+  gap: 14px;
+}
+
+.record-danger-zone summary {
+  cursor: pointer;
+  color: var(--danger);
+  font-weight: 900;
+  letter-spacing: 0.01em;
+}
+
+.record-void-form {
+  display: grid;
+  gap: 14px;
+  padding-top: 12px;
 }
 
 .record-summary-main {

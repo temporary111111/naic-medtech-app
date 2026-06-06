@@ -1,4 +1,52 @@
 (() => {
+  const setupConfirmActions = () => {
+    document.querySelectorAll("[data-confirm]").forEach((element) => {
+      if (element.dataset.confirmReady === "true") {
+        return;
+      }
+      element.dataset.confirmReady = "true";
+      element.addEventListener("submit", (event) => {
+        const message = String(element.dataset.confirm || "Continue?");
+        if (!window.confirm(message)) {
+          event.preventDefault();
+        }
+      });
+    });
+  };
+
+  const setupAutoSubmitSearch = () => {
+    document.querySelectorAll("[data-auto-submit-search]").forEach((form) => {
+      if (form.dataset.autoSubmitReady === "true") {
+        return;
+      }
+      form.dataset.autoSubmitReady = "true";
+
+      const input = form.querySelector('input[type="search"]');
+      if (!input) {
+        return;
+      }
+
+      let timer = 0;
+      let lastSubmitted = String(input.value || "").trim();
+
+      input.addEventListener("input", () => {
+        const nextValue = String(input.value || "").trim();
+        window.clearTimeout(timer);
+        if (nextValue === lastSubmitted) {
+          return;
+        }
+        timer = window.setTimeout(() => {
+          const currentValue = String(input.value || "").trim();
+          if (currentValue === lastSubmitted) {
+            return;
+          }
+          lastSubmitted = currentValue;
+          form.requestSubmit();
+        }, currentValue ? 420 : 180);
+      });
+    });
+  };
+
   const setupDirtyGuards = () => {
     const guardedForms = document.querySelectorAll("[data-dirty-guard]");
     if (!guardedForms.length) {
@@ -203,4 +251,6 @@
   setupRequiredFieldAttention();
   setupRecordFormPickers();
   setupRecordStartModal();
+  setupConfirmActions();
+  setupAutoSubmitSearch();
 })();

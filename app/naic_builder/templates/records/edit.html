@@ -19,6 +19,15 @@
 {% block topbar_actions %}
   <a class="ghost-button" href="/records/{{ record.id }}{% if history_query %}?{{ history_query }}{% endif %}">View</a>
   <a class="ghost-button" href="/records/{{ record.id }}/print{% if history_query %}?{{ history_query }}{% endif %}">Print</a>
+  {% if record.status == "draft" %}
+  <form method="post" action="/records/{{ record.id }}/delete-draft" class="inline-danger-form" data-confirm="Delete this draft? This keeps the audit trail but removes it from the work queue.">
+    {% if history_return_url %}
+    <input type="hidden" name="return_to" value="history">
+    <input type="hidden" name="return_url" value="{{ history_return_url }}">
+    {% endif %}
+    <button class="ghost-button danger-button" type="submit">Delete draft</button>
+  </form>
+  {% endif %}
 {% endblock %}
 
 {% block content %}
@@ -252,7 +261,7 @@
     <section class="panel record-summary-shell">
       <div class="record-summary-main">
         <div class="record-card-meta-line">
-          <span class="record-status-chip" data-status="{{ record.status }}">{{ record.status }}</span>
+          <span class="record-status-chip" data-status="{{ record.status }}">{{ record.status_label or record.status }}</span>
           <p class="form-card-meta">{{ record.form_name }}</p>
         </div>
         <h2>{{ record.display_title }}</h2>

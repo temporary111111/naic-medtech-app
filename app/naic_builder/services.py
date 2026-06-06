@@ -48,6 +48,14 @@ MAX_RECORD_IMAGE_BYTES = 10 * 1024 * 1024
 MAX_CLINIC_LOGO_BYTES = 5 * 1024 * 1024
 MAX_USER_AVATAR_BYTES = 2 * 1024 * 1024
 MAX_SIGNATORY_STAMP_BYTES = 5 * 1024 * 1024
+EDITABLE_RECORD_STATUSES = {"draft"}
+VISIBLE_RECORD_STATUSES = {"draft", "completed", "voided"}
+RECORD_STATUS_LABELS = {
+    "draft": "Draft",
+    "completed": "Completed",
+    "voided": "Voided",
+    "deleted": "Deleted",
+}
 DEFAULT_PRINT_ACCENT_COLOR = "#1e5d52"
 DEFAULT_PRINT_ACCENT_MIGRATED_META_KEY = "print_accent_default_migrated"
 DEFAULT_PRINT_ACCENT_COLORS_BY_FORM_KEY = {
@@ -2436,6 +2444,33 @@ def serialize_record_actor(user: User | None) -> dict[str, Any] | None:
     }
 
 
+def serialize_record_actor_snapshot(session: Session, actor_user_id: int | None) -> dict[str, Any] | None:
+    if actor_user_id is None:
+        return None
+    return serialize_record_actor(session.get(User, actor_user_id))
+
+
+def lifecycle_event_payload(
+    session: Session,
+    *,
+    actor_user_id: int | None,
+    reason: str = "",
+) -> dict[str, Any]:
+    event_time = utc_now()
+    return {
+        "at_utc": event_time.astimezone(timezone.utc).isoformat(),
+        "at_label": format_timestamp_label(event_time),
+        "reason": compact_text(reason),
+        "by_user_id": actor_user_id,
+        "by_user": serialize_record_actor_snapshot(session, actor_user_id),
+    }
+
+
+def record_lifecycle_meta(indexed_meta: dict[str, Any]) -> dict[str, Any]:
+    lifecycle = indexed_meta.get("lifecycle")
+    return lifecycle if isinstance(lifecycle, dict) else {}
+
+
 class RecordCompletionValidationError(ValueError):
     def __init__(self, issues: list[str]):
         self.issues = issues
@@ -3299,6 +3334,7 @@ def serialize_record(
         indexed_meta.get("signatories"),
         signatory_slots,
     )
+    lifecycle = record_lifecycle_meta(indexed_meta)
     stored_identity = indexed_meta.get("record_identity") if isinstance(indexed_meta.get("record_identity"), dict) else {}
     if stored_identity:
         identity = resolve_record_identity(
@@ -3338,6 +3374,7 @@ def serialize_record(
         "id": record.id,
         "record_key": record.record_key,
         "status": record.status,
+        "status_label": RECORD_STATUS_LABELS.get(record.status, record.status.title()),
         "patient_name": record.patient_name,
         "patient_age": compact_text(indexed_meta.get("patient_age")) or None,
         "patient_sex": compact_text(indexed_meta.get("patient_sex")) or None,
@@ -3365,6 +3402,9 @@ def serialize_record(
         "created_by": serialize_record_actor(record.created_by_user),
         "updated_by": serialize_record_actor(record.updated_by_user),
         "indexed_meta": indexed_meta,
+        "lifecycle": lifecycle,
+        "voided_event": lifecycle.get("voided") if isinstance(lifecycle.get("voided"), dict) else None,
+        "deleted_event": lifecycle.get("deleted") if isinstance(lifecycle.get("deleted"), dict) else None,
         "signatories": signatory_snapshots,
     }
     if include_values:
@@ -3407,6 +3447,8 @@ def apply_record_filters(
     normalized_status = compact_text(status)
     if normalized_status:
         query = query.where(Record.status == normalized_status)
+    else:
+        query = query.where(Record.status.in_(VISIBLE_RECORD_STATUSES))
 
     search_text = compact_text(search)
     if search_text:
@@ -3516,8 +3558,8 @@ def update_record(
     record = get_record_or_none(session, record_id)
     if record is None:
         raise KeyError(record_id)
-    if record.status == "completed":
-        raise ValueError("Completed records are read-only.")
+    if record.status not in EDITABLE_RECORD_STATUSES:
+        raise ValueError("Only draft records can be edited.")
 
     existing_meta = load_json_object(record.indexed_meta_json)
     patient_name = compact_text(payload.patient_name) if payload.patient_name is not None else compact_text(record.patient_name)
@@ -3565,8 +3607,8 @@ def complete_record(
     record = get_record_or_none(session, record_id)
     if record is None:
         raise KeyError(record_id)
-    if record.status == "completed":
-        raise ValueError("This record is already completed.")
+    if record.status != "draft":
+        raise ValueError("Only draft records can be completed.")
 
     existing_meta = load_json_object(record.indexed_meta_json)
     patient_name = compact_text(payload.patient_name) if payload.patient_name is not None else compact_text(record.patient_name)
@@ -3611,6 +3653,69 @@ def complete_record(
     return serialize_record(completed, include_entry_schema=True)
 
 
+def delete_draft_record(
+    session: Session,
+    record_id: int,
+    *,
+    actor_user_id: int | None = None,
+) -> dict[str, Any]:
+    record = get_record_or_none(session, record_id)
+    if record is None:
+        raise KeyError(record_id)
+    if record.status != "draft":
+        raise ValueError("Only draft records can be deleted. Completed records should be voided instead.")
+
+    indexed_meta = load_json_object(record.indexed_meta_json)
+    lifecycle = record_lifecycle_meta(indexed_meta)
+    lifecycle["deleted"] = lifecycle_event_payload(session, actor_user_id=actor_user_id)
+    indexed_meta["lifecycle"] = lifecycle
+
+    record.status = "deleted"
+    record.indexed_meta_json = json.dumps(indexed_meta, ensure_ascii=False)
+    record.updated_by_user_id = actor_user_id
+    session.commit()
+    session.expire_all()
+
+    deleted = get_record_or_none(session, record_id)
+    if deleted is None:
+        raise KeyError(record_id)
+    return serialize_record(deleted, include_entry_schema=False)
+
+
+def void_completed_record(
+    session: Session,
+    record_id: int,
+    *,
+    reason: str,
+    actor_user_id: int | None = None,
+) -> dict[str, Any]:
+    record = get_record_or_none(session, record_id)
+    if record is None:
+        raise KeyError(record_id)
+    if record.status != "completed":
+        raise ValueError("Only completed records can be voided.")
+
+    reason_text = compact_text(reason)
+    if not reason_text:
+        raise ValueError("Add a short reason before voiding this record.")
+
+    indexed_meta = load_json_object(record.indexed_meta_json)
+    lifecycle = record_lifecycle_meta(indexed_meta)
+    lifecycle["voided"] = lifecycle_event_payload(session, actor_user_id=actor_user_id, reason=reason_text)
+    indexed_meta["lifecycle"] = lifecycle
+
+    record.status = "voided"
+    record.indexed_meta_json = json.dumps(indexed_meta, ensure_ascii=False)
+    record.updated_by_user_id = actor_user_id
+    session.commit()
+    session.expire_all()
+
+    voided = get_record_or_none(session, record_id)
+    if voided is None:
+        raise KeyError(record_id)
+    return serialize_record(voided, include_entry_schema=True)
+
+
 def store_record_image_asset(
     session: Session,
     *,
@@ -3623,8 +3728,8 @@ def store_record_image_asset(
     record = get_record_or_none(session, record_id)
     if record is None:
         raise KeyError(record_id)
-    if record.status == "completed":
-        raise ValueError("Completed records are read-only.")
+    if record.status not in EDITABLE_RECORD_STATUSES:
+        raise ValueError("Only draft records can be edited.")
 
     field_block = resolve_record_image_field(record, field_block_id)
     mime_type = compact_text(content_type)
@@ -3689,8 +3794,8 @@ def delete_record_asset(session: Session, record_id: int, asset_id: int) -> dict
     record = get_record_or_none(session, record_id)
     if record is None:
         raise KeyError(record_id)
-    if record.status == "completed":
-        raise ValueError("Completed records are read-only.")
+    if record.status not in EDITABLE_RECORD_STATUSES:
+        raise ValueError("Only draft records can be edited.")
 
     asset = session.scalar(
         select(RecordAsset).where(
