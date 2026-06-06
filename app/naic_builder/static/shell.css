@@ -1,20 +1,25 @@
 .app-shell-body {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .app-frame {
-  --shell-space: 16px;
+  --shell-space: 12px;
   --shell-drawer-width: 308px;
   --shell-main-width: 1280px;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  gap: 14px;
-  min-height: 100vh;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
   padding: var(--shell-space);
 }
 
 .app-frame--workspace {
-  --shell-space: 14px;
+  --shell-space: 10px;
   --shell-drawer-width: 320px;
   --shell-main-width: 1440px;
 }
@@ -81,8 +86,8 @@
 
 .app-drawer__brand-mark,
 .app-global-header__brand {
-  width: 46px;
-  height: 46px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -141,8 +146,8 @@
 .app-drawer__close,
 .app-menu-toggle,
 .app-account-toggle {
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -338,14 +343,14 @@
 }
 
 .app-global-header {
-  position: sticky;
-  top: var(--shell-space);
+  position: relative;
   z-index: 24;
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
-  padding: 12px 16px;
+  min-height: 56px;
+  padding: 8px 12px;
   background: color-mix(in srgb, var(--panel) 72%, var(--shell-bg) 28%);
   border-color: var(--line);
   box-shadow: var(--shadow);
@@ -359,7 +364,7 @@
 .app-global-header__lead,
 .app-global-header__actions {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
   min-width: 0;
 }
@@ -421,8 +426,8 @@
   gap: 8px;
   width: auto;
   min-width: 0;
-  min-height: 42px;
-  padding: 10px 14px;
+  min-height: 38px;
+  padding: 8px 12px;
   border-radius: 999px;
   border: 1px solid var(--line);
   background:
@@ -483,23 +488,28 @@ html[data-theme="dark"] .shell-theme-toggle--inline {
 
 .app-shell-main {
   min-width: 0;
+  min-height: 0;
   width: min(var(--shell-main-width), 100%);
   margin: 0 auto;
   display: grid;
-  gap: 20px;
-  padding-bottom: 24px;
+  align-content: start;
+  gap: 14px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-bottom: max(18px, env(safe-area-inset-bottom));
+  scrollbar-gutter: stable;
 }
 
 .app-shell-main--workspace {
-  padding-bottom: 10px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
 }
 
 .app-page-header {
   display: flex;
   justify-content: space-between;
-  gap: 24px;
+  gap: 18px;
   align-items: start;
-  padding: 4px 2px 14px;
+  padding: 0 2px 10px;
   background: transparent;
   border: 0;
   border-bottom: 1px solid color-mix(in srgb, var(--line) 88%, transparent);
@@ -510,14 +520,14 @@ html[data-theme="dark"] .shell-theme-toggle--inline {
 
 .app-page-header__copy {
   display: grid;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
 }
 
 .app-page-header__copy h1 {
   margin: 0;
-  font-size: clamp(28px, 3vw, 40px);
-  line-height: 0.98;
+  font-size: clamp(24px, 2.4vw, 32px);
+  line-height: 1.02;
 }
 
 .app-page-header__copy .panel-copy {
@@ -755,8 +765,9 @@ body.shell-drawer-open {
 @media (max-width: 720px) {
   .app-frame,
   .app-frame--workspace {
-    padding: 12px;
-    gap: 12px;
+    --shell-space: 10px;
+    padding: 10px;
+    gap: 10px;
   }
 
   .app-drawer {
@@ -767,8 +778,25 @@ body.shell-drawer-open {
   }
 
   .app-global-header {
-    top: 12px;
-    padding: 11px 14px;
+    min-height: 52px;
+    padding: 8px 10px;
+  }
+
+  .app-global-header__brand,
+  .app-menu-toggle,
+  .app-account-toggle {
+    width: 36px;
+    height: 36px;
+  }
+
+  .app-global-header__brand-copy strong {
+    display: -webkit-box;
+    max-width: 138px;
+    overflow: hidden;
+    font-size: 14px;
+    line-height: 1.05;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .app-global-header__brand-copy span {
@@ -776,7 +804,7 @@ body.shell-drawer-open {
   }
 
   .app-page-header {
-    padding: 16px 18px;
+    padding: 0 0 10px;
   }
 
   .app-global-header__actions {

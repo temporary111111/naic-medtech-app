@@ -14,9 +14,11 @@ Current repo state:
 - local-first Windows desktop installer foundation exists and has a current `0.1.4-dev` QR/LAN reliability build
 - same-network LAN access defaults on for fresh desktop installs; Settings shows hostname/IP links and a downloadable QR code
 - Settings now exposes local/external verified backups, automatic daily backup status, backup retention, latest-backup verification, and admin-only restore with an emergency pre-restore backup; the source Inno installer script now has a pre-update backup hook
+- root UI/UX redesign planning is now active as of June 7, 2026; read `docs/handoff/UI_UX_ROOT_REDESIGN_PLAN.md` before making UI changes
 
 Still not clinic-release-complete:
 - manual installed-app QA on a clean Windows machine
+- root UI/UX redesign implementation and visual QA
 - real clinic device/browser/printer QA
 - real production data QA
 - clean-PC restore drill and Windows validation of scheduled/external/pre-update backup behavior
@@ -175,6 +177,16 @@ The product now has a locked visual direction for the next UI work.
 
 Chosen design language:
 - `Clinical Depth Luxe`
+
+Active root UI/UX plan:
+- `docs/handoff/UI_UX_ROOT_REDESIGN_PLAN.md`
+
+Current June 7, 2026 decision:
+- the app should now be treated as a compact clinic operations workbench, not just a reskin needing small polish
+- the previous live reskin remains useful style context, but the current requested work is root workflow/layout correction
+- priority concerns from the user: compactness, accidental double-scroll, light-mode contrast, better back/return behavior, less bulky components, `Complete and print` as the primary record-entry action, a real modal system, and possible admin `Safety` navigation for backup/restore/LAN health
+- first implementation should start with shell/scroll ownership and workflow density, not color tweaks
+- first Phase 1 pass has landed: authenticated screens now use a fixed-height app frame with body/document scroll disabled, `.app-shell-main` as the normal scroll owner, compact global/page headers, tighter record-edit summary/readiness chrome, and `Complete and print` as the primary record-entry action. Visual QA outputs are under `output/ui-ux-phase1/`
 
 Current live status:
 - the non-print app now has a materially landed live reskin pass under that direction

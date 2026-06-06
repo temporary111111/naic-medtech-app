@@ -5,7 +5,7 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20260607-sticky-entry-actions">
+  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20260607-ui-root-phase1">
 {% endblock %}
 
 {% block shell_eyebrow %}Records{% endblock %}
@@ -337,9 +337,9 @@
 
         <div class="entry-actions">
           <p class="entry-save-state" data-dirty-state>All changes saved.</p>
-          <button class="ghost-button entry-action-secondary" type="submit" name="action" value="draft" data-save-draft data-submit-status="Saving draft...">Save draft</button>
-          <button class="ghost-button entry-action-print" type="submit" name="action" value="complete_print" data-submit-status="Completing and opening print...">Complete and print</button>
-          <button class="primary-button entry-action-complete" type="submit" name="action" value="complete" data-submit-status="Completing...">Complete</button>
+          <button class="ghost-button entry-action-secondary" type="submit" name="action" value="draft" data-save-draft data-submit-status="Saving draft...">Save</button>
+          <button class="ghost-button entry-action-complete" type="submit" name="action" value="complete" data-submit-status="Completing...">Complete</button>
+          <button class="primary-button entry-action-print" type="submit" name="action" value="complete_print" data-submit-status="Completing and opening print...">Complete and print</button>
         </div>
       </form>
     </section>
@@ -347,5 +347,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', path='records.js') }}?v=20260607-sticky-entry-actions" defer></script>
+  <script src="{{ url_for('static', path='records.js') }}?v=20260607-ui-root-phase1" defer></script>
 {% endblock %}

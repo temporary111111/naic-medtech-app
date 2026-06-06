@@ -6,7 +6,7 @@
 .record-shell--entry {
   width: min(880px, 100%);
   margin-inline: auto;
-  gap: 14px;
+  gap: 10px;
 }
 
 .app-canvas > .record-shell.record-shell--entry {
@@ -1259,30 +1259,46 @@
 }
 
 .record-shell--entry .record-summary-shell {
-  padding: 14px 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-lg);
 }
 
 .record-shell--entry .record-summary-main {
-  gap: 5px;
+  gap: 4px;
 }
 
 .record-shell--entry .record-summary-main h2 {
-  font-size: clamp(1.65rem, 3vw, 2.35rem);
-  line-height: 0.98;
+  font-size: clamp(1.35rem, 2.5vw, 1.85rem);
+  line-height: 1.02;
+}
+
+.record-shell--entry .record-summary-main .panel-copy {
+  margin: 0;
+  font-size: 12px;
 }
 
 .record-shell--entry .record-summary-pills {
-  gap: 7px;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 .record-shell--entry .record-meta-pill {
-  min-height: 30px;
-  padding: 6px 10px;
+  min-height: 28px;
+  padding: 5px 9px;
   font-size: 11px;
 }
 
+.record-shell--entry .record-meta-details {
+  grid-column: 1 / -1;
+  gap: 8px;
+  padding-top: 8px;
+}
+
 .record-shell--entry .record-entry-panel {
-  padding: 16px;
+  padding: 12px;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--panel-strong) 84%, transparent), color-mix(in srgb, var(--panel) 78%, transparent));
 }
@@ -1472,10 +1488,10 @@
 
 .completion-checklist {
   display: grid;
-  gap: 10px;
-  padding: 14px 16px;
+  gap: 7px;
+  padding: 10px 12px;
   border: 1px solid color-mix(in srgb, var(--warm) 26%, transparent);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--warm-soft) 68%, transparent), color-mix(in srgb, var(--panel) 84%, transparent)),
     radial-gradient(circle at top right, color-mix(in srgb, var(--warm) 10%, transparent), transparent 34%);
@@ -1493,8 +1509,8 @@
   padding-left: 18px;
   color: color-mix(in srgb, var(--warm) 88%, #5d3514);
   display: grid;
-  gap: 4px;
-  font-size: 13px;
+  gap: 2px;
+  font-size: 12px;
 }
 
 .completion-checklist.is-ready .completion-issues,
@@ -2118,6 +2134,14 @@ html[data-theme="dark"] .completion-checklist.is-ready {
 
   .record-shell--entry {
     width: 100%;
+  }
+
+  .record-shell--entry .record-summary-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .record-shell--entry .record-summary-pills {
+    justify-content: flex-start;
   }
 
   .record-shell--entry .record-section > .entry-stack,

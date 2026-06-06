@@ -1,0 +1,181 @@
+{
+  "desktop-records-work-light": {
+    "bodyOverflowY": "hidden",
+    "bodyScrolls": false,
+    "documentScrolls": false,
+    "mainScrolls": false,
+    "mainScrollHeight": 808,
+    "mainClientHeight": 808,
+    "canvasScrolls": false,
+    "horizontalOverflow": false,
+    "scrollRegions": [
+      {
+        "className": "record-list app-scroll-region app-scroll-region--list",
+        "scrolls": true,
+        "scrollHeight": 915,
+        "clientHeight": 558
+      },
+      {
+        "className": "records-start-option-list app-scroll-region app-scroll-region--picker",
+        "scrolls": false,
+        "scrollHeight": 0,
+        "clientHeight": 0
+      }
+    ],
+    "firstHeading": "Work queue"
+  },
+  "desktop-records-history-light": {
+    "bodyOverflowY": "hidden",
+    "bodyScrolls": false,
+    "documentScrolls": false,
+    "mainScrolls": true,
+    "mainScrollHeight": 811,
+    "mainClientHeight": 808,
+    "canvasScrolls": false,
+    "horizontalOverflow": false,
+    "scrollRegions": [
+      {
+        "className": "record-list app-scroll-region app-scroll-region--list",
+        "scrolls": true,
+        "scrollHeight": 4167,
+        "clientHeight": 558
+      },
+      {
+        "className": "records-start-option-list app-scroll-region app-scroll-region--picker",
+        "scrolls": false,
+        "scrollHeight": 0,
+        "clientHeight": 0
+      }
+    ],
+    "firstHeading": "History"
+  },
+  "desktop-record-edit-light": {
+    "bodyOverflowY": "hidden",
+    "bodyScrolls": false,
+    "documentScrolls": false,
+    "mainScrolls": true,
+    "mainScrollHeight": 2638,
+    "mainClientHeight": 808,
+    "canvasScrolls": false,
+    "horizontalOverflow": false,
+    "scrollRegions": [],
+    "firstHeading": "Edit record"
+  },
+  "desktop-record-view-light": {
+    "bodyOverflowY": "hidden",
+    "bodyScrolls": false,
+    "documentScrolls": false,
+    "mainScrolls": true,
+    "mainScrollHeight": 2038,
+    "mainClientHeight": 808,
+    "canvasScrolls": false,
+    "horizontalOverflow": false,
+    "scrollRegions": [],
+    "firstHeading": "Recorded result"
+  },
+  "desktop-forms-light": {
+    "bodyOverflowY": "hidden",
+    "bodyScrolls": false,
+    "documentScrolls": false,
+    "mainScrolls": true,
+    "mainScrollHeight": 823,
+    "mainClientHeight": 808,
+    "canvasScrolls": false,
+    "horizontalOverflow": false,
+    "scrollRegions": [
+      {
+        "className": "library-tree app-scroll-region app-scroll-region--tree",
+        "scrolls": true,
+        "scrollHeight": 2291,
+        "clientHeight": 612
+      }
+    ],
+    "firstHeading": "Form library"
+  },
+  "desktop-builder-light": {
+    "bodyOverflowY": "hidden",
+    "bodyScrolls": false,
+    "documentScrolls": false,
+    "mainScrolls": true,
+    "mainScrollHeight": 1130,
+    "mainClientHeight": 812,
+    "canvasScrolls": false,
+    "horizontalOverflow": false,
+    "scrollRegions": [],
+    "firstHeading": "Form workspace"
+  },
+  "desktop-settings-desktop-light": {
+    "bodyOverflowY": "hidden",
+    "bodyScrolls": false,
+    "documentScrolls": false,
+    "mainScrolls": true,
+    "mainScrollHeight": 2716,
+    "mainClientHeight": 808,
+    "canvasScrolls": false,
+    "horizontalOverflow": false,
+    "scrollRegions": [],
+    "firstHeading": "Desktop app"
+  },
+  "desktop-records-work-dark": {
+    "bodyOverflowY": "hidden",
+    "bodyScrolls": false,
+    "documentScrolls": false,
+    "mainScrolls": false,
+    "mainScrollHeight": 808,
+    "mainClientHeight": 808,
+    "canvasScrolls": false,
+    "horizontalOverflow": false,
+    "scrollRegions": [
+      {
+        "className": "record-list app-scroll-region app-scroll-region--list",
+        "scrolls": true,
+        "scrollHeight": 915,
+        "clientHeight": 558
+      },
+      {
+        "className": "records-start-option-list app-scroll-region app-scroll-region--picker",
+        "scrolls": false,
+        "scrollHeight": 0,
+        "clientHeight": 0
+      }
+    ],
+    "firstHeading": "Work queue"
+  },
+  "mobile-records-work-light": {
+    "bodyOverflowY": "hidden",
+    "bodyScrolls": false,
+    "documentScrolls": false,
+    "mainScrolls": true,
+    "mainScrollHeight": 2571,
+    "mainClientHeight": 756,
+    "canvasScrolls": false,
+    "horizontalOverflow": false,
+    "scrollRegions": [
+      {
+        "className": "record-list app-scroll-region app-scroll-region--list",
+        "scrolls": false,
+        "scrollHeight": 2224,
+        "clientHeight": 2224
+      },
+      {
+        "className": "records-start-option-list app-scroll-region app-scroll-region--picker",
+        "scrolls": false,
+        "scrollHeight": 0,
+        "clientHeight": 0
+      }
+    ],
+    "firstHeading": "Work queue"
+  },
+  "mobile-record-edit-light": {
+    "bodyOverflowY": "hidden",
+    "bodyScrolls": false,
+    "documentScrolls": false,
+    "mainScrolls": true,
+    "mainScrollHeight": 3603,
+    "mainClientHeight": 756,
+    "canvasScrolls": false,
+    "horizontalOverflow": false,
+    "scrollRegions": [],
+    "firstHeading": "Edit record"
+  }
+}
