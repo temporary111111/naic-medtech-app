@@ -138,7 +138,7 @@ NDHI-LabRecords.exe --verify-backup <archive.zip>
 NDHI-LabRecords.exe --restore-backup <archive.zip>
 ```
 
-`Settings -> Desktop app` now exposes local backup status, external backup folder configuration, a manual verified-backup action, latest-backup verification actions, a retention count for local/external archives, and an admin-only restore form. In-app restore requires uploading a backup ZIP and typing `RESTORE`. The app blocks normal requests during the replacement step, verifies the selected archive before touching current data, creates an emergency `pre-restore` backup, restores the database and uploads, preserves machine-local desktop settings/session secrets by default, and tells the admin to close and reopen the desktop app afterward.
+`Settings -> Desktop app` now exposes local backup status, external backup folder configuration, a manual verified-backup action, latest-backup verification actions, a retention count for local/external archives, and an admin-only restore form. In-app restore requires uploading a backup ZIP and typing `RESTORE`. The app blocks normal requests during the replacement step, verifies the selected archive before touching current data, creates an emergency `pre-restore` backup, restores the database and uploads, preserves machine-local desktop settings/session secrets by default, clears the current login session, redirects to login, and tells the admin to sign in using an account from the restored backup.
 
 Command-line restore is for support/development use. The desktop launcher refuses `--restore-backup` when the normal app server is already healthy on the configured port; the admin UI uses a short maintenance guard instead.
 

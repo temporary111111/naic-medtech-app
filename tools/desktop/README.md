@@ -84,7 +84,7 @@ NDHI-LabRecords.exe --verify-backup <archive.zip>
 NDHI-LabRecords.exe --restore-backup <archive.zip>
 ```
 
-Normal clinic backup/restore is exposed to admins in `Settings -> Desktop app`. Restore requires a backup ZIP upload and `RESTORE` confirmation, creates an emergency `pre-restore` backup first, and should be followed by closing and reopening the desktop app.
+Normal clinic backup/restore is exposed to admins in `Settings -> Desktop app`. Restore requires a backup ZIP upload and `RESTORE` confirmation, creates an emergency `pre-restore` backup first, clears the current login, and sends the admin back to login using an account from the restored backup.
 
 Build the packaged app and final Inno Setup installer:
 

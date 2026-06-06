@@ -43,7 +43,7 @@
       "Settings -> Desktop app shows hostname/IP links, readiness cards, copy actions, full QR view, and downloadable SVG QR",
       "QR is generated locally with segno and prefers IP fallback when available",
       "Settings -> Desktop app shows local/external backup status, external backup folder, retention count, manual backup, latest-backup verification actions, and admin-only restore with RESTORE confirmation",
-      "restore verifies the selected archive, creates an emergency pre-restore backup, restores database and uploads, preserves machine-local desktop config by default, and asks the admin to close and reopen the app",
+      "restore verifies the selected archive, creates an emergency pre-restore backup, restores database and uploads, preserves machine-local desktop config by default, clears the current session, and sends the admin back to login using an account from the restored backup",
       "source Inno installer script attempts a verified pre-update backup before replacing binaries when an existing runtime database is present",
       "packaging scripts include the NDHI icon for the packaged executable and Inno Setup wrapper"
     ],

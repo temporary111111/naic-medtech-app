@@ -237,6 +237,12 @@ class AuthFlowMiddleware(BaseHTTPMiddleware):
                     "/change-password",
                 )
 
+            if path == "/login" and request.query_params.get("restored") == "1":
+                request.session.clear()
+                request.state.current_user = None
+                request.state.is_admin = False
+                return await call_next(request)
+
             if path in {"/login", "/request-account", "/setup"}:
                 return redirect_for_html("/records")
 
@@ -282,6 +288,7 @@ def render_login_page(
     *,
     identifier: str = "",
     error_message: str = "",
+    success_message: str = "",
     status_code: int = 200,
 ) -> HTMLResponse:
     return templates.TemplateResponse(
@@ -291,6 +298,7 @@ def render_login_page(
             "app_title": APP_TITLE,
             "identifier": identifier,
             "error_message": error_message,
+            "success_message": success_message,
             "needs_setup": not getattr(request.state, "has_users", True),
         },
         status_code=status_code,
@@ -838,7 +846,10 @@ async def create_initial_admin_page(request: Request, session: Session = Depends
 def login_page(request: Request) -> HTMLResponse:
     if not getattr(request.state, "has_users", True):
         return redirect_for_html("/setup")
-    return render_login_page(request)
+    success_message = ""
+    if request.query_params.get("restored") == "1":
+        success_message = "Backup restore completed. Sign in using an account from the restored backup."
+    return render_login_page(request, success_message=success_message)
 
 
 @app.post("/login")
@@ -1911,15 +1922,8 @@ async def settings_desktop_restore_backup_page(
         finally:
             end_restore_maintenance()
 
-    emergency_backup_name = Path(str(result.get("emergency_backup") or "")).name
-    return render_settings_desktop_page(
-        request,
-        success_message=(
-            "Restored the selected backup. "
-            f"Emergency pre-restore backup created: {emergency_backup_name}. "
-            "Close and reopen the desktop app before clinic use."
-        ),
-    )
+    request.session.clear()
+    return RedirectResponse(url="/login?restored=1", status_code=303)
 
 
 @app.get("/settings/desktop/lan-qr", response_class=HTMLResponse)

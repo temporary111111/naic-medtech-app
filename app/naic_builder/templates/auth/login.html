@@ -31,6 +31,9 @@
         {% if error_message %}
         <div class="banner error">{{ error_message }}</div>
         {% endif %}
+        {% if success_message %}
+        <div class="banner success">{{ success_message }}</div>
+        {% endif %}
 
         <form method="post" action="/login" class="panel settings-utility-card auth-utility-card">
           <div class="section-head settings-utility-head">
