@@ -3179,7 +3179,7 @@ textarea:focus,
 .shell .item-organizer-item,
 .shell .option-organizer-item {
   border-color: color-mix(in srgb, var(--line) 88%, transparent);
-  background: color-mix(in srgb, var(--surface-elevated) 76%, transparent);
+  background: color-mix(in srgb, var(--surface-elevated, var(--panel-strong)) 72%, transparent);
   box-shadow: none;
 }
 
@@ -3418,30 +3418,49 @@ textarea:focus,
 
 .shell .container-toggle,
 .shell .field-details-toggle {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid color-mix(in srgb, var(--line) 90%, transparent);
-  border-radius: 999px;
+  border-radius: 10px;
   padding: 0;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--panel-strong) 88%, transparent), color-mix(in srgb, var(--surface-elevated) 90%, transparent));
-  color: color-mix(in srgb, var(--text) 78%, var(--accent) 22%);
-  font-size: 16px;
-  font-weight: 850;
+  flex: 0 0 auto;
+  background: color-mix(in srgb, var(--surface-elevated) 76%, transparent);
+  color: color-mix(in srgb, var(--muted) 78%, var(--text) 22%);
   line-height: 1;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.shell .disclosure-chevron {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateX(-1px) rotate(-45deg);
+  transition: transform 160ms ease;
+}
+
+.shell .container-toggle[aria-expanded="true"] .disclosure-chevron,
+.shell .field-details-toggle[aria-expanded="true"] .disclosure-chevron {
+  transform: translateY(-1px) rotate(45deg);
 }
 
 .shell .container-toggle:hover,
-.shell .container-toggle:focus-visible,
 .shell .field-details-toggle:hover,
+.shell .field-details-toggle:focus-visible,
+.shell .container-toggle:focus-visible {
+  border-color: color-mix(in srgb, var(--text) 20%, var(--line) 80%);
+  background: color-mix(in srgb, var(--surface-elevated, var(--panel-strong)) 88%, var(--text) 12%);
+  color: var(--text);
+}
+
+.shell .container-toggle:focus-visible,
 .shell .field-details-toggle:focus-visible {
-  border-color: color-mix(in srgb, var(--accent) 34%, transparent);
-  background: color-mix(in srgb, var(--accent-soft) 70%, var(--surface-elevated) 30%);
-  color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 36%, transparent);
+  outline-offset: 2px;
 }
 
 .shell .field-card {
@@ -3679,8 +3698,8 @@ html[data-theme="dark"] .shell .option-organizer-item.active {
 html[data-theme="dark"] .shell .container-toggle,
 html[data-theme="dark"] .shell .field-details-toggle {
   border-color: rgba(181, 208, 216, 0.12);
-  background: rgba(255, 255, 255, 0.055);
-  color: color-mix(in srgb, var(--text) 84%, var(--accent) 16%);
+  background: rgba(255, 255, 255, 0.045);
+  color: color-mix(in srgb, var(--muted) 74%, var(--text) 26%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
@@ -3688,8 +3707,8 @@ html[data-theme="dark"] .shell .container-toggle:hover,
 html[data-theme="dark"] .shell .container-toggle:focus-visible,
 html[data-theme="dark"] .shell .field-details-toggle:hover,
 html[data-theme="dark"] .shell .field-details-toggle:focus-visible {
-  border-color: rgba(99, 188, 205, 0.32);
-  background: rgba(99, 188, 205, 0.14);
+  border-color: rgba(210, 225, 229, 0.22);
+  background: rgba(255, 255, 255, 0.075);
   color: var(--text);
 }
 

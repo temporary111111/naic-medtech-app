@@ -9,13 +9,15 @@
   </svg>
   {%- elif name == "records" -%}
   <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M8.75 4.75h6.5a1.5 1.5 0 0 1 1.5 1.5v.5h.5A2.75 2.75 0 0 1 20 9.5v8A2.75 2.75 0 0 1 17.25 20H6.75A2.75 2.75 0 0 1 4 17.5v-8a2.75 2.75 0 0 1 2.75-2.75h.5v-.5a1.5 1.5 0 0 1 1.5-1.5Z" />
-    <path d="M8.5 11h7M8.5 14h7M8.5 17h4.75" />
+    <path d="M8.25 5.25h7.5A1.75 1.75 0 0 1 17.5 7v10.25A1.75 1.75 0 0 1 15.75 19h-7.5a1.75 1.75 0 0 1-1.75-1.75V7a1.75 1.75 0 0 1 1.75-1.75Z" />
+    <path d="M9.5 4.25h5a1 1 0 0 1 1 1v1h-7v-1a1 1 0 0 1 1-1Z" />
+    <path d="M9.25 10h5.5M9.25 13h5.5M9.25 16h3.25" />
   </svg>
   {%- elif name == "forms" -%}
   <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M5.75 4.75h12.5A1.75 1.75 0 0 1 20 6.5v11a1.75 1.75 0 0 1-1.75 1.75H5.75A1.75 1.75 0 0 1 4 17.5v-11a1.75 1.75 0 0 1 1.75-1.75Z" />
-    <path d="M4 9h16M9 4.75v14.5M12 12.25h4.75M12 15.75h3.25" />
+    <path d="M5.25 5.5h13.5v13H5.25v-13Z" />
+    <path d="M8.25 8.75h7.5M8.25 12h7.5M8.25 15.25h4.5" />
+    <path d="M16.25 4.25v3M14.75 5.75h3" />
   </svg>
   {%- elif name == "settings" -%}
   <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -29,12 +31,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block html_title %}{{ app_title }}{% endblock %}</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231e5d52'/%3E%3Cpath d='M9 16h14M16 9v14' stroke='%23fffdf9' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
-  <link rel="manifest" href="{{ url_for('static', path='manifest.webmanifest') }}">
-  <script src="{{ url_for('static', path='theme.js') }}"></script>
+  <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
+  <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
+  <link rel="manifest" href="{{ url_for('static', path='manifest.webmanifest') }}?v=20260606-app-icon-source">
+  <script src="{{ url_for('static', path='theme.js') }}?v=20260606-icon-system"></script>
   {% block extra_css %}{% endblock %}
-  <link rel="stylesheet" href="{{ url_for('static', path='theme.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', path='shell.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='theme.css') }}?v=20260606-icon-system">
+  <link rel="stylesheet" href="{{ url_for('static', path='shell.css') }}?v=20260606-icon-system">
 </head>
 <body class="app-shell-body{% if shell_variant|default('default') == 'workspace' %} app-shell-body--workspace{% endif %}" {% block body_attrs %}{% endblock %}>
   {% set clinic_profile = request.state.clinic_profile or {} %}

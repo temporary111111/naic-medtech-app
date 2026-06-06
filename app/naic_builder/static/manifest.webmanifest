@@ -10,9 +10,15 @@
   "theme_color": "#123f48",
   "icons": [
     {
-      "src": "/static/ndhi-labrecords-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/static/ndhi-labrecords-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/ndhi-labrecords-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]

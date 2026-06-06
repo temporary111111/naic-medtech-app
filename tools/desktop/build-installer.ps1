@@ -17,6 +17,7 @@ $WorkDir = Join-Path $BuildRoot "work"
 $InstallerOutput = Join-Path $BuildRoot "installer"
 $SpecPath = Join-Path $DesktopDir "package.spec"
 $InstallerScript = Join-Path $DesktopDir "installer.iss"
+$IconFile = Join-Path $DesktopDir "assets\ndhi-labrecords.ico"
 $VersionPath = Join-Path $DesktopDir "VERSION"
 
 if (-not $PythonCommand) {
@@ -26,6 +27,9 @@ if (-not $PythonCommand) {
 
 if (-not $Version) {
     $Version = (Get-Content -LiteralPath $VersionPath -Raw).Trim()
+}
+if (-not (Test-Path -LiteralPath $IconFile -PathType Leaf)) {
+    throw "Desktop icon file is missing: $IconFile"
 }
 if ($Version -notmatch "^[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.-]+)?$") {
     throw "Version '$Version' must use a SemVer-like format such as 0.1.0-dev."
@@ -186,6 +190,7 @@ Write-Host "Compiling Windows installer..."
     "/DArchitecture=$Architecture" `
     "/DSourceDir=$(Split-Path -Parent $PackagedExe)" `
     "/DOutputDir=$InstallerOutput" `
+    "/DIconFile=$IconFile" `
     $InstallerScript
 if ($LASTEXITCODE -ne 0) {
     throw "Inno Setup compilation failed."

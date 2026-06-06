@@ -44,6 +44,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=debug_console,
+    icon=str(DESKTOP_DIR / "assets" / "ndhi-labrecords.ico"),
     disable_windowed_traceback=False,
     argv_emulation=False,
 )

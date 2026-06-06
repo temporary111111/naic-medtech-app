@@ -3875,7 +3875,9 @@ function renderSectionCard(section, path, options = {}) {
     <article class="section-card ${open ? "is-open" : ""} ${focusedCard ? "is-focused" : ""} ${recursive ? "recursive-container-card" : ""}" data-node-path="${encodePath(path)}" data-parent-path="${encodePath(path.slice(0, -1))}" ${recursive ? `style="--content-depth:${Math.min(depth, 6)}"` : ""}>
       <div class="section-head ${focusedCard ? "section-head-focused" : ""}">
         ${recursive ? `
-          <button class="container-toggle" type="button" data-action="toggle-container" data-path="${encodePath(path)}" aria-expanded="${open ? "true" : "false"}" aria-label="${open ? "Collapse container" : "Expand container"}">${open ? "-" : "+"}</button>
+          <button class="container-toggle" type="button" data-action="toggle-container" data-path="${encodePath(path)}" aria-expanded="${open ? "true" : "false"}" aria-label="${open ? "Collapse container" : "Expand container"}">
+            <span class="disclosure-chevron" aria-hidden="true"></span>
+          </button>
         ` : ""}
         <div>
           <div class="item-meta">
@@ -4181,7 +4183,9 @@ function renderItemCard(item, path, options = {}) {
               data-path="${encodePath(path)}"
               aria-expanded="${open ? "true" : "false"}"
               aria-label="${isGroup ? (open ? "Collapse container" : "Expand container") : (open ? "Hide field details" : "Show field details")}"
-            >${open ? "-" : "+"}</button>
+            >
+              <span class="disclosure-chevron" aria-hidden="true"></span>
+            </button>
             <div>
               <div class="item-meta">
                 <span class="item-summary">${escapeHtml(summary)}</span>

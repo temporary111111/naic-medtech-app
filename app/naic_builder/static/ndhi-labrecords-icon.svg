@@ -1,6 +1,3 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#123f48"/>
-  <path d="M256 110c80.6 0 146 65.4 146 146s-65.4 146-146 146-146-65.4-146-146 65.4-146 146-146Z" fill="#f4fbf8" opacity=".12"/>
-  <path d="M226 154h60v72h72v60h-72v72h-60v-72h-72v-60h72Z" fill="#f4fbf8"/>
-  <path d="M364 384c0 22.1-17.9 40-40 40H188c-22.1 0-40-17.9-40-40h216Z" fill="#79c7c8"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="NDHI Laboratory Records">
+  <image href="ndhi-labrecords-icon-512.png" width="512" height="512" preserveAspectRatio="xMidYMid meet"/>
 </svg>

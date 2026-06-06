@@ -415,6 +415,10 @@
 }
 
 .shell-theme-toggle--inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: auto;
   min-width: 0;
   min-height: 42px;

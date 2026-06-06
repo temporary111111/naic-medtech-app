@@ -10,6 +10,9 @@
 #ifndef OutputDir
   #error OutputDir must point to the installer output directory.
 #endif
+#ifndef IconFile
+  #error IconFile must point to the NDHI installer icon.
+#endif
 
 #define AppName "NDHI Laboratory Records"
 #define AppPublisher "Naic Doctors Hospital, Incorporated"
@@ -33,6 +36,7 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
+SetupIconFile={#IconFile}
 UninstallDisplayIcon={app}\{#AppExeName}
 #if Architecture == "x64"
 ArchitecturesAllowed=x64compatible
@@ -51,8 +55,8 @@ Name: "{commonappdata}\NDHI\LabRecords\logs"; Flags: uninsneveruninstall
 Name: "{commonappdata}\NDHI\LabRecords\config"; Flags: uninsneveruninstall
 
 [Icons]
-Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExeName}"
-Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"
+Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app}\{#AppExeName}"
+Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app}\{#AppExeName}"
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "Launch {#AppName}"; Flags: nowait postinstall skipifsilent

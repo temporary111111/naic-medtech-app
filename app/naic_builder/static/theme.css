@@ -287,6 +287,10 @@ strong {
 
 .auth-shell .library-topbar .ghost-button,
 .shell-theme-toggle--inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: auto;
   min-width: 0;
   min-height: 42px;
@@ -319,6 +323,18 @@ strong {
   font-weight: 700;
 }
 
+.theme-toggle-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
 html[data-theme="dark"] .auth-shell .library-topbar {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.042), rgba(255, 255, 255, 0.018)),
@@ -342,7 +358,7 @@ html[data-theme="dark"] .shell-theme-toggle--inline {
 }
 
 .primary-button,
-button:not(.ghost-button):not(.ghost):not(.warn-button):not(.warn-fill):not(.user-status-filter):not(.drag-handle):not(.outline-item):not(.outline-subitem):not(.section-organizer-select):not(.item-organizer-select):not(.option-organizer-select):not(.preview-index-chip):not([data-theme-toggle]) {
+button:not(.ghost-button):not(.ghost):not(.warn-button):not(.warn-fill):not(.user-status-filter):not(.drag-handle):not(.container-toggle):not(.field-details-toggle):not(.outline-item):not(.outline-subitem):not(.section-organizer-select):not(.item-organizer-select):not(.option-organizer-select):not(.preview-index-chip):not([data-theme-toggle]) {
   background: linear-gradient(135deg, var(--accent-strong), color-mix(in srgb, var(--accent) 82%, #ffffff 8%));
   color: #f8fffe;
   border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
@@ -376,7 +392,7 @@ html[data-theme="dark"] .record-filter-pill {
 }
 
 html[data-theme="dark"] .primary-button,
-html[data-theme="dark"] button:not(.ghost-button):not(.ghost):not(.warn-button):not(.warn-fill):not(.user-status-filter):not(.drag-handle):not(.outline-item):not(.outline-subitem):not(.section-organizer-select):not(.item-organizer-select):not(.option-organizer-select):not(.preview-index-chip):not([data-theme-toggle]) {
+html[data-theme="dark"] button:not(.ghost-button):not(.ghost):not(.warn-button):not(.warn-fill):not(.user-status-filter):not(.drag-handle):not(.container-toggle):not(.field-details-toggle):not(.outline-item):not(.outline-subitem):not(.section-organizer-select):not(.item-organizer-select):not(.option-organizer-select):not(.preview-index-chip):not([data-theme-toggle]) {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 24%),
     linear-gradient(135deg, var(--accent-strong) 0%, #2e7284 100%);
@@ -637,12 +653,7 @@ html[data-theme="dark"] .theme-toggle-fab {
 }
 
 .theme-toggle-fab::before {
-  content: "";
-  width: 11px;
-  height: 11px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, var(--warm), var(--accent));
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 14%, transparent);
+  content: none;
 }
 
 .theme-toggle-fab__meta {
