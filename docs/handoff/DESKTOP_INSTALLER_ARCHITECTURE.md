@@ -6,11 +6,11 @@ The desktop foundation is implemented as a local-first deployment mode. It is no
 
 The web application remains the product core. The desktop layer is intentionally thin so future multi-user deployment does not require rewriting the FastAPI application.
 
-The source-level launcher, fresh-runtime smoke path, manifest, verified backup foundation, and source-level restore foundation have been validated. PyInstaller `6.20.0` is installed in the project virtual environment through Python's Windows trust store, without bypassing TLS certificate checks. Inno Setup `6.7.3` is installed too. The normal windowed package now passes the automated local-server and verified-backup smoke checks, and the current development installer is `dist/desktop/installer/NDHI-LabRecords-Setup-0.1.4-dev-x64.exe`. The source installer script now attempts a verified pre-update backup before replacing binaries when an existing runtime database is present, and the packaging scripts include the NDHI icon for the EXE and Setup wrapper; rebuild and Windows-test the installer before treating those source changes as validated in a generated installer.
+The source-level launcher, fresh-runtime smoke path, manifest, verified backup foundation, source-level restore foundation, and daily auto-backup foundation have been validated. PyInstaller `6.20.0` is installed in the project virtual environment through Python's Windows trust store, without bypassing TLS certificate checks. Inno Setup `6.7.3` is installed too. The normal windowed package now passes the automated local-server and verified-backup smoke checks, and the current development installer is `dist/desktop/installer/NDHI-LabRecords-Setup-0.1.4-dev-x64.exe`. The source installer script now attempts a verified pre-update backup before replacing binaries when an existing runtime database is present, and the packaging scripts include the NDHI icon for the EXE and Setup wrapper; rebuild and Windows-test the installer before treating those source changes as validated in a generated installer.
 
 The first installed `0.1.0-dev` build was manually launched successfully on the development PC. Its running installed edition also created and re-verified a backup archive under `%ProgramData%\NDHI\LabRecords\backups`, proving that the online SQLite backup foundation works against the installed runtime while the local server is active. `0.1.1-dev` fixed misleading success-exit log entries. `0.1.2-dev` made LAN access the no-hassle default. `0.1.3-dev` added LAN copy links, QR, and readiness cards. `0.1.4-dev` is the current QR reliability build using `segno`, full QR view, and SVG download.
 
-This is a testable development installer, not a clinic release. Manual installed-app QA, Defender-enabled clean-PC QA, real-printer QA, clean-PC restore drills, automatic backup scheduling, Windows upgrade-flow QA, and Authenticode signing are still required.
+This is a testable development installer, not a clinic release. Manual installed-app QA, Defender-enabled clean-PC QA, real-printer QA, clean-PC restore drills, Windows scheduled/external/pre-update backup QA, Windows upgrade-flow QA, and Authenticode signing are still required.
 
 ## Product Identity
 
@@ -138,7 +138,9 @@ NDHI-LabRecords.exe --verify-backup <archive.zip>
 NDHI-LabRecords.exe --restore-backup <archive.zip>
 ```
 
-`Settings -> Desktop app` now exposes local backup status, external backup folder configuration, a manual verified-backup action, latest-backup verification actions, a retention count for local/external archives, and an admin-only restore form. In-app restore requires uploading a backup ZIP and typing `RESTORE`. The app blocks normal requests during the replacement step, verifies the selected archive before touching current data, creates an emergency `pre-restore` backup, restores the database and uploads, preserves machine-local desktop settings/session secrets by default, clears the current login session, redirects to login, and tells the admin to sign in using an account from the restored backup.
+`Settings -> Desktop app` now exposes local backup status, external backup folder configuration, a daily automatic backup status, a manual verified-backup action, latest-backup verification actions, a retention count for local/external archives, and an admin-only restore form. In-app restore requires uploading a backup ZIP and typing `RESTORE`. The app blocks normal requests during the replacement step, verifies the selected archive before touching current data, creates an emergency `pre-restore` backup, restores the database and uploads, preserves machine-local desktop settings/session secrets by default, clears the current login session, redirects to login, and tells the admin to sign in using an account from the restored backup.
+
+`app/naic_builder/backup_schedule.py` runs from the FastAPI lifespan. It checks shortly after app startup and then every 30 minutes while the app is open. If no verified backup exists for the current local day, it creates a `daily-auto` backup, applies the configured retention count, and copies/verifies to the configured external folder when available. Local backup success is preserved even if the external copy fails; Settings shows the warning from `%ProgramData%\NDHI\LabRecords\config\backup-schedule.json`. Manual backup, latest verification, restore, and the daily scheduler share an in-process operation lock so admin actions and scheduled backup do not overlap inside the running server.
 
 Command-line restore is for support/development use. The desktop launcher refuses `--restore-backup` when the normal app server is already healthy on the configured port; the admin UI uses a short maintenance guard instead.
 
@@ -152,7 +154,8 @@ Fresh installs without a runtime database skip this step. If patient data exists
 
 ### Backup work still required before clinic release
 
-- automatic debounced and daily schedules;
+- automatic debounced after-change backups, if the clinic needs tighter recovery points than once per day;
+- installed-app daily backup QA on Windows with the real `%ProgramData%` runtime;
 - restore drill on a clean PC;
 - failure notification when external backup becomes stale.
 

@@ -9,8 +9,9 @@ import shutil
 import sqlite3
 import sys
 import tempfile
+import threading
 import zipfile
-from contextlib import closing
+from contextlib import closing, contextmanager
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
@@ -30,6 +31,22 @@ from .config import (
 BACKUP_FORMAT_VERSION = 1
 SESSION_SECRET_FILENAME = "session-secret.txt"
 BACKUP_ARCHIVE_PATTERN = "NDHI-LabRecords-Backup-*.zip"
+_BACKUP_OPERATION_LOCK = threading.RLock()
+
+
+class BackupOperationBusyError(RuntimeError):
+    pass
+
+
+@contextmanager
+def backup_operation_lock(*, blocking: bool = True):
+    acquired = _BACKUP_OPERATION_LOCK.acquire(blocking=blocking)
+    if not acquired:
+        raise BackupOperationBusyError("Another backup or restore is already in progress.")
+    try:
+        yield
+    finally:
+        _BACKUP_OPERATION_LOCK.release()
 
 
 def utc_timestamp() -> str:

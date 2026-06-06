@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 import mimetypes
 import tempfile
 import threading
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlencode
@@ -17,6 +18,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from .backup import (
+    BackupOperationBusyError,
+    backup_operation_lock,
     copy_backup_archive_to_destination,
     backup_health_summary,
     create_verified_backup,
@@ -27,6 +30,7 @@ from .backup import (
     verify_latest_backup_archive,
     verify_latest_external_backup_archive,
 )
+from .backup_schedule import backup_schedule_summary, scheduled_backup_loop
 from .config import APP_TITLE, PRODUCT_ID, SESSION_SECRET, SIGNATORY_UPLOADS_DIR, STATIC_DIR, TEMPLATES_DIR
 from .database import SessionLocal, ensure_runtime_schema, get_session
 from .desktop_settings import (
@@ -116,7 +120,14 @@ async def lifespan(_: FastAPI):
         ensure_form_version_storage_documents(session)
         ensure_default_patient_info_fields(session)
         ensure_library_tree(session)
-    yield
+    backup_stop_event = asyncio.Event()
+    backup_task = asyncio.create_task(scheduled_backup_loop(backup_stop_event))
+    try:
+        yield
+    finally:
+        backup_stop_event.set()
+        with suppress(asyncio.CancelledError):
+            await backup_task
 
 
 app = FastAPI(title=APP_TITLE, lifespan=lifespan)
@@ -447,6 +458,7 @@ def render_settings_desktop_page(
             "backup_status": backup_status,
             "external_backup_status": external_status,
             "backup_health": backup_health_summary(backup_status, external_status),
+            "backup_schedule": backup_schedule_summary(local_status=backup_status),
             "restore_confirmation_text": RESTORE_CONFIRMATION_TEXT,
             "error_message": error_message,
             "success_message": success_message,
@@ -1813,26 +1825,34 @@ def settings_desktop_backup_now_page(request: Request) -> Response:
     external_backup_dir = str(desktop_settings.get("external_backup_dir") or "")
     backup_retention_count = int(desktop_settings.get("backup_retention_count") or 30)
     try:
-        backup_path = create_verified_backup(reason="manual-app")
-        prune_backup_archives(keep_count=backup_retention_count)
-    except Exception as exc:
+        with backup_operation_lock(blocking=False):
+            try:
+                backup_path = create_verified_backup(reason="manual-app")
+                prune_backup_archives(keep_count=backup_retention_count)
+            except Exception as exc:
+                return render_settings_desktop_page(
+                    request,
+                    error_message=f"Backup failed: {exc}",
+                    status_code=500,
+                )
+            try:
+                external_backup_path = copy_backup_archive_to_destination(backup_path, external_backup_dir)
+                if external_backup_path is not None:
+                    prune_backup_archives(
+                        keep_count=backup_retention_count,
+                        backup_dir=Path(external_backup_dir).expanduser(),
+                    )
+            except Exception as exc:
+                return render_settings_desktop_page(
+                    request,
+                    error_message=f"Local backup was created and verified, but the external copy failed: {exc}",
+                    status_code=500,
+                )
+    except BackupOperationBusyError as exc:
         return render_settings_desktop_page(
             request,
-            error_message=f"Backup failed: {exc}",
-            status_code=500,
-        )
-    try:
-        external_backup_path = copy_backup_archive_to_destination(backup_path, external_backup_dir)
-        if external_backup_path is not None:
-            prune_backup_archives(
-                keep_count=backup_retention_count,
-                backup_dir=Path(external_backup_dir).expanduser(),
-            )
-    except Exception as exc:
-        return render_settings_desktop_page(
-            request,
-            error_message=f"Local backup was created and verified, but the external copy failed: {exc}",
-            status_code=500,
+            error_message=str(exc),
+            status_code=409,
         )
     if external_backup_path is not None:
         return RedirectResponse(url="/settings/desktop?backup=created_external", status_code=303)
@@ -1842,7 +1862,14 @@ def settings_desktop_backup_now_page(request: Request) -> Response:
 @app.post("/settings/desktop/backup-verify-latest")
 def settings_desktop_backup_verify_latest_page(request: Request) -> Response:
     try:
-        verify_latest_backup_archive()
+        with backup_operation_lock(blocking=False):
+            verify_latest_backup_archive()
+    except BackupOperationBusyError as exc:
+        return render_settings_desktop_page(
+            request,
+            error_message=str(exc),
+            status_code=409,
+        )
     except Exception as exc:
         return render_settings_desktop_page(
             request,
@@ -1856,7 +1883,14 @@ def settings_desktop_backup_verify_latest_page(request: Request) -> Response:
 def settings_desktop_backup_verify_external_latest_page(request: Request) -> Response:
     desktop_settings = read_desktop_settings()
     try:
-        verify_latest_external_backup_archive(str(desktop_settings.get("external_backup_dir") or ""))
+        with backup_operation_lock(blocking=False):
+            verify_latest_external_backup_archive(str(desktop_settings.get("external_backup_dir") or ""))
+    except BackupOperationBusyError as exc:
+        return render_settings_desktop_page(
+            request,
+            error_message=str(exc),
+            status_code=409,
+        )
     except Exception as exc:
         return render_settings_desktop_page(
             request,
@@ -1912,7 +1946,14 @@ async def settings_desktop_restore_backup_page(
                 status_code=409,
             )
         try:
-            result = restore_verified_backup(uploaded_path)
+            with backup_operation_lock(blocking=False):
+                restore_verified_backup(uploaded_path)
+        except BackupOperationBusyError as exc:
+            return render_settings_desktop_page(
+                request,
+                error_message=str(exc),
+                status_code=409,
+            )
         except Exception as exc:
             return render_settings_desktop_page(
                 request,

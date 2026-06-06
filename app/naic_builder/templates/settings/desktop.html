@@ -143,6 +143,31 @@
           </div>
 
           <div class="settings-utility-section">
+            <article class="user-card user-card--compact">
+              <div class="user-card-main">
+                <div class="user-card-copy">
+                  <div class="user-card-title-row">
+                    <h3>{{ backup_schedule.title }}</h3>
+                    <span class="status-chip" data-status="{{ backup_schedule.chip_status }}">{{ backup_schedule.label }}</span>
+                  </div>
+                  <p>{{ backup_schedule.detail }}</p>
+                  {% if backup_schedule.last_success_label %}
+                  <p>Last automatic backup: {{ backup_schedule.last_success_label }}</p>
+                  {% endif %}
+                  {% if backup_schedule.last_checked_label %}
+                  <p>Last checked: {{ backup_schedule.last_checked_label }}</p>
+                  {% endif %}
+                  {% if backup_schedule.last_external_archive_name %}
+                  <p>External copy: {{ backup_schedule.last_external_archive_name }}</p>
+                  {% elif backup_schedule.last_external_error %}
+                  <p>External copy: {{ backup_schedule.last_external_error }}</p>
+                  {% endif %}
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="settings-utility-section">
             {% if backup_status.latest %}
             <article class="user-card user-card--compact">
               <div class="user-card-main">

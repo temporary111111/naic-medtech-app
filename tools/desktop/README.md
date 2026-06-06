@@ -84,7 +84,7 @@ NDHI-LabRecords.exe --verify-backup <archive.zip>
 NDHI-LabRecords.exe --restore-backup <archive.zip>
 ```
 
-Normal clinic backup/restore is exposed to admins in `Settings -> Desktop app`. Restore requires a backup ZIP upload and `RESTORE` confirmation, creates an emergency `pre-restore` backup first, clears the current login, and sends the admin back to login using an account from the restored backup.
+Normal clinic backup/restore is exposed to admins in `Settings -> Desktop app`. The app also checks for an automatic daily backup shortly after startup and every 30 minutes while it is open; if no verified backup exists for the current day, it creates a `daily-auto` archive and copies it to the configured external folder when available. Restore requires a backup ZIP upload and `RESTORE` confirmation, creates an emergency `pre-restore` backup first, clears the current login, and sends the admin back to login using an account from the restored backup.
 
 Build the packaged app and final Inno Setup installer:
 
