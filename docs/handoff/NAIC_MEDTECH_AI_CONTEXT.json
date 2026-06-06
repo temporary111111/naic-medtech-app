@@ -154,6 +154,7 @@
       "/records now behaves more directly like a work queue too: the old metric strip is gone, Work and History expose clearer local-nav counts, and completed lookup plus search now live in History instead of the default work screen",
       "when the Work queue truncates recent drafts, it now exposes a direct View all drafts action into the History Drafts filter",
       "/records/history now keeps search and status filters inside the History section header, and search preserves the active Completed/Drafts/All filter",
+      "/records/history now paginates 40 records per page and record links preserve the current History search/filter/page when returning from view, edit, or print",
       "/records/{id}/edit now supports the first calm server-rendered record-entry flow",
       "/records/{id} now shows a read-only record view",
       "records now surface quiet accountability metadata too: created by, last updated by, and the latest activity timestamp are visible in the live records flow",

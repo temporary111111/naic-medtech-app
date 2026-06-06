@@ -380,6 +380,7 @@ What exists now:
   - `/records` is the `Work` view for drafts and active entry
   - `/records/history` is the `History` view for completed lookup and search
   - `/records/history?status=draft` is the lookup path for older drafts outside the recent Work queue
+  - `/records/history` now paginates 40 records per page and preserves the current search/filter/page when opening records and returning from view, edit, or print
   - `New record` is now modal-first from those views instead of staying as a separate ceremony page
   - choosing a form creates the draft immediately and redirects straight to `/records/{id}/edit`
   - `/records/new` now stays only as the fallback deep-link picker page

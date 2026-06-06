@@ -1,10 +1,16 @@
-{% macro render_record_card(record, from_history=false) -%}
+{% macro render_record_card(record, from_history=false, return_url="") -%}
 {% set activity_user = record.updated_by or record.created_by %}
 {% set view_href = '/records/' ~ record.id %}
 {% set edit_href = '/records/' ~ record.id ~ '/edit' %}
+{% set print_href = '/records/' ~ record.id ~ '/print' %}
 {% if from_history %}
-  {% set view_href = view_href ~ '?from=history' %}
-  {% set edit_href = edit_href ~ '?from=history' %}
+  {% set history_query = 'from=history' %}
+  {% if return_url %}
+    {% set history_query = history_query ~ '&return_to=' ~ (return_url | urlencode) %}
+  {% endif %}
+  {% set view_href = view_href ~ '?' ~ history_query %}
+  {% set edit_href = edit_href ~ '?' ~ history_query %}
+  {% set print_href = print_href ~ '?' ~ history_query %}
 {% endif %}
 <article class="record-card record-card--compact{% if not record.record_identity.primary_value %} is-unnamed{% endif %}">
   <div class="record-card-copy">
@@ -28,7 +34,7 @@
     <a class="ghost-button" href="{{ view_href }}">View</a>
     {% else %}
     <a class="primary-button" href="{{ view_href }}">View</a>
-    <a class="ghost-button" href="/records/{{ record.id }}/print{% if from_history %}?from=history{% endif %}">Print</a>
+    <a class="ghost-button" href="{{ print_href }}">Print</a>
     {% endif %}
   </div>
 </article>

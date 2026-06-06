@@ -18,10 +18,10 @@
 
 {% block topbar_actions %}
   {% if record.status == "draft" %}
-  <a class="ghost-button" href="/records/{{ record.id }}/print{% if back_href == '/records/history' %}?from=history{% endif %}">Print</a>
-  <a class="primary-button" href="/records/{{ record.id }}/edit">Continue editing</a>
+  <a class="ghost-button" href="/records/{{ record.id }}/print{% if history_query %}?{{ history_query }}{% endif %}">Print</a>
+  <a class="primary-button" href="/records/{{ record.id }}/edit{% if history_query %}?{{ history_query }}{% endif %}">Continue editing</a>
   {% else %}
-  <a class="primary-button" href="/records/{{ record.id }}/print{% if back_href == '/records/history' %}?from=history{% endif %}">Print</a>
+  <a class="primary-button" href="/records/{{ record.id }}/print{% if history_query %}?{{ history_query }}{% endif %}">Print</a>
   {% endif %}
 {% endblock %}
 

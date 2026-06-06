@@ -147,6 +147,7 @@ PUBLIC_PREFIXES = ("/static",)
 ADMIN_PREFIXES = ("/forms", "/folders", "/builder", "/api/forms", "/api/builder", "/api/library")
 ADMIN_SETTINGS_PREFIXES = ("/settings/users", "/settings/desktop")
 RESTORE_CONFIRMATION_TEXT = "RESTORE"
+RECORDS_HISTORY_PAGE_SIZE = 40
 _RESTORE_MAINTENANCE_LOCK = threading.Lock()
 _RESTORE_MAINTENANCE_ACTIVE = False
 
@@ -627,12 +628,45 @@ def render_new_record_page(
     )
 
 
+def records_history_url(
+    *,
+    search_query: str = "",
+    status_filter: str = "completed",
+    page: int = 1,
+) -> str:
+    query: dict[str, str] = {}
+    if status_filter != "completed":
+        query["status"] = status_filter
+    if search_query:
+        query["q"] = search_query
+    if page > 1:
+        query["page"] = str(page)
+    return f"/records/history?{urlencode(query)}" if query else "/records/history"
+
+
+def safe_records_history_return(value: str | None) -> str:
+    candidate = str(value or "").strip()
+    if not candidate or candidate.startswith("//"):
+        return ""
+    if candidate == "/records/history" or candidate.startswith("/records/history?"):
+        return candidate
+    return ""
+
+
+def records_history_query(return_url: str = "") -> str:
+    query = {"from": "history"}
+    if return_url:
+        query["return_to"] = return_url
+    return urlencode(query)
+
+
 def render_records_history_page(
     request: Request,
     session: Session,
     *,
     search_query: str = "",
     status_filter: str = "completed",
+    page: int = 1,
     record_start_open: bool = False,
     record_start_error: str = "",
     record_start_selected_slug: str = "",
@@ -643,20 +677,29 @@ def render_records_history_page(
         active_status = "completed"
     query_text = (search_query or "").strip()
     record_status = None if active_status == "all" else active_status
-    matching_records = list_records(
-        session,
-        status=record_status,
-        search=query_text or None,
-        limit=40,
-    )
     matching_total_count = count_records(
         session,
         status=record_status,
         search=query_text or None,
     )
+    total_pages = max(1, (matching_total_count + RECORDS_HISTORY_PAGE_SIZE - 1) // RECORDS_HISTORY_PAGE_SIZE)
+    active_page = max(1, min(int(page or 1), total_pages))
+    matching_offset = (active_page - 1) * RECORDS_HISTORY_PAGE_SIZE
+    matching_records = list_records(
+        session,
+        status=record_status,
+        search=query_text or None,
+        limit=RECORDS_HISTORY_PAGE_SIZE,
+        offset=matching_offset,
+    )
     record_start_context = build_record_start_context(session)
     draft_count = count_records(session, status="draft")
     completed_count = count_records(session, status="completed")
+    history_return_url = records_history_url(
+        search_query=query_text,
+        status_filter=active_status,
+        page=active_page,
+    )
     return templates.TemplateResponse(
         request=request,
         name="records/history.html",
@@ -669,6 +712,23 @@ def render_records_history_page(
             "matching_records": matching_records,
             "matching_count": matching_total_count,
             "matching_truncated": matching_total_count > len(matching_records),
+            "matching_page_start": matching_offset + 1 if matching_total_count else 0,
+            "matching_page_end": min(matching_offset + len(matching_records), matching_total_count),
+            "history_page": active_page,
+            "history_total_pages": total_pages,
+            "history_has_previous": active_page > 1,
+            "history_has_next": active_page < total_pages,
+            "history_previous_url": records_history_url(
+                search_query=query_text,
+                status_filter=active_status,
+                page=active_page - 1,
+            ),
+            "history_next_url": records_history_url(
+                search_query=query_text,
+                status_filter=active_status,
+                page=active_page + 1,
+            ),
+            "history_return_url": history_return_url,
             "draft_count": draft_count,
             "completed_count": completed_count,
             "record_start_open": record_start_open,
@@ -705,6 +765,8 @@ def render_record_edit_page(
         )
 
     back_to_history = request.query_params.get("from") == "history"
+    history_return_url = safe_records_history_return(request.query_params.get("return_to"))
+    history_query = records_history_query(history_return_url) if back_to_history else ""
     return templates.TemplateResponse(
         request=request,
         name="records/edit.html",
@@ -714,8 +776,9 @@ def render_record_edit_page(
             "error_message": error_message,
             "success_message": resolved_success_message,
             "validation_issues": resolved_validation_issues,
-            "back_href": "/records/history" if back_to_history else "/records",
+            "back_href": history_return_url or ("/records/history" if back_to_history else "/records"),
             "back_label": "Back to history" if back_to_history else "Back to records",
+            "history_query": history_query,
         },
         status_code=status_code,
     )
@@ -732,14 +795,17 @@ def render_record_view_page(
         raise HTTPException(status_code=404, detail="Record not found.")
 
     back_to_history = request.query_params.get("from") == "history"
+    history_return_url = safe_records_history_return(request.query_params.get("return_to"))
+    history_query = records_history_query(history_return_url) if back_to_history else ""
     return templates.TemplateResponse(
         request=request,
         name="records/view.html",
         context={
             "app_title": APP_TITLE,
             "record": serialize_record(record, include_entry_schema=True),
-            "back_href": "/records/history" if back_to_history else "/records",
+            "back_href": history_return_url or ("/records/history" if back_to_history else "/records"),
             "back_label": "Back to history" if back_to_history else "Back to records",
+            "history_query": history_query,
         },
     )
 
@@ -757,13 +823,15 @@ def render_record_print_page(
     clinic_profile = get_clinic_profile(session)
     clinic_logo_url = "/settings/clinic/logo" if clinic_profile.get("has_logo") else ""
     back_to_history = request.query_params.get("from") == "history"
+    history_return_url = safe_records_history_return(request.query_params.get("return_to"))
+    history_query = records_history_query(history_return_url) if back_to_history else ""
 
     return templates.TemplateResponse(
         request=request,
         name="records/print.html",
         context={
             "app_title": APP_TITLE,
-            "back_href": f"/records/{record.id}?from=history" if back_to_history else f"/records/{record.id}",
+            "back_href": f"/records/{record.id}?{history_query}" if history_query else f"/records/{record.id}",
             "back_label": "Back to record",
             "document": build_record_print_document(
                 record,
@@ -1002,6 +1070,7 @@ def records_history_page(
     request: Request,
     q: str = "",
     status: str = "completed",
+    page: int = 1,
     session: Session = Depends(get_session),
 ) -> HTMLResponse:
     return render_records_history_page(
@@ -1009,6 +1078,7 @@ def records_history_page(
         session,
         search_query=q,
         status_filter=status,
+        page=page,
     )
 
 
@@ -1022,6 +1092,10 @@ async def create_record_page(
     return_to = ((form_data.get("return_to") or ["work"])[0] or "work").strip().lower()
     return_query = ((form_data.get("return_query") or [""])[0] or "").strip()
     return_status = ((form_data.get("return_status") or ["completed"])[0] or "completed").strip().lower()
+    try:
+        return_page = max(1, int((form_data.get("return_page") or ["1"])[0] or 1))
+    except ValueError:
+        return_page = 1
     payload = RecordCreatePayload(
         form_slug=(form_data.get("form_slug") or [""])[0],
     )
@@ -1034,6 +1108,7 @@ async def create_record_page(
                 session,
                 search_query=return_query,
                 status_filter=return_status,
+                page=return_page,
                 record_start_open=True,
                 record_start_selected_slug=payload.form_slug,
                 record_start_error=str(exc),
@@ -1055,6 +1130,16 @@ async def create_record_page(
             record_start_error=str(exc),
             status_code=422,
         )
+    if return_to == "history":
+        history_return_url = records_history_url(
+            search_query=return_query,
+            status_filter=return_status,
+            page=return_page,
+        )
+        return RedirectResponse(
+            url=f"/records/{created['id']}/edit?{records_history_query(history_return_url)}",
+            status_code=303,
+        )
     return RedirectResponse(url=f"/records/{created['id']}/edit", status_code=303)
 
 
@@ -1063,7 +1148,15 @@ def edit_record_page(
     record_id: int,
     request: Request,
     session: Session = Depends(get_session),
-) -> HTMLResponse:
+) -> Response:
+    record = get_record_or_none(session, record_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Record not found.")
+    if record.status == "completed":
+        view_url = f"/records/{record_id}"
+        if request.url.query:
+            view_url = f"{view_url}?{request.url.query}"
+        return RedirectResponse(url=view_url, status_code=303)
     return render_record_edit_page(request, session, record_id=record_id)
 
 
@@ -1119,6 +1212,11 @@ async def update_record_page(
             status_code=422,
         )
     except ValueError as exc:
+        if "read-only" in str(exc).lower():
+            redirect_url = f"/records/{record_id}"
+            if current_query:
+                redirect_url = f"{redirect_url}?{current_query}"
+            return RedirectResponse(url=redirect_url, status_code=303)
         return render_record_edit_page(
             request,
             session,

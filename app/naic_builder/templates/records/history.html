@@ -43,8 +43,13 @@
           {% else %}
           <h2>{{ matching_count }} completed record{{ '' if matching_count == 1 else 's' }}</h2>
           {% endif %}
-          {% if matching_truncated %}
-          <p class="panel-copy">Showing the 40 most recent matches first.</p>
+          {% if matching_count %}
+          <p class="panel-copy">
+            Showing {{ matching_page_start }}-{{ matching_page_end }} of {{ matching_count }}
+            {% if history_total_pages > 1 %}
+            - page {{ history_page }} of {{ history_total_pages }}
+            {% endif %}
+          </p>
           {% endif %}
         </div>
 
@@ -75,7 +80,7 @@
       <div class="record-list app-scroll-region app-scroll-region--list">
         {% if matching_records %}
           {% for record in matching_records %}
-            {{ render_record_card(record, true) }}
+            {{ render_record_card(record, true, history_return_url) }}
           {% endfor %}
         {% else %}
         <div class="empty-state empty-state--plain">
@@ -84,6 +89,18 @@
         </div>
         {% endif %}
       </div>
+
+      {% if history_total_pages > 1 %}
+      <nav class="records-pagination" aria-label="Records history pages">
+        <div class="records-pagination__summary">
+          <span>Page {{ history_page }} of {{ history_total_pages }}</span>
+        </div>
+        <div class="records-pagination__actions">
+          <a class="ghost-button{% if not history_has_previous %} is-disabled{% endif %}" href="{{ history_previous_url }}" {% if not history_has_previous %}aria-disabled="true" tabindex="-1"{% endif %}>Previous</a>
+          <a class="ghost-button{% if not history_has_next %} is-disabled{% endif %}" href="{{ history_next_url }}" {% if not history_has_next %}aria-disabled="true" tabindex="-1"{% endif %}>Next</a>
+        </div>
+      </nav>
+      {% endif %}
     </section>
 
     {% include "records/_record_start_modal.html" %}

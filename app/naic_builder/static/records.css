@@ -466,6 +466,36 @@
   justify-content: flex-end;
 }
 
+.records-pagination {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 4px;
+}
+
+.records-pagination__summary {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.records-pagination__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.records-pagination .ghost-button.is-disabled {
+  pointer-events: none;
+  opacity: 0.48;
+}
+
 .records-section {
   gap: 12px;
 }
@@ -1864,6 +1894,20 @@ html[data-theme="dark"] .completion-checklist.is-ready {
   .records-search-actions .primary-button,
   .records-search-actions .ghost-button {
     flex: 1 1 0;
+  }
+
+  .records-pagination {
+    align-items: stretch;
+  }
+
+  .records-pagination,
+  .records-pagination__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .records-pagination__actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .records-search-row {

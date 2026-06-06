@@ -3442,10 +3442,11 @@ def list_records(
     status: str | None = None,
     search: str | None = None,
     limit: int = 24,
+    offset: int = 0,
 ) -> list[dict[str, Any]]:
     query = record_query_with_relationships()
     query = apply_record_filters(query, status=status, search=search)
-    query = query.order_by(Record.updated_at.desc(), Record.id.desc()).limit(limit)
+    query = query.order_by(Record.updated_at.desc(), Record.id.desc()).offset(max(0, int(offset or 0))).limit(limit)
     records = session.scalars(query).all()
     return [serialize_record(record, include_values=False) for record in records]
 

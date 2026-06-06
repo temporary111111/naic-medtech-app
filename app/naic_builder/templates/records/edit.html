@@ -17,8 +17,8 @@
 {% endblock %}
 
 {% block topbar_actions %}
-  <a class="ghost-button" href="/records/{{ record.id }}">View</a>
-  <a class="ghost-button" href="/records/{{ record.id }}/print">Print</a>
+  <a class="ghost-button" href="/records/{{ record.id }}{% if history_query %}?{{ history_query }}{% endif %}">View</a>
+  <a class="ghost-button" href="/records/{{ record.id }}/print{% if history_query %}?{{ history_query }}{% endif %}">Print</a>
 {% endblock %}
 
 {% block content %}
