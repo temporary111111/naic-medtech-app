@@ -303,6 +303,13 @@ def verify_backup(archive: str) -> int:
     return 0
 
 
+def restore_backup(archive: str, include_config: bool) -> int:
+    from naic_builder.backup import restore_verified_backup
+
+    print(json.dumps(restore_verified_backup(Path(archive), include_config=include_config), indent=2))
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="NDHI Laboratory Records local desktop launcher.")
     parser.add_argument("--data-dir", default=os.environ.get("NDHI_LABRECORDS_DATA_DIR", ""))
@@ -312,6 +319,8 @@ def main() -> int:
     parser.add_argument("--network-mode", choices=sorted(SUPPORTED_NETWORK_MODES), default="", help=argparse.SUPPRESS)
     parser.add_argument("--backup-now", action="store_true", help="Create a verified local backup.")
     parser.add_argument("--verify-backup", metavar="ARCHIVE", help="Verify an existing backup archive.")
+    parser.add_argument("--restore-backup", metavar="ARCHIVE", help="Restore a verified backup archive.")
+    parser.add_argument("--include-config", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--browser", choices=sorted(SUPPORTED_BROWSERS), default="")
     parser.add_argument("--reason", default="manual")
     parser.add_argument("--destination", default="")
@@ -323,7 +332,18 @@ def main() -> int:
     browser_preference = browser_preference_from_config(data_dir, args.browser)
     network_mode = network_mode_from_config(data_dir, args.network_mode)
     bind_host = args.host.strip() or bind_host_for_network_mode(network_mode)
-    append_startup_log(data_dir, f"Launcher entered mode: {'serve' if args.serve else 'backup' if args.backup_now else 'verify' if args.verify_backup else 'desktop'}.")
+    mode = (
+        "serve"
+        if args.serve
+        else "backup"
+        if args.backup_now
+        else "restore"
+        if args.restore_backup
+        else "verify"
+        if args.verify_backup
+        else "desktop"
+    )
+    append_startup_log(data_dir, f"Launcher entered mode: {mode}.")
 
     if args.serve:
         return serve(args.port, bind_host, network_mode)
@@ -331,6 +351,14 @@ def main() -> int:
         return create_backup(args.reason, args.destination)
     if args.verify_backup:
         return verify_backup(args.verify_backup)
+    if args.restore_backup:
+        if server_is_healthy(args.port):
+            show_error(
+                "NDHI Laboratory Records is currently running.\n\n"
+                "Close the desktop app/server before restoring a backup from the command line."
+            )
+            return 1
+        return restore_backup(args.restore_backup, args.include_config)
 
     if not server_is_healthy(args.port):
         start_server(data_dir, args.port, bind_host, network_mode)

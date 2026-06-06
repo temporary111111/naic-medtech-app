@@ -13,13 +13,13 @@ Current repo state:
 - automated print smoke passes across the current 16 seeded forms; browser PDF page-count QA remains a Windows-side validation task when Playwright dependencies are available
 - local-first Windows desktop installer foundation exists and has a current `0.1.4-dev` QR/LAN reliability build
 - same-network LAN access defaults on for fresh desktop installs; Settings shows hostname/IP links and a downloadable QR code
-- Settings now exposes local/external verified backups, backup retention, and latest-backup verification; the source Inno installer script now has a pre-update backup hook
+- Settings now exposes local/external verified backups, backup retention, latest-backup verification, and admin-only restore with an emergency pre-restore backup; the source Inno installer script now has a pre-update backup hook
 
 Still not clinic-release-complete:
 - manual installed-app QA on a clean Windows machine
 - real clinic device/browser/printer QA
 - real production data QA
-- backup scheduling, safe restore drill, and Windows validation of external/pre-update backup behavior
+- backup scheduling, clean-PC restore drill, and Windows validation of external/pre-update backup behavior
 - Authenticode signing before distributing a serious release build
 
 ## Project Summary
@@ -58,7 +58,7 @@ Current status snapshot:
 - a local-first Windows desktop-installer foundation now exists under `tools/desktop/`; continue from `docs/handoff/DESKTOP_INSTALLER_ARCHITECTURE.md`
 - the desktop layer intentionally keeps FastAPI as the product core: a launcher starts the local server and opens a browser-powered app window
 - fresh desktop installs default to LAN mode so same-network clinic devices can connect with the hostname/IP/QR shown in Settings
-- the verified backup foundation now includes local/external backup UI and a source installer pre-update hook, but automatic scheduling, safe restore, and Windows upgrade-flow validation are still required before clinic release
+- the verified backup foundation now includes local/external backup UI, admin-only restore with a pre-restore emergency backup, and a source installer pre-update hook, but automatic scheduling, clean-PC restore drills, and Windows upgrade-flow validation are still required before clinic release
 
 ## Historical Phase 1 Priority
 Phase 1 focused on the `Exam/Form Builder`.

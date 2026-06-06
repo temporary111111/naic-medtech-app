@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import mimetypes
+import tempfile
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -21,6 +23,7 @@ from .backup import (
     external_backup_status,
     local_backup_status,
     prune_backup_archives,
+    restore_verified_backup,
     verify_latest_backup_archive,
     verify_latest_external_backup_archive,
 )
@@ -132,6 +135,9 @@ PUBLIC_PATHS = {
 PUBLIC_PREFIXES = ("/static",)
 ADMIN_PREFIXES = ("/forms", "/folders", "/builder", "/api/forms", "/api/builder", "/api/library")
 ADMIN_SETTINGS_PREFIXES = ("/settings/users", "/settings/desktop")
+RESTORE_CONFIRMATION_TEXT = "RESTORE"
+_RESTORE_MAINTENANCE_LOCK = threading.Lock()
+_RESTORE_MAINTENANCE_ACTIVE = False
 
 
 def redirect_for_html(path: str) -> RedirectResponse:
@@ -144,6 +150,42 @@ def auth_error_response(path: str, status_code: int, detail: str, redirect_path:
     return redirect_for_html(redirect_path)
 
 
+def restore_maintenance_active() -> bool:
+    with _RESTORE_MAINTENANCE_LOCK:
+        return _RESTORE_MAINTENANCE_ACTIVE
+
+
+def begin_restore_maintenance() -> bool:
+    global _RESTORE_MAINTENANCE_ACTIVE
+    with _RESTORE_MAINTENANCE_LOCK:
+        if _RESTORE_MAINTENANCE_ACTIVE:
+            return False
+        _RESTORE_MAINTENANCE_ACTIVE = True
+        return True
+
+
+def end_restore_maintenance() -> None:
+    global _RESTORE_MAINTENANCE_ACTIVE
+    with _RESTORE_MAINTENANCE_LOCK:
+        _RESTORE_MAINTENANCE_ACTIVE = False
+
+
+def restore_maintenance_response(path: str) -> JSONResponse | HTMLResponse:
+    message = "Backup restore is in progress. Wait for the admin restore step to finish, then reopen the app."
+    if path.startswith("/api/"):
+        return JSONResponse(status_code=503, content={"detail": message})
+    return HTMLResponse(
+        status_code=503,
+        content=(
+            "<!doctype html><title>Restore in progress</title>"
+            "<main style='font-family:Segoe UI,Arial,sans-serif;max-width:680px;margin:12vh auto;padding:24px'>"
+            "<h1>Restore in progress</h1>"
+            f"<p>{message}</p>"
+            "</main>"
+        ),
+    )
+
+
 class AuthFlowMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
@@ -151,6 +193,8 @@ class AuthFlowMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
         if path == "/api/health":
             return await call_next(request)
+        if restore_maintenance_active():
+            return restore_maintenance_response(path)
 
         with SessionLocal() as session:
             user_present = has_any_users(session)
@@ -395,6 +439,7 @@ def render_settings_desktop_page(
             "backup_status": backup_status,
             "external_backup_status": external_status,
             "backup_health": backup_health_summary(backup_status, external_status),
+            "restore_confirmation_text": RESTORE_CONFIRMATION_TEXT,
             "error_message": error_message,
             "success_message": success_message,
         },
@@ -1808,6 +1853,73 @@ def settings_desktop_backup_verify_external_latest_page(request: Request) -> Res
             status_code=500,
         )
     return RedirectResponse(url="/settings/desktop?backup=external_verified", status_code=303)
+
+
+@app.post("/settings/desktop/restore-backup")
+async def settings_desktop_restore_backup_page(
+    request: Request,
+    backup_file: UploadFile = File(...),
+    confirmation: str = Form(""),
+) -> Response:
+    if str(confirmation or "").strip() != RESTORE_CONFIRMATION_TEXT:
+        return render_settings_desktop_page(
+            request,
+            error_message=f'Type {RESTORE_CONFIRMATION_TEXT} before restoring a backup.',
+            status_code=400,
+        )
+
+    original_filename = Path(backup_file.filename or "").name
+    if not original_filename.lower().endswith(".zip"):
+        return render_settings_desktop_page(
+            request,
+            error_message="Choose an NDHI backup ZIP archive.",
+            status_code=400,
+        )
+
+    with tempfile.TemporaryDirectory(prefix="ndhi-restore-upload-") as temp_dir:
+        uploaded_path = Path(temp_dir) / original_filename
+        bytes_written = 0
+        with uploaded_path.open("wb") as target:
+            while True:
+                chunk = await backup_file.read(1024 * 1024)
+                if not chunk:
+                    break
+                target.write(chunk)
+                bytes_written += len(chunk)
+
+        if bytes_written <= 0:
+            return render_settings_desktop_page(
+                request,
+                error_message="The selected backup archive is empty.",
+                status_code=400,
+            )
+
+        if not begin_restore_maintenance():
+            return render_settings_desktop_page(
+                request,
+                error_message="A backup restore is already in progress.",
+                status_code=409,
+            )
+        try:
+            result = restore_verified_backup(uploaded_path)
+        except Exception as exc:
+            return render_settings_desktop_page(
+                request,
+                error_message=f"Backup restore failed: {exc}",
+                status_code=500,
+            )
+        finally:
+            end_restore_maintenance()
+
+    emergency_backup_name = Path(str(result.get("emergency_backup") or "")).name
+    return render_settings_desktop_page(
+        request,
+        success_message=(
+            "Restored the selected backup. "
+            f"Emergency pre-restore backup created: {emergency_backup_name}. "
+            "Close and reopen the desktop app before clinic use."
+        ),
+    )
 
 
 @app.get("/settings/desktop/lan-qr", response_class=HTMLResponse)

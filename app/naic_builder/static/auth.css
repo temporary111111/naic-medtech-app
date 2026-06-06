@@ -439,6 +439,25 @@
   width: fit-content;
 }
 
+.restore-section {
+  border-color: color-mix(in srgb, var(--danger) 20%, transparent);
+}
+
+.restore-backup-form {
+  display: grid;
+  gap: 14px;
+}
+
+.restore-actions {
+  justify-content: flex-start;
+}
+
+.ghost-button.warn-button {
+  border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
 .account-profile-utility .account-profile-actions {
   align-items: end;
 }

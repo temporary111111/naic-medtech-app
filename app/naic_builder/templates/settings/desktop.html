@@ -218,6 +218,33 @@
               <button class="ghost-button" type="submit" {% if not external_backup_status.latest %}disabled{% endif %}>Verify external</button>
             </form>
           </div>
+
+          <div class="settings-utility-section restore-section">
+            <div class="section-head settings-utility-minihead">
+              <div>
+                <p class="eyebrow">Restore</p>
+                <h2>Restore from backup</h2>
+              </div>
+              <span class="status-chip" data-status="pending">Admin only</span>
+            </div>
+            <div class="banner error">
+              Restore replaces the current database and uploaded images. The app creates an emergency pre-restore backup first, then the desktop app should be closed and reopened.
+            </div>
+            <form method="post" action="/settings/desktop/restore-backup" enctype="multipart/form-data" class="restore-backup-form">
+              <label class="field-stack">
+                <span>Backup archive</span>
+                <input name="backup_file" type="file" accept=".zip,application/zip" required>
+              </label>
+              <label class="field-stack">
+                <span>Confirmation</span>
+                <input name="confirmation" type="text" autocomplete="off" placeholder="Type {{ restore_confirmation_text }}" required>
+                <p class="field-help">Type {{ restore_confirmation_text }} to confirm that current records will be replaced.</p>
+              </label>
+              <div class="settings-utility-actions restore-actions">
+                <button class="ghost-button warn-button" type="submit">Restore selected backup</button>
+              </div>
+            </form>
+          </div>
         </section>
       </div>
 

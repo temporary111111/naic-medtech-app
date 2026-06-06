@@ -24,7 +24,7 @@
       "manual QA of the installed app",
       "real clinic browser/printer behavior",
       "real production record samples",
-      "backup restore expectations and external backup folder decision",
+      "clean-PC restore drill expectations and external backup folder decision",
       "final clinic release/signing decision"
     ]
   },
@@ -42,14 +42,16 @@
       "installer-created Windows Firewall rule limited to Private/Domain local subnet",
       "Settings -> Desktop app shows hostname/IP links, readiness cards, copy actions, full QR view, and downloadable SVG QR",
       "QR is generated locally with segno and prefers IP fallback when available",
-      "Settings -> Desktop app shows local/external backup status, external backup folder, retention count, manual backup, and latest-backup verification actions",
-      "source Inno installer script attempts a verified pre-update backup before replacing binaries when an existing runtime database is present"
+      "Settings -> Desktop app shows local/external backup status, external backup folder, retention count, manual backup, latest-backup verification actions, and admin-only restore with RESTORE confirmation",
+      "restore verifies the selected archive, creates an emergency pre-restore backup, restores database and uploads, preserves machine-local desktop config by default, and asks the admin to close and reopen the app",
+      "source Inno installer script attempts a verified pre-update backup before replacing binaries when an existing runtime database is present",
+      "packaging scripts include the NDHI icon for the packaged executable and Inno Setup wrapper"
     ],
     "not_release_complete": [
       "clean Windows PC installed-app QA",
       "Defender/antivirus-enabled QA",
       "real LAN scan/connect QA on clinic-like network",
-      "backup schedule, restore drill, and Windows validation of external/pre-update backup behavior",
+      "backup schedule, clean-PC restore drill, and Windows validation of external/pre-update backup behavior",
       "Authenticode signing"
     ]
   },
@@ -504,7 +506,7 @@
     "test print output with real clinic records and real printer/browser settings",
     "test installed desktop app behavior on a clean Windows PC",
     "test same-network LAN access from another trusted clinic device using hostname, IP fallback, and QR",
-    "finish backup scheduling, safe restore drill, and Windows validation of external/pre-update backup behavior",
+    "finish backup scheduling, clean-PC restore drill, and Windows validation of external/pre-update backup behavior",
     "verify real clinic device/browser behavior",
     "consider print design overrides only if real print review proves a concrete need",
     "treat non-print UI work as secondary cleanup unless direct issues appear"

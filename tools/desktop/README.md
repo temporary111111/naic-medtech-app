@@ -70,12 +70,21 @@ Create and immediately verify a development backup:
 .\tools\desktop\backup-now.ps1 -Reason manual
 ```
 
+Restore a development backup through the launcher contract:
+
+```powershell
+.\tools\desktop\restore-backup.ps1 -Archive <archive.zip>
+```
+
 Installed executable backup contract:
 
 ```powershell
 NDHI-LabRecords.exe --backup-now --reason manual
 NDHI-LabRecords.exe --verify-backup <archive.zip>
+NDHI-LabRecords.exe --restore-backup <archive.zip>
 ```
+
+Normal clinic backup/restore is exposed to admins in `Settings -> Desktop app`. Restore requires a backup ZIP upload and `RESTORE` confirmation, creates an emergency `pre-restore` backup first, and should be followed by closing and reopening the desktop app.
 
 Build the packaged app and final Inno Setup installer:
 

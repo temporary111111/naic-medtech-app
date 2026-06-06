@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import sqlite3
+import sys
 import tempfile
 import zipfile
 from contextlib import closing
@@ -21,6 +22,7 @@ from .config import (
     PRODUCT_ID,
     PRODUCT_SHORT_NAME,
     UPLOADS_DIR,
+    DATA_RUNTIME_DIR,
     ensure_runtime_directories,
 )
 
@@ -258,6 +260,26 @@ def sqlite_integrity_check(db_path: Path) -> None:
         raise RuntimeError(f"SQLite integrity check failed for {db_path.name}.")
 
 
+def sqlite_sidecar_paths(db_path: Path) -> list[Path]:
+    return [
+        Path(f"{db_path}-wal"),
+        Path(f"{db_path}-shm"),
+        Path(f"{db_path}-journal"),
+    ]
+
+
+def remove_sqlite_sidecars(db_path: Path) -> None:
+    for path in sqlite_sidecar_paths(db_path):
+        path.unlink(missing_ok=True)
+
+
+def dispose_database_engine_if_loaded() -> None:
+    database_module = sys.modules.get("naic_builder.database")
+    engine = getattr(database_module, "engine", None) if database_module is not None else None
+    if engine is not None:
+        engine.dispose()
+
+
 def snapshot_sqlite_database(source_path: Path, destination_path: Path) -> None:
     if not source_path.is_file():
         raise FileNotFoundError(f"Runtime database not found: {source_path}")
@@ -371,6 +393,8 @@ def verify_backup_archive(archive_path: Path) -> dict[str, Any]:
         for member_name in archive.namelist():
             validate_archive_member(member_name)
         manifest = json.loads(archive.read("manifest.json"))
+        if not isinstance(manifest, dict):
+            raise RuntimeError("Backup manifest is invalid.")
         if manifest.get("product_id") != PRODUCT_ID:
             raise RuntimeError("Backup archive belongs to a different product.")
         if manifest.get("format_version") != BACKUP_FORMAT_VERSION:
@@ -399,6 +423,112 @@ def verify_backup_archive(archive_path: Path) -> dict[str, Any]:
     }
 
 
+def extract_verified_backup_archive(archive_path: Path, stage_dir: Path) -> dict[str, Any]:
+    verify_backup_archive(archive_path)
+    resolved_path = archive_path.expanduser().resolve()
+    with zipfile.ZipFile(resolved_path) as archive:
+        manifest = json.loads(archive.read("manifest.json"))
+        if not isinstance(manifest, dict):
+            raise RuntimeError("Backup manifest is invalid.")
+        expected_files = manifest.get("files")
+        if not isinstance(expected_files, list):
+            raise RuntimeError("Backup manifest does not list files.")
+        expected_paths = {
+            str(item.get("path") or "")
+            for item in expected_files
+            if isinstance(item, dict)
+        }
+        expected_paths.add("manifest.json")
+        expected_paths.add(str(manifest.get("database") or ""))
+        for member in archive.infolist():
+            validate_archive_member(member.filename)
+            if member.filename not in expected_paths:
+                continue
+            if member.is_dir():
+                continue
+            destination = stage_dir / PurePosixPath(member.filename)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            with archive.open(member) as source, destination.open("wb") as target:
+                shutil.copyfileobj(source, target)
+    return manifest
+
+
+def restore_directory_tree(source_dir: Path, target_dir: Path) -> int:
+    restored_count = 0
+    if target_dir.exists():
+        shutil.rmtree(target_dir)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    if not source_dir.is_dir():
+        return restored_count
+    for source_path in sorted(path for path in source_dir.rglob("*") if path.is_file()):
+        relative_path = source_path.relative_to(source_dir)
+        destination_path = target_dir / relative_path
+        destination_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_path, destination_path)
+        restored_count += 1
+    return restored_count
+
+
+def restore_config_files(source_config_dir: Path) -> int:
+    restored_count = 0
+    if not source_config_dir.is_dir():
+        return restored_count
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    for source_path in sorted(path for path in source_config_dir.rglob("*") if path.is_file()):
+        if source_path.name == SESSION_SECRET_FILENAME:
+            continue
+        relative_path = source_path.relative_to(source_config_dir)
+        destination_path = CONFIG_DIR / relative_path
+        destination_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_path, destination_path)
+        restored_count += 1
+    return restored_count
+
+
+def restore_verified_backup(
+    archive_path: Path,
+    *,
+    include_config: bool = False,
+    emergency_reason: str = "pre-restore",
+) -> dict[str, Any]:
+    ensure_runtime_directories()
+    resolved_archive = archive_path.expanduser().resolve()
+    with tempfile.TemporaryDirectory(prefix="ndhi-backup-restore-") as temp_dir:
+        stage_dir = Path(temp_dir)
+        manifest = extract_verified_backup_archive(resolved_archive, stage_dir)
+        database_member = str(manifest.get("database") or "")
+        validate_archive_member(database_member)
+        staged_database = stage_dir / PurePosixPath(database_member)
+        sqlite_integrity_check(staged_database)
+
+        emergency_backup = create_verified_backup(reason=emergency_reason)
+        dispose_database_engine_if_loaded()
+        remove_sqlite_sidecars(DB_PATH)
+
+        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        restore_database_path = DB_PATH.parent / f"{DB_PATH.name}.restore"
+        shutil.copy2(staged_database, restore_database_path)
+        sqlite_integrity_check(restore_database_path)
+        os.replace(restore_database_path, DB_PATH)
+        remove_sqlite_sidecars(DB_PATH)
+
+        restored_uploads = restore_directory_tree(stage_dir / "uploads", UPLOADS_DIR)
+        restored_config = restore_config_files(stage_dir / "config") if include_config else 0
+        sqlite_integrity_check(DB_PATH)
+
+    return {
+        "archive": str(resolved_archive),
+        "emergency_backup": str(emergency_backup),
+        "restored_at_utc": utc_timestamp(),
+        "database": str(DB_PATH.expanduser().resolve()),
+        "runtime_dir": str(DATA_RUNTIME_DIR.expanduser().resolve()),
+        "uploads_restored": restored_uploads,
+        "config_restored": restored_config,
+        "config_included": include_config,
+        "verified": True,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Create or verify an NDHI Laboratory Records backup.")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -410,10 +540,17 @@ def main() -> int:
     verify_parser = subparsers.add_parser("verify", help="Verify an existing backup archive.")
     verify_parser.add_argument("archive", type=Path)
 
+    restore_parser = subparsers.add_parser("restore", help="Restore a verified backup archive.")
+    restore_parser.add_argument("archive", type=Path)
+    restore_parser.add_argument("--include-config", action="store_true")
+
     args = parser.parse_args()
     if args.command == "create":
         backup_path = create_verified_backup(reason=args.reason, destination_dir=args.destination)
         print(json.dumps(verify_backup_archive(backup_path), indent=2))
+        return 0
+    if args.command == "restore":
+        print(json.dumps(restore_verified_backup(args.archive, include_config=args.include_config), indent=2))
         return 0
     print(json.dumps(verify_backup_archive(args.archive), indent=2))
     return 0
