@@ -128,7 +128,7 @@
         window.clearTimeout(timer);
         timer = window.setTimeout(() => {
           runSearch();
-        }, String(input.value || "").trim() ? 140 : 60);
+        }, String(input.value || "").trim() ? 80 : 40);
       });
 
       form.addEventListener("submit", (event) => {
