@@ -177,6 +177,13 @@
       </div>
 
       <div class="app-global-header__actions">
+        <div class="app-zoom-chip" aria-label="View size">
+          <button type="button" data-app-zoom-decrease aria-label="Zoom out">-</button>
+          <button type="button" data-app-zoom-reset aria-label="Reset view size to 100%">
+            <span data-app-zoom-output>100%</span>
+          </button>
+          <button type="button" data-app-zoom-increase aria-label="Zoom in">+</button>
+        </div>
         <button class="shell-theme-toggle shell-theme-toggle--inline" type="button" data-theme-toggle></button>
         <button class="app-account-toggle" type="button" data-shell-drawer-toggle aria-expanded="false" aria-label="Open account and navigation" title="Open account and navigation">
           {% if user_avatar_url %}
@@ -234,6 +241,6 @@
 
   {% block page_scripts %}{% endblock %}
   <script src="{{ url_for('static', path='password-toggle.js') }}?v=20260606-password-toggle" defer></script>
-  <script src="{{ url_for('static', path='shell.js') }}?v=20260607-app-zoom-viewport" defer></script>
+  <script src="{{ url_for('static', path='shell.js') }}?v=20260607-app-zoom-topbar" defer></script>
 </body>
 </html>

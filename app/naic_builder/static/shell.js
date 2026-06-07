@@ -16,11 +16,11 @@
   const decisionMessage = document.getElementById("appDecisionMessage");
   const decisionConfirm = document.querySelector("[data-app-modal-confirm]");
   const decisionCancelers = Array.from(document.querySelectorAll("[data-app-modal-cancel]"));
-  const zoomOutput = document.querySelector("[data-app-zoom-output]");
-  const zoomInput = document.querySelector("[data-app-zoom-input]");
-  const zoomDecrease = document.querySelector("[data-app-zoom-decrease]");
-  const zoomIncrease = document.querySelector("[data-app-zoom-increase]");
-  const zoomReset = document.querySelector("[data-app-zoom-reset]");
+  const zoomOutputs = Array.from(document.querySelectorAll("[data-app-zoom-output]"));
+  const zoomInputs = Array.from(document.querySelectorAll("[data-app-zoom-input]"));
+  const zoomDecreaseButtons = Array.from(document.querySelectorAll("[data-app-zoom-decrease]"));
+  const zoomIncreaseButtons = Array.from(document.querySelectorAll("[data-app-zoom-increase]"));
+  const zoomResetButtons = Array.from(document.querySelectorAll("[data-app-zoom-reset]"));
 
   let modalResolver = null;
   let modalReturnFocus = null;
@@ -63,18 +63,18 @@
     const zoom = clampZoom(value);
     body.style.setProperty("--app-zoom", String(zoom / 100));
     body.dataset.appZoom = String(zoom);
-    if (zoomOutput) {
-      zoomOutput.textContent = `${zoom}%`;
-    }
-    if (zoomInput) {
-      zoomInput.value = String(zoom);
-    }
-    if (zoomDecrease) {
-      zoomDecrease.disabled = zoom <= minZoom;
-    }
-    if (zoomIncrease) {
-      zoomIncrease.disabled = zoom >= maxZoom;
-    }
+    zoomOutputs.forEach((output) => {
+      output.textContent = `${zoom}%`;
+    });
+    zoomInputs.forEach((input) => {
+      input.value = String(zoom);
+    });
+    zoomDecreaseButtons.forEach((button) => {
+      button.disabled = zoom <= minZoom;
+    });
+    zoomIncreaseButtons.forEach((button) => {
+      button.disabled = zoom >= maxZoom;
+    });
     if (persist) {
       persistZoom(zoom);
     }
@@ -82,7 +82,7 @@
   };
 
   const changeZoomBy = (delta) => {
-    const current = clampZoom(body.dataset.appZoom || zoomInput?.value || "100");
+    const current = clampZoom(body.dataset.appZoom || zoomInputs[0]?.value || "100");
     applyZoom(current + delta);
   };
 
@@ -301,16 +301,24 @@
 
   applyZoom(storedZoom(), { persist: false });
 
-  zoomDecrease?.addEventListener("click", () => changeZoomBy(-zoomStep));
-  zoomIncrease?.addEventListener("click", () => changeZoomBy(zoomStep));
-  zoomReset?.addEventListener("click", () => applyZoom(100));
-  zoomInput?.addEventListener("change", () => applyZoom(zoomInput.value));
-  zoomInput?.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      applyZoom(zoomInput.value);
-      zoomInput.blur();
-    }
+  zoomDecreaseButtons.forEach((button) => {
+    button.addEventListener("click", () => changeZoomBy(-zoomStep));
+  });
+  zoomIncreaseButtons.forEach((button) => {
+    button.addEventListener("click", () => changeZoomBy(zoomStep));
+  });
+  zoomResetButtons.forEach((button) => {
+    button.addEventListener("click", () => applyZoom(100));
+  });
+  zoomInputs.forEach((input) => {
+    input.addEventListener("change", () => applyZoom(input.value));
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        applyZoom(input.value);
+        input.blur();
+      }
+    });
   });
 
   setupConfirmActions();

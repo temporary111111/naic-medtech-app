@@ -281,6 +281,49 @@
   border-radius: inherit;
 }
 
+.app-zoom-chip {
+  display: grid;
+  grid-template-columns: 32px minmax(48px, auto) 32px;
+  gap: 4px;
+  align-items: center;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.024));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.app-zoom-chip button {
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--shell-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.app-zoom-chip button:hover,
+.app-zoom-chip button:focus-visible {
+  outline: none;
+  background: rgba(126, 205, 222, 0.12);
+}
+
+.app-zoom-chip button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.app-zoom-chip [data-app-zoom-reset] {
+  padding-inline: 10px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
 .app-drawer__nav {
   display: grid;
   align-content: start;
@@ -969,6 +1012,18 @@ html[data-theme="dark"] .app-decision-modal__confirm.is-destructive {
   .app-account-toggle {
     width: 36px;
     height: 36px;
+  }
+
+  .app-zoom-chip {
+    grid-template-columns: 30px 44px 30px;
+    gap: 3px;
+    padding: 3px;
+  }
+
+  .app-zoom-chip button {
+    height: 28px;
+    padding-inline: 6px;
+    font-size: 11px;
   }
 
   .app-global-header__brand-copy strong {
