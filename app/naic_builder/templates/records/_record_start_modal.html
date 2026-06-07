@@ -24,7 +24,7 @@
     <div class="error-banner">{{ record_start_error }}</div>
     {% endif %}
 
-    <div class="records-start-modal__body" data-record-form-picker>
+    <div class="records-start-modal__body{% if quick_form_choices %} records-start-modal__body--split{% endif %}" data-record-form-picker>
       {% if quick_form_choices %}
       <section class="records-start-cluster">
         <div class="records-start-cluster__head">

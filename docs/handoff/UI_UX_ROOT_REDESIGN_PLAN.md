@@ -407,6 +407,15 @@ Redesign:
 - `/records/history`
 - record start modal/picker
 
+Current status:
+- first records workbench/history pass landed on 2026-06-07
+- `/records` and `/records/history` now use lighter, row-like record surfaces with compact metadata, 12px row radius, and calmer shadows
+- history search and status filters now compute to compact 34px filter pills and stay in a tighter lookup toolbar
+- the new-record modal and `/records/new` fallback now use the same split picker layout on desktop, with recent forms as a side rail and all forms as the primary searchable list
+- mobile work queue keeps one app-shell scroll owner, full-width primary `New record`, and three reachable row actions without horizontal overflow
+- records CSS was cache-busted to `20260607-ui-root-phase3`
+- visual QA screenshots and computed scroll/style metrics were saved under `output/ui-ux-phase3/`
+
 Definition of done:
 - work queue is compact and fast
 - history is a proper lookup tool
@@ -491,10 +500,12 @@ Use temporary DB copies for visual QA whenever records need to be created or com
 - do not rely on browser back as the designed return path
 
 ## First Implementation Recommendation
-Phase 1 and the first Phase 2 atom pass have landed.
+Phase 1, the first Phase 2 atom pass, and the first Phase 3A records workbench/history pass have landed.
 
-The next highest-value implementation is Phase 3 or Phase 4, depending on risk tolerance:
-- Phase 3 if the next pass should improve the records work queue/history/search surfaces.
-- Phase 4 if the next pass should go deeper on the record-entry workflow and completed/draft view hierarchy.
+The next highest-value implementation is Phase 4:
+- go deeper on the record-entry workflow and completed/draft view hierarchy
+- keep `Complete and print` visually primary for draft completion
+- make fields appear earlier, especially on mobile
+- continue using temporary DB copies for browser visual QA
 
 Do not redesign every remaining page at once. Continue from the browser-verified shell/atom foundation, keep behavior changes minimal unless they support the records workflow directly, preserve the already fixed `Complete and print` priority, and keep validating with temp-DB browser screenshots plus scroll metrics.

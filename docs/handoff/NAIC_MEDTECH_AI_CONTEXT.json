@@ -14,7 +14,7 @@
   "handoff_status": {
     "last_refreshed": "2026-06-07",
     "continuation_readiness": "ready_for_another_ai_if_it_reads_the_handoff_docs_first",
-    "current_priority": "root_ui_ux_redesign_plan_then_phase_1_shell_scroll_and_density_work",
+    "current_priority": "root_ui_ux_phase_4_record_entry_view_then_modal_system_and_safety_center_decision",
     "must_not_reopen_without_evidence": [
       "schema-driven builder architecture",
       "builder-driven print configuration",
@@ -83,7 +83,7 @@
       "print_excluded": true
     },
     "records_reskin_phase": {
-      "status": "browser_audited_dark_first_pass_landed",
+      "status": "root_ui_phase_3a_records_workbench_history_landed",
       "primary_stylesheet": "app/naic_builder/static/records.css",
       "scope": [
         "records home",
@@ -118,6 +118,7 @@
         "The public auth follow-up then moved /login, /request-account, and /setup to the same compact utility-card language too, replacing the older heavy auth panel plus long helper-list composition with one direct form card and one compact facts card.",
         "Settings > Users & access now keeps search and status filters inside the Accounts directory header, so the staff list reads as one directory surface instead of a separate toolbar plus list.",
         "/records/history now keeps search and status filters inside the History section header, so lookup reads as one history surface and search preserves the active Completed/Drafts/All filter.",
+        "Root UI/UX Phase 3A has now landed for the records workbench/history surfaces: /records and /records/history use lighter row-like record surfaces, compact history filter controls, and the record start modal plus /records/new fallback share a split searchable picker layout.",
         "The builder stabilization pass is now landed too: builder-specific light/dark surfaces are tokenized, organizer rows no longer inherit primary button styling, preview is opt-in instead of open by default, command actions are grouped, and the workspace header no longer sticks over builder content while scrolling.",
         "The recursive builder integration has now passed a real-browser QA pass too: duplicate-form startup, nested containers and fields, choice options, numeric ranges, subtree copy/remove, mixed advanced-block ordering, save/reload persistence, light/dark contrast, and desktop/tablet/mobile layouts were checked directly.",
         "Builder subtree copies now refresh block and option IDs recursively, SortableJS ordering now resolves real collection positions even while Advanced utility blocks are hidden, advanced utility cards expose drag handles, and tablet/mobile workspace tabs stay compact and reachable above the editor."
@@ -130,6 +131,7 @@
       "As of 2026-06-07, the active UI direction is no longer only bug/polish: the user requested a root UI/UX critique and accepted a workflow-first redesign plan. Continue from docs/handoff/UI_UX_ROOT_REDESIGN_PLAN.md before touching shell, scroll, density, records, modals, Safety, or builder UI.",
       "The first root UI/UX Phase 1 pass has landed: authenticated screens now use a fixed-height app frame with body/document scroll disabled, app-shell-main as the normal scroll owner, compact global/page headers, tighter record-edit summary/readiness chrome, and Complete and print as the primary record-entry action. Visual QA screenshots and metrics live under output/ui-ux-phase1/.",
       "The first root UI/UX Phase 2 atom pass has landed: shared theme.css control tokens now compact primary/ghost buttons, fields, chips, and modal radius; the broad button:not(...) primary selector was removed so password toggles, shell icon buttons, modal scrims, and record-picker cards keep their own treatment; public auth, shell, records, forms library, and settings CSS links were cache-busted to 20260607-ui-root-phase2. Visual QA screenshots and computed scroll/style metrics live under output/ui-ux-phase2/.",
+      "The first root UI/UX Phase 3A records workbench/history pass has landed: /records and /records/history now use lighter row-like record surfaces, compact history search/filter controls, and the new-record modal plus /records/new fallback share the split searchable picker layout; records CSS was cache-busted to 20260607-ui-root-phase3. Visual QA screenshots and computed scroll/style metrics live under output/ui-ux-phase3/.",
       "Quick light-mode audits were also run across the main non-print screens so the next review should not immediately hit obvious contrast regressions.",
       "Builder should stay denser than records, forms, and settings; the calmer content-first composition rule is mainly for the everyday non-builder product surfaces.",
       "Directness is now part of the live UI rule too: obvious screens should not over-explain themselves, and helper text should remain only where it prevents mistakes or clarifies non-obvious actions.",

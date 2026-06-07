@@ -185,9 +185,10 @@ Current June 7, 2026 decision:
 - the app should now be treated as a compact clinic operations workbench, not just a reskin needing small polish
 - the previous live reskin remains useful style context, but the current requested work is root workflow/layout correction
 - priority concerns from the user: compactness, accidental double-scroll, light-mode contrast, better back/return behavior, less bulky components, `Complete and print` as the primary record-entry action, a real modal system, and possible admin `Safety` navigation for backup/restore/LAN health
-- Phase 1/2 foundation is now the baseline; next UI work should continue into records workflow surfaces rather than restarting shell/atom analysis
+- Phase 1/2 foundation plus the first Phase 3A records workbench/history pass are now the baseline; next UI work should continue into record entry/view rather than restarting shell/atom analysis
 - first Phase 1 pass has landed: authenticated screens now use a fixed-height app frame with body/document scroll disabled, `.app-shell-main` as the normal scroll owner, compact global/page headers, tighter record-edit summary/readiness chrome, and `Complete and print` as the primary record-entry action. Visual QA outputs are under `output/ui-ux-phase1/`
 - first Phase 2 atom pass has landed: shared `theme.css` control tokens now compact primary/ghost buttons, inputs, status chips, and modal radius; the risky broad `button:not(...)` primary selector was removed so password toggles, shell icon buttons, modal scrims, and record-picker cards keep their own treatment; public auth, records, forms library, settings, and shell CSS links were cache-busted to `20260607-ui-root-phase2`. Visual QA outputs and computed scroll/style metrics are under `output/ui-ux-phase2/`
+- first Phase 3A records workbench/history pass has landed: `/records` and `/records/history` use lighter row-like record surfaces, compact history search/filter controls, and a split new-record picker shared by the modal and `/records/new` fallback; records CSS was cache-busted to `20260607-ui-root-phase3`. Visual QA outputs and computed scroll/style metrics are under `output/ui-ux-phase3/`
 
 Current live status:
 - the non-print app now has a materially landed live reskin pass under that direction
