@@ -146,7 +146,7 @@ PUBLIC_PATHS = {
     "/change-password",
 }
 PUBLIC_PREFIXES = ("/static",)
-ADMIN_PREFIXES = ("/forms", "/folders", "/builder", "/api/forms", "/api/builder", "/api/library")
+ADMIN_PREFIXES = ("/forms", "/folders", "/builder", "/api/forms", "/api/builder", "/api/library", "/safety")
 ADMIN_SETTINGS_PREFIXES = ("/settings/users", "/settings/desktop")
 RESTORE_CONFIRMATION_TEXT = "RESTORE"
 RECORDS_HISTORY_PAGE_SIZE = 40
@@ -440,19 +440,31 @@ def render_settings_desktop_page(
     request: Request,
     *,
     settings_override: dict[str, str] | None = None,
+    safety_mode: bool | None = None,
     error_message: str = "",
     success_message: str = "",
     status_code: int = 200,
 ) -> HTMLResponse:
+    if safety_mode is None:
+        safety_mode = request.url.path.startswith("/safety")
     desktop_settings = settings_override or read_desktop_settings()
     backup_status = local_backup_status()
     external_status = external_backup_status(desktop_settings.get("external_backup_dir"))
+    desktop_base = "/safety" if safety_mode else "/settings/desktop"
     return templates.TemplateResponse(
         request=request,
         name="settings/desktop.html",
         context={
             "app_title": APP_TITLE,
+            "safety_mode": safety_mode,
             "desktop_settings": desktop_settings,
+            "desktop_settings_action": desktop_base,
+            "backup_now_action": f"{desktop_base}/backup-now",
+            "backup_verify_latest_action": f"{desktop_base}/backup-verify-latest",
+            "backup_verify_external_latest_action": f"{desktop_base}/backup-verify-external-latest",
+            "restore_backup_action": f"{desktop_base}/restore-backup",
+            "lan_qr_page_url": f"{desktop_base}/lan-qr",
+            "lan_qr_svg_url": f"{desktop_base}/lan-qr.svg",
             "browser_options": BROWSER_PREFERENCE_OPTIONS,
             "network_options": NETWORK_MODE_OPTIONS,
             "browser_status": detect_desktop_browsers(),
@@ -468,6 +480,24 @@ def render_settings_desktop_page(
         },
         status_code=status_code,
     )
+
+
+def desktop_success_message(request: Request) -> str:
+    if request.query_params.get("saved") == "1":
+        return "Saved the desktop app settings."
+    if request.query_params.get("backup") == "created":
+        return "Created and verified a local backup."
+    if request.query_params.get("backup") == "created_external":
+        return "Created and verified local and external backups."
+    if request.query_params.get("backup") == "verified":
+        return "Verified the latest local backup."
+    if request.query_params.get("backup") == "external_verified":
+        return "Verified the latest external backup."
+    return ""
+
+
+def desktop_operation_base_path(request: Request) -> str:
+    return "/safety" if request.url.path.startswith("/safety") else "/settings/desktop"
 
 
 def render_new_user_page(
@@ -2023,22 +2053,13 @@ def settings_clinic_logo_file(session: Session = Depends(get_session)) -> FileRe
     )
 
 
+@app.get("/safety", response_class=HTMLResponse)
 @app.get("/settings/desktop", response_class=HTMLResponse)
 def settings_desktop_page(request: Request) -> HTMLResponse:
-    success_message = ""
-    if request.query_params.get("saved") == "1":
-        success_message = "Saved the desktop app settings."
-    elif request.query_params.get("backup") == "created":
-        success_message = "Created and verified a local backup."
-    elif request.query_params.get("backup") == "created_external":
-        success_message = "Created and verified local and external backups."
-    elif request.query_params.get("backup") == "verified":
-        success_message = "Verified the latest local backup."
-    elif request.query_params.get("backup") == "external_verified":
-        success_message = "Verified the latest external backup."
-    return render_settings_desktop_page(request, success_message=success_message)
+    return render_settings_desktop_page(request, success_message=desktop_success_message(request))
 
 
+@app.post("/safety")
 @app.post("/settings/desktop")
 async def save_settings_desktop_page(request: Request):
     form = await request.form()
@@ -2048,9 +2069,10 @@ async def save_settings_desktop_page(request: Request):
         external_backup_dir=str(form.get("external_backup_dir") or ""),
         backup_retention_count=str(form.get("backup_retention_count") or ""),
     )
-    return RedirectResponse(url="/settings/desktop?saved=1", status_code=303)
+    return RedirectResponse(url=f"{desktop_operation_base_path(request)}?saved=1", status_code=303)
 
 
+@app.get("/safety/lan-qr.svg")
 @app.get("/settings/desktop/lan-qr.svg")
 def settings_desktop_lan_qr(download: str = "") -> Response:
     lan_access = lan_access_details()
@@ -2065,6 +2087,7 @@ def settings_desktop_lan_qr(download: str = "") -> Response:
     )
 
 
+@app.post("/safety/backup-now")
 @app.post("/settings/desktop/backup-now")
 def settings_desktop_backup_now_page(request: Request) -> Response:
     desktop_settings = read_desktop_settings()
@@ -2101,10 +2124,11 @@ def settings_desktop_backup_now_page(request: Request) -> Response:
             status_code=409,
         )
     if external_backup_path is not None:
-        return RedirectResponse(url="/settings/desktop?backup=created_external", status_code=303)
-    return RedirectResponse(url="/settings/desktop?backup=created", status_code=303)
+        return RedirectResponse(url=f"{desktop_operation_base_path(request)}?backup=created_external", status_code=303)
+    return RedirectResponse(url=f"{desktop_operation_base_path(request)}?backup=created", status_code=303)
 
 
+@app.post("/safety/backup-verify-latest")
 @app.post("/settings/desktop/backup-verify-latest")
 def settings_desktop_backup_verify_latest_page(request: Request) -> Response:
     try:
@@ -2122,9 +2146,10 @@ def settings_desktop_backup_verify_latest_page(request: Request) -> Response:
             error_message=f"Backup verification failed: {exc}",
             status_code=500,
         )
-    return RedirectResponse(url="/settings/desktop?backup=verified", status_code=303)
+    return RedirectResponse(url=f"{desktop_operation_base_path(request)}?backup=verified", status_code=303)
 
 
+@app.post("/safety/backup-verify-external-latest")
 @app.post("/settings/desktop/backup-verify-external-latest")
 def settings_desktop_backup_verify_external_latest_page(request: Request) -> Response:
     desktop_settings = read_desktop_settings()
@@ -2143,9 +2168,10 @@ def settings_desktop_backup_verify_external_latest_page(request: Request) -> Res
             error_message=f"External backup verification failed: {exc}",
             status_code=500,
         )
-    return RedirectResponse(url="/settings/desktop?backup=external_verified", status_code=303)
+    return RedirectResponse(url=f"{desktop_operation_base_path(request)}?backup=external_verified", status_code=303)
 
 
+@app.post("/safety/restore-backup")
 @app.post("/settings/desktop/restore-backup")
 async def settings_desktop_restore_backup_page(
     request: Request,
@@ -2213,17 +2239,24 @@ async def settings_desktop_restore_backup_page(
     return RedirectResponse(url="/login?restored=1", status_code=303)
 
 
+@app.get("/safety/lan-qr", response_class=HTMLResponse)
 @app.get("/settings/desktop/lan-qr", response_class=HTMLResponse)
 def settings_desktop_lan_qr_page(request: Request) -> HTMLResponse:
     lan_access = lan_access_details()
+    safety_mode = request.url.path.startswith("/safety")
+    desktop_base = "/safety" if safety_mode else "/settings/desktop"
     return templates.TemplateResponse(
         request=request,
         name="settings/lan_qr.html",
         context={
             "app_title": APP_TITLE,
+            "safety_mode": safety_mode,
             "lan_access": lan_access,
             "desktop_settings": read_desktop_settings(),
             "desktop_status": desktop_runtime_status(),
+            "lan_qr_page_url": f"{desktop_base}/lan-qr",
+            "lan_qr_svg_url": f"{desktop_base}/lan-qr.svg",
+            "lan_qr_back_url": desktop_base,
         },
     )
 

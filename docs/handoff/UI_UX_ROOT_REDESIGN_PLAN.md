@@ -476,6 +476,15 @@ Create or reorganize:
 - LAN/app access health
 - desktop launcher settings
 
+Current status:
+- Phase 6A has landed: admins now see `Safety` as a top-level drawer navigation item beside Records, Forms, and Settings
+- `/safety` renders the existing verified backup, restore, LAN access, QR, browser preference, and desktop launcher safety controls as an operational Safety Center instead of burying them only under ordinary Settings
+- `/settings/desktop` remains available as a compatibility route, but the visible Settings subnav no longer advertises `Desktop app`
+- Safety actions post through `/safety/...` aliases and redirect back to `/safety` after save/backup/verify flows
+- `/safety/lan-qr` and `/safety/lan-qr.svg` are available, and the Safety QR page links back to Safety without showing the Settings subnav
+- existing backend backup/restore/LAN behavior was preserved; this phase changed IA/routing and page framing, not the backup engine
+- visual QA screenshots and computed route/overflow metrics were saved under `output/ui-ux-phase6a/`
+
 Definition of done:
 - non-technical admin can understand whether clinic data is protected
 - restore remains deliberately hard to do accidentally
@@ -525,11 +534,11 @@ Use temporary DB copies for visual QA whenever records need to be created or com
 ## Current Implementation Recommendation
 Phase 1, Phase 2, Phase 3A, Phase 4A, Phase 5A, and Phase 5B have landed.
 
-The next highest-value implementation is Phase 6A:
-- decide the top-level Safety IA without reopening the shell design from scratch
-- move or regroup backup, restore, LAN/app access health, and desktop runtime safety from ordinary Settings into a clearer admin Safety area
+The next highest-value implementation is a focused Phase 6B or Phase 7 decision:
+- Phase 6B if the user wants the Safety Center itself to feel more purpose-built, with clearer status grouping and less inherited Desktop-settings wording
+- Phase 7 if Safety is acceptable and the next priority should move to the Builder workspace redesign
 - keep restore deliberately hard to trigger accidentally
-- preserve the existing backend routes and backup/restore behavior unless the Safety IA requires a low-risk alias route
+- preserve the existing backup/restore engine unless a validated release requirement demands backend changes
 - continue using temporary DB copies for browser visual QA
 
 Do not redesign every remaining page at once. Continue from the browser-verified shell/atom/modal foundation, keep behavior changes minimal unless they improve operational safety directly, preserve the already fixed `Complete and print` priority, and keep validating with temp-DB browser screenshots plus scroll metrics.

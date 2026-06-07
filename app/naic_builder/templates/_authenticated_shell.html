@@ -19,6 +19,11 @@
     <path d="M8.25 8.75h7.5M8.25 12h7.5M8.25 15.25h4.5" />
     <path d="M16.25 4.25v3M14.75 5.75h3" />
   </svg>
+  {%- elif name == "safety" -%}
+  <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M12 4.25 18.25 6.5v4.9c0 3.9-2.5 6.55-6.25 8.35-3.75-1.8-6.25-4.45-6.25-8.35V6.5L12 4.25Z" />
+    <path d="m9.25 12.15 1.85 1.85 3.9-4.15" />
+  </svg>
   {%- elif name == "settings" -%}
   <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
     <path d="M4.5 7.25h4.25M13.25 7.25h6.25M10.75 9.75a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM4.5 16.75h6.25M15.25 16.75h4.25M13.25 19.25a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
@@ -84,6 +89,12 @@
             {{ shell_icon("forms") }}
           </span>
           <strong>Forms</strong>
+        </a>
+        <a class="app-drawer__item{% if active_nav == 'safety' %} is-active{% endif %}" href="/safety">
+          <span class="app-drawer__glyph" aria-hidden="true">
+            {{ shell_icon("safety") }}
+          </span>
+          <strong>Safety</strong>
         </a>
         {% endif %}
         <a class="app-drawer__item{% if active_nav == 'settings' %} is-active{% endif %}" href="/settings">

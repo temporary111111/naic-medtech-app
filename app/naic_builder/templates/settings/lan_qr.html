@@ -1,6 +1,9 @@
 {% extends "_authenticated_shell.html" %}
-{% set shell_active = "settings" %}
+{% set safety_mode = safety_mode|default(false) %}
+{% set shell_active = "safety" if safety_mode else "settings" %}
 {% set settings_active = "desktop" %}
+{% set lan_qr_back_url = lan_qr_back_url|default('/settings/desktop') %}
+{% set lan_qr_svg_url = lan_qr_svg_url|default('/settings/desktop/lan-qr.svg') %}
 
 {% block html_title %}LAN QR Code | {{ app_title }}{% endblock %}
 
@@ -9,21 +12,23 @@
   <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20260607-ui-root-phase2">
 {% endblock %}
 
-{% block shell_eyebrow %}Settings{% endblock %}
+{% block shell_eyebrow %}{{ 'Safety' if safety_mode else 'Settings' }}{% endblock %}
 {% block shell_title %}LAN QR code{% endblock %}
 {% block shell_description %}{% endblock %}
 
 {% block page_header_nav %}
-  <a class="page-back-link" href="/settings/desktop">Back to desktop settings</a>
+  <a class="page-back-link" href="{{ lan_qr_back_url }}">Back to {{ 'Safety Center' if safety_mode else 'desktop settings' }}</a>
 {% endblock %}
 
 {% block topbar_actions %}
-  <a class="primary-button" href="/settings/desktop/lan-qr.svg?download=1">Download QR</a>
+  <a class="primary-button" href="{{ lan_qr_svg_url }}?download=1">Download QR</a>
 {% endblock %}
 
 {% block content %}
   <div class="auth-shell">
+    {% if not safety_mode %}
     {% include "settings/_settings_nav.html" %}
+    {% endif %}
 
     <section class="settings-utility-grid">
       <div class="settings-utility-main">
@@ -38,7 +43,7 @@
 
           <div class="settings-utility-section">
             <div class="lan-qr-full">
-              <img src="/settings/desktop/lan-qr.svg" alt="QR code for {{ lan_access.qr_url }}">
+              <img src="{{ lan_qr_svg_url }}" alt="QR code for {{ lan_access.qr_url }}">
             </div>
           </div>
 
@@ -53,7 +58,7 @@
           <div class="settings-utility-actions">
             <button class="ghost-button" type="button" data-copy-value="{{ lan_access.qr_url }}">Copy QR link</button>
             <a class="ghost-button" href="{{ lan_access.qr_url }}">Open QR link</a>
-            <a class="primary-button" href="/settings/desktop/lan-qr.svg?download=1">Download QR SVG</a>
+            <a class="primary-button" href="{{ lan_qr_svg_url }}?download=1">Download QR SVG</a>
           </div>
         </article>
       </div>

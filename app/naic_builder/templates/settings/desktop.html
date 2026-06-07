@@ -1,16 +1,24 @@
 {% extends "_authenticated_shell.html" %}
-{% set shell_active = "settings" %}
+{% set safety_mode = safety_mode|default(false) %}
+{% set shell_active = "safety" if safety_mode else "settings" %}
 {% set settings_active = "desktop" %}
+{% set desktop_settings_action = desktop_settings_action|default('/settings/desktop') %}
+{% set backup_now_action = backup_now_action|default('/settings/desktop/backup-now') %}
+{% set backup_verify_latest_action = backup_verify_latest_action|default('/settings/desktop/backup-verify-latest') %}
+{% set backup_verify_external_latest_action = backup_verify_external_latest_action|default('/settings/desktop/backup-verify-external-latest') %}
+{% set restore_backup_action = restore_backup_action|default('/settings/desktop/restore-backup') %}
+{% set lan_qr_page_url = lan_qr_page_url|default('/settings/desktop/lan-qr') %}
+{% set lan_qr_svg_url = lan_qr_svg_url|default('/settings/desktop/lan-qr.svg') %}
 
-{% block html_title %}Desktop App | {{ app_title }}{% endblock %}
+{% block html_title %}{{ 'Safety Center' if safety_mode else 'Desktop App' }} | {{ app_title }}{% endblock %}
 
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
   <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20260607-ui-root-phase2">
 {% endblock %}
 
-{% block shell_eyebrow %}Settings{% endblock %}
-{% block shell_title %}Desktop app{% endblock %}
+{% block shell_eyebrow %}{{ 'Operations' if safety_mode else 'Settings' }}{% endblock %}
+{% block shell_title %}{{ 'Safety Center' if safety_mode else 'Desktop app' }}{% endblock %}
 {% block shell_description %}{% endblock %}
 
 {% block topbar_actions %}
@@ -19,7 +27,9 @@
 
 {% block content %}
   <div class="auth-shell">
+    {% if not safety_mode %}
     {% include "settings/_settings_nav.html" %}
+    {% endif %}
 
     <section class="settings-utility-grid">
       <div class="settings-utility-main">
@@ -40,7 +50,7 @@
           </div>
           <form
             method="post"
-            action="/settings/desktop/backup-now"
+            action="{{ backup_now_action }}"
             class="inline-action-form"
             data-confirm="The app will create and verify a snapshot of the current database, uploads, logos, avatars, and signatory stamps."
             data-confirm-eyebrow="Backup"
@@ -55,7 +65,7 @@
         <form
           id="desktopSettingsForm"
           method="post"
-          action="/settings/desktop"
+          action="{{ desktop_settings_action }}"
           class="panel settings-utility-card"
           data-confirm="These settings affect how this workstation launches, how same-network access behaves, and where external backup copies are written."
           data-confirm-eyebrow="Desktop settings"
@@ -254,7 +264,7 @@
           <div class="settings-utility-actions">
             <form
               method="post"
-              action="/settings/desktop/backup-now"
+              action="{{ backup_now_action }}"
               class="inline-action-form"
               data-confirm="The app will create and verify a snapshot of the current database, uploads, logos, avatars, and signatory stamps."
               data-confirm-eyebrow="Backup"
@@ -266,7 +276,7 @@
             </form>
             <form
               method="post"
-              action="/settings/desktop/backup-verify-latest"
+              action="{{ backup_verify_latest_action }}"
               class="inline-action-form"
               data-confirm="The app will re-check the latest local backup archive before reporting it as verified."
               data-confirm-eyebrow="Backup check"
@@ -278,7 +288,7 @@
             </form>
             <form
               method="post"
-              action="/settings/desktop/backup-verify-external-latest"
+              action="{{ backup_verify_external_latest_action }}"
               class="inline-action-form"
               data-confirm="The app will re-check the latest external backup archive in the configured external folder."
               data-confirm-eyebrow="External backup check"
@@ -303,7 +313,7 @@
             </div>
             <form
               method="post"
-              action="/settings/desktop/restore-backup"
+              action="{{ restore_backup_action }}"
               enctype="multipart/form-data"
               class="restore-backup-form"
               data-confirm="This will replace current records and uploaded files with the selected archive. The app creates an emergency pre-restore backup first, then sends you back to login."
@@ -399,14 +409,14 @@
         <div class="settings-utility-section">
           <div class="lan-qr-card">
             <div class="lan-qr-frame">
-              <img src="/settings/desktop/lan-qr.svg" alt="QR code for {{ lan_access.qr_url }}">
+              <img src="{{ lan_qr_svg_url }}" alt="QR code for {{ lan_access.qr_url }}">
             </div>
             <div class="lan-guidance">
               <strong>QR for phone or tablet</strong>
               <p>Scan this on a device connected to the same clinic Wi-Fi/LAN. QR uses: {{ lan_access.qr_url }}</p>
               <div class="lan-link-actions">
-                <a class="ghost-button" href="/settings/desktop/lan-qr">Open full QR</a>
-                <a class="ghost-button" href="/settings/desktop/lan-qr.svg?download=1">Download QR</a>
+                <a class="ghost-button" href="{{ lan_qr_page_url }}">Open full QR</a>
+                <a class="ghost-button" href="{{ lan_qr_svg_url }}?download=1">Download QR</a>
               </div>
             </div>
           </div>
