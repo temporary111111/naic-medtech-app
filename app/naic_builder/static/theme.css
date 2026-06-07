@@ -703,6 +703,18 @@ select,
   padding-right: 40px;
 }
 
+select option,
+select optgroup {
+  background: #fff;
+  color: #14242b;
+}
+
+html[data-theme="dark"] select option,
+html[data-theme="dark"] select optgroup {
+  background: #fff;
+  color: #14242b;
+}
+
 html[data-theme="dark"] input,
 html[data-theme="dark"] select,
 html[data-theme="dark"] textarea,
