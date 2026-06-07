@@ -385,6 +385,18 @@ Unify:
 - tabs/segmented controls
 - light/dark contrast tokens
 
+Current status:
+- first shared atom pass landed on 2026-06-07
+- `theme.css` now owns compact shared control variables for buttons, inputs, chips, and modal radius
+- primary styling no longer uses a broad `button:not(...)` selector, so special controls such as password toggles, shell icon buttons, modal scrims, and record-picker card buttons are not accidentally promoted to primary buttons
+- shared primary/ghost controls now use a 40px default height, calmer shadows, and consistent focus/disabled behavior
+- shared inputs/selects now use a 40px field height, 12px field radius, and a smaller focus ring
+- textareas remain multiline-sized instead of being collapsed by the compact field rule
+- status chips are compacted to a 24px shared chip height with consistent casing and color behavior across records/settings
+- record start modal and picker card radii are aligned with the shared modal/control tokens
+- public auth, authenticated shell, records, forms library, and settings CSS links were cache-busted to `20260607-ui-root-phase2`
+- visual QA screenshots and computed metrics were saved under `output/ui-ux-phase2/`
+
 Definition of done:
 - feature CSS files use shared primitives instead of repeatedly inventing local variants
 - light mode has clearly stronger operational contrast
@@ -479,12 +491,10 @@ Use temporary DB copies for visual QA whenever records need to be created or com
 - do not rely on browser back as the designed return path
 
 ## First Implementation Recommendation
-Start with Phase 1.
+Phase 1 and the first Phase 2 atom pass have landed.
 
-The first code pass should target:
-- app shell height and scroll ownership
-- page header compactness
-- records/edit top chrome reduction
-- early IA decision for whether `Safety` becomes a top-level admin nav item
+The next highest-value implementation is Phase 3 or Phase 4, depending on risk tolerance:
+- Phase 3 if the next pass should improve the records work queue/history/search surfaces.
+- Phase 4 if the next pass should go deeper on the record-entry workflow and completed/draft view hierarchy.
 
-Do not start with color tweaks. The biggest visible problem is layout and workflow density, not palette.
+Do not redesign every remaining page at once. Continue from the browser-verified shell/atom foundation, keep behavior changes minimal unless they support the records workflow directly, preserve the already fixed `Complete and print` priority, and keep validating with temp-DB browser screenshots plus scroll metrics.

@@ -42,6 +42,17 @@
   --radius-lg: 22px;
   --radius-md: 16px;
   --radius-sm: 12px;
+  --control-height: 40px;
+  --control-height-compact: 34px;
+  --control-padding-y: 8px;
+  --control-padding-x: 14px;
+  --control-radius: 12px;
+  --control-radius-pill: 999px;
+  --field-height: 40px;
+  --field-radius: 12px;
+  --chip-height: 24px;
+  --chip-radius: 999px;
+  --modal-radius: 18px;
 }
 
 html[data-theme="dark"] {
@@ -358,11 +369,39 @@ html[data-theme="dark"] .shell-theme-toggle--inline {
 }
 
 .primary-button,
-button:not(.ghost-button):not(.ghost):not(.warn-button):not(.warn-fill):not(.user-status-filter):not(.drag-handle):not(.container-toggle):not(.field-details-toggle):not(.outline-item):not(.outline-subitem):not(.section-organizer-select):not(.item-organizer-select):not(.option-organizer-select):not(.preview-index-chip):not([data-theme-toggle]) {
+.ghost-button,
+button.ghost,
+button.secondary,
+.settings-tab,
+.user-status-filter,
+.record-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--control-height);
+  padding: var(--control-padding-y) var(--control-padding-x);
+  border-radius: var(--control-radius-pill);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.primary-button {
   background: linear-gradient(135deg, var(--accent-strong), color-mix(in srgb, var(--accent) 82%, #ffffff 8%));
   color: #f8fffe;
   border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
-  box-shadow: 0 18px 34px rgba(34, 104, 118, 0.26);
+  box-shadow: 0 10px 22px rgba(34, 104, 118, 0.22);
   text-shadow: 0 1px 0 rgba(8, 18, 22, 0.22);
 }
 
@@ -373,9 +412,50 @@ button.secondary,
 .user-status-filter,
 .record-filter-pill {
   border-color: var(--line);
-  background: rgba(255, 255, 255, 0.35);
+  background: color-mix(in srgb, var(--panel-strong) 58%, transparent);
   color: var(--text);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26);
+}
+
+.primary-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(34, 104, 118, 0.26);
+}
+
+.ghost-button:hover,
+button.ghost:hover,
+button.secondary:hover,
+.settings-tab:hover,
+.user-status-filter:hover,
+.record-filter-pill:hover {
+  border-color: color-mix(in srgb, var(--accent) 26%, var(--line));
+  background: color-mix(in srgb, var(--accent-soft) 36%, var(--panel-strong) 64%);
+  color: var(--accent);
+}
+
+.primary-button:focus-visible,
+.ghost-button:focus-visible,
+button.ghost:focus-visible,
+button.secondary:focus-visible,
+.settings-tab:focus-visible,
+.user-status-filter:focus-visible,
+.record-filter-pill:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px var(--input-focus-ring),
+    0 10px 22px rgba(34, 104, 118, 0.18);
+}
+
+.primary-button:disabled,
+.ghost-button:disabled,
+button.ghost:disabled,
+button.secondary:disabled,
+.primary-button[aria-disabled="true"],
+.ghost-button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.56;
+  transform: none;
+  box-shadow: none;
 }
 
 html[data-theme="dark"] .ghost-button,
@@ -391,15 +471,14 @@ html[data-theme="dark"] .record-filter-pill {
     0 12px 26px rgba(0, 0, 0, 0.18);
 }
 
-html[data-theme="dark"] .primary-button,
-html[data-theme="dark"] button:not(.ghost-button):not(.ghost):not(.warn-button):not(.warn-fill):not(.user-status-filter):not(.drag-handle):not(.container-toggle):not(.field-details-toggle):not(.outline-item):not(.outline-subitem):not(.section-organizer-select):not(.item-organizer-select):not(.option-organizer-select):not(.preview-index-chip):not([data-theme-toggle]) {
+html[data-theme="dark"] .primary-button {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 24%),
     linear-gradient(135deg, var(--accent-strong) 0%, #2e7284 100%);
   border-color: rgba(126, 205, 222, 0.22);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 18px 34px rgba(34, 104, 118, 0.34);
+    0 12px 24px rgba(34, 104, 118, 0.28);
 }
 
 html[data-theme="dark"] .panel,
@@ -470,6 +549,30 @@ html[data-theme="dark"] .preview-image-upload {
 html[data-theme="dark"] .preview-field input:disabled,
 html[data-theme="dark"] .preview-field select:disabled {
   color: rgba(237, 245, 247, 0.78);
+}
+
+.status-chip,
+.role-chip,
+.record-status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--chip-height);
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--chip-radius);
+  background: color-mix(in srgb, var(--panel-strong) 84%, transparent);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.role-chip {
+  background: color-mix(in srgb, var(--accent-soft) 72%, transparent);
+  color: var(--accent);
 }
 
 .record-filter-pill.is-active,
@@ -562,8 +665,9 @@ input[type="file"] {
   background: var(--input-bg);
   color: var(--text);
   border-color: var(--input-border);
-  border-radius: var(--radius-md);
-  min-height: 46px;
+  border-radius: var(--field-radius);
+  min-height: var(--field-height);
+  padding: 8px 12px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26);
 }
 
@@ -575,11 +679,13 @@ textarea:focus,
 .select-stack select:focus,
 .field-stack textarea:focus {
   border-color: color-mix(in srgb, var(--accent) 54%, transparent);
-  box-shadow: 0 0 0 4px var(--input-focus-ring);
+  box-shadow: 0 0 0 3px var(--input-focus-ring);
 }
 
-textarea {
-  min-height: 120px;
+textarea,
+.record-shell textarea,
+.field-stack textarea {
+  min-height: 96px;
 }
 
 select,
@@ -613,14 +719,14 @@ html[data-theme="dark"] input[type="file"] {
 }
 
 input[type="file"] {
-  padding: 6px 8px;
+  padding: 5px 8px;
   cursor: pointer;
 }
 
 input[type="file"]::file-selector-button {
-  margin-right: 12px;
-  min-height: 34px;
-  padding: 0 14px;
+  margin-right: 10px;
+  min-height: var(--control-height-compact);
+  padding: 0 12px;
   border: 1px solid color-mix(in srgb, var(--line-strong) 88%, transparent);
   border-radius: 999px;
   background:
@@ -630,6 +736,11 @@ input[type="file"]::file-selector-button {
   font: inherit;
   font-weight: 700;
   cursor: pointer;
+}
+
+.confirm-dialog,
+.records-start-modal__dialog {
+  border-radius: var(--modal-radius);
 }
 
 html[data-theme="dark"] input[type="file"]::file-selector-button {

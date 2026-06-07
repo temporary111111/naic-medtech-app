@@ -207,7 +207,7 @@
   display: grid;
   gap: 18px;
   padding: 22px;
-  border-radius: var(--radius-xl);
+  border-radius: var(--modal-radius, 18px);
   border: 1px solid color-mix(in srgb, var(--line) 92%, transparent);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--panel-strong) 94%, transparent), color-mix(in srgb, var(--panel) 88%, transparent)),
@@ -312,7 +312,7 @@
   gap: 4px;
   text-align: left;
   padding: 12px 13px;
-  border-radius: var(--radius-md);
+  border-radius: var(--control-radius, 12px);
   border: 1px solid color-mix(in srgb, var(--line) 90%, transparent);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--panel-strong) 88%, transparent), color-mix(in srgb, var(--surface-elevated) 80%, transparent)),
@@ -379,7 +379,7 @@
   align-items: center;
   text-align: left;
   padding: 11px 13px;
-  border-radius: var(--radius-md);
+  border-radius: var(--control-radius, 12px);
   border: 1px solid color-mix(in srgb, var(--line) 90%, transparent);
   background: color-mix(in srgb, var(--panel-strong) 86%, transparent);
   color: var(--text);
@@ -659,12 +659,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 26px;
-  padding: 4px 10px;
-  border-radius: 999px;
+  min-height: var(--chip-height, 24px);
+  padding: 3px 9px;
+  border-radius: var(--chip-radius, 999px);
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
+  line-height: 1.1;
   text-transform: uppercase;
   border: 1px solid color-mix(in srgb, var(--line) 92%, transparent);
   background: color-mix(in srgb, var(--panel-strong) 84%, transparent);
@@ -1138,6 +1139,10 @@
 .record-shell--entry .entry-field textarea {
   min-height: 40px;
   border-radius: 12px;
+}
+
+.record-shell--entry .entry-field textarea {
+  min-height: 88px;
 }
 
 .record-shell--entry .entry-field input[type="text"],

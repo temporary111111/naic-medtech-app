@@ -10,6 +10,13 @@
   --radius-xl: 24px;
   --radius-lg: 20px;
   --radius-md: 16px;
+  --control-height: 40px;
+  --control-height-compact: 34px;
+  --control-padding-y: 8px;
+  --control-padding-x: 14px;
+  --control-radius-pill: 999px;
+  --field-height: 40px;
+  --field-radius: 12px;
 }
 
 * {
@@ -138,10 +145,11 @@ h3 {
 input {
   width: 100%;
   border: 1px solid rgba(68, 54, 40, 0.18);
-  border-radius: 18px;
+  border-radius: var(--field-radius, 12px);
   background: rgba(255, 255, 255, 0.9);
   color: var(--text);
-  padding: 12px 14px;
+  min-height: var(--field-height, 40px);
+  padding: 8px 12px;
   outline: none;
 }
 
@@ -156,10 +164,11 @@ input:focus {
   justify-content: center;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
-  padding: 9px 15px;
-  border-radius: 999px;
-  font-weight: 700;
+  min-height: var(--control-height, 40px);
+  padding: var(--control-padding-y, 8px) var(--control-padding-x, 14px);
+  border-radius: var(--control-radius-pill, 999px);
+  font-weight: 800;
+  line-height: 1.1;
 }
 
 .primary-button {

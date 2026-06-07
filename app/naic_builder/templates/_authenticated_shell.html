@@ -36,7 +36,7 @@
   <link rel="manifest" href="{{ url_for('static', path='manifest.webmanifest') }}?v=20260606-app-icon-source">
   <script src="{{ url_for('static', path='theme.js') }}?v=20260606-icon-system"></script>
   {% block extra_css %}{% endblock %}
-  <link rel="stylesheet" href="{{ url_for('static', path='theme.css') }}?v=20260606-icon-system">
+  <link rel="stylesheet" href="{{ url_for('static', path='theme.css') }}?v=20260607-ui-root-phase2">
   <link rel="stylesheet" href="{{ url_for('static', path='shell.css') }}?v=20260607-ui-root-phase1">
 </head>
 <body class="app-shell-body{% if shell_variant|default('default') == 'workspace' %} app-shell-body--workspace{% endif %}" {% block body_attrs %}{% endblock %}>

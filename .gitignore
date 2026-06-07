@@ -1,9 +1,12 @@
 .venv/
+.npm-cache/
 **/__pycache__/
 *.pyc
+output/
 output/print-qa/
 data/runtime/backups/
 data/runtime/config/
 data/runtime/database/
 data/runtime/logs/
 dist/
+NUL
