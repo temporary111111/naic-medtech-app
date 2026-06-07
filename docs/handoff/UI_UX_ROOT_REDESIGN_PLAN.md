@@ -501,7 +501,13 @@ Do not implement a permanent heavy inspector pane. Earlier builder experiments s
 
 Current status:
 - the current builder already has the core no-rewrite direction in place
-- remaining work should be confirmed bug fixes, visual polish, contrast/overflow cleanup, and real-use QA
+- Phase 7B browser QA/polish landed on 2026-06-08 using an isolated temp runtime under `output/ui-ux-phase7b/runtime`
+- desktop light/dark builder checks covered Content, field details, Choices, Signatories, expanded signatory controls, Print settings, and generated print preview
+- mobile light/dark checks covered the builder command bar, compact workspace tabs, Content cards, and item action menus
+- mobile builder command actions are now more compact: view/file actions share a row and the status strip sits below them, reducing the pre-content chrome without changing desktop behavior
+- mobile card action menus now open upward and left-aligned from card triggers, preventing the `Copy` / `Remove` menu from clipping off-screen
+- save/reload smoke passed in the temp DB by adding a QA-only choice to Blood Bank `Examination`, saving Version 8, reloading, and verifying the persisted input value
+- remaining work should be treated as real-user bug/polish from manual review, not a builder architecture restart
 
 Definition of done:
 - builder feels like a controlled tool, not a settings page
@@ -539,11 +545,11 @@ Use temporary DB copies for visual QA whenever records need to be created or com
 - do not rely on browser back as the designed return path
 
 ## Current Implementation Recommendation
-Phase 1, Phase 2, Phase 3A, Phase 4A, Phase 5A, and Phase 5B have landed.
+Phase 1, Phase 2, Phase 3A, Phase 4A, Phase 5A, Phase 5B, Phase 6A, and Phase 7B have landed.
 
-The next highest-value implementation is a focused Phase 6B or Phase 7 decision:
+The next highest-value implementation is a focused Phase 6B or final manual review decision:
 - Phase 6B if the user wants the Safety Center itself to feel more purpose-built, with clearer status grouping and less inherited Desktop-settings wording
-- Phase 7 if Safety is acceptable and the next priority should move to the Builder workspace redesign
+- manual builder review if the user wants to personally judge the Phase 7B browser-verified builder feel before more code
 - keep restore deliberately hard to trigger accidentally
 - preserve the existing backup/restore engine unless a validated release requirement demands backend changes
 - continue using temporary DB copies for browser visual QA

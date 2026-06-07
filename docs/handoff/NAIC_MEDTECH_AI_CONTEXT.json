@@ -12,9 +12,9 @@
   "active_desktop_installer_doc": "docs/handoff/DESKTOP_INSTALLER_ARCHITECTURE.md",
   "main_goal_status": "continuation_ready_real_world_qa_remaining",
   "handoff_status": {
-    "last_refreshed": "2026-06-07",
+    "last_refreshed": "2026-06-08",
     "continuation_readiness": "ready_for_another_ai_if_it_reads_the_handoff_docs_first",
-    "current_priority": "manual_qa_safety_center_and_builder_polish_before_more_major_work",
+    "current_priority": "manual_review_of_phase_7b_builder_polish_or_phase_6b_safety_center_polish_before_more_major_work",
     "must_not_reopen_without_evidence": [
       "schema-driven builder architecture",
       "builder-driven print configuration",
@@ -60,7 +60,7 @@
   },
   "locked_ui_direction": {
     "design_language": "clinical_depth_luxe",
-    "status": "authenticated_shell_content_first_compact_work_surface_public_auth_settings_ia_account_profile_clinic_profile_settings_utility_recursive_builder_browser_qa_and_print_configuration_phase_2f_pass_landed",
+    "status": "authenticated_shell_content_first_compact_work_surface_public_auth_settings_ia_account_profile_clinic_profile_settings_utility_recursive_builder_phase_7b_mobile_menu_browser_qa_and_print_configuration_phase_2f_pass_landed",
     "mode_pair": {
       "light": "artifacts/ui-explorations/records-home-modern-clinical-depth-luxe.html",
       "dark": "artifacts/ui-explorations/records-home-modern-clinical-depth-luxe-dark-deeper.html"

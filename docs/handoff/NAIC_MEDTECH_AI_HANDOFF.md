@@ -919,6 +919,9 @@ Current builder implementation is still:
 - local `SortableJS`
 
 ## Current Builder UX Checkpoint
+- Phase 7B browser QA/polish landed on 2026-06-08: builder desktop light/dark, mobile light/dark, Content details/Choices, Signatories, Print settings, generated print preview, and save/reload were checked using a temporary QA runtime under `output/ui-ux-phase7b/runtime`.
+- The current live builder is recursive and inline: `Content` uses `Container` and `Field` cards, field details/options open inside the card, and there is no permanent right inspector or duplicate content outline.
+- Mobile builder command actions are compacted so `Preview/Advanced` and `New/.../Saved` share one row with the status strip below; mobile card action menus now open upward and left-aligned so `Copy`/`Remove` does not clip off-screen.
 - the builder now uses calmer non-technical wording such as `Basics`, `Content`, `Location`, and `Edit`
 - the workspace uses `outline + focused editor + live preview`
 - the live preview is read-only and uses sticky quick-jump section navigation
