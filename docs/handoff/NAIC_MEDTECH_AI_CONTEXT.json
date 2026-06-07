@@ -14,7 +14,7 @@
   "handoff_status": {
     "last_refreshed": "2026-06-07",
     "continuation_readiness": "ready_for_another_ai_if_it_reads_the_handoff_docs_first",
-    "current_priority": "root_ui_ux_phase_4_record_entry_view_then_modal_system_and_safety_center_decision",
+    "current_priority": "root_ui_ux_phase_5_modal_system_then_safety_center_decision_with_phase_3b_deferred",
     "must_not_reopen_without_evidence": [
       "schema-driven builder architecture",
       "builder-driven print configuration",
@@ -83,7 +83,7 @@
       "print_excluded": true
     },
     "records_reskin_phase": {
-      "status": "root_ui_phase_3a_records_workbench_history_landed",
+      "status": "root_ui_phase_4a_record_entry_view_landed",
       "primary_stylesheet": "app/naic_builder/static/records.css",
       "scope": [
         "records home",
@@ -119,6 +119,7 @@
         "Settings > Users & access now keeps search and status filters inside the Accounts directory header, so the staff list reads as one directory surface instead of a separate toolbar plus list.",
         "/records/history now keeps search and status filters inside the History section header, so lookup reads as one history surface and search preserves the active Completed/Drafts/All filter.",
         "Root UI/UX Phase 3A has now landed for the records workbench/history surfaces: /records and /records/history use lighter row-like record surfaces, compact history filter controls, and the record start modal plus /records/new fallback share a split searchable picker layout.",
+        "Root UI/UX Phase 4A has now landed for record entry/view: /records/{id}/edit uses a flatter field-first panel, compact summary readiness, a sticky edit-form action bar with Complete and print primary, and safe long-text wrapping; /records/{id} shows clearer draft/completed/voided state hierarchy without accidentally docking view-page void actions.",
         "The builder stabilization pass is now landed too: builder-specific light/dark surfaces are tokenized, organizer rows no longer inherit primary button styling, preview is opt-in instead of open by default, command actions are grouped, and the workspace header no longer sticks over builder content while scrolling.",
         "The recursive builder integration has now passed a real-browser QA pass too: duplicate-form startup, nested containers and fields, choice options, numeric ranges, subtree copy/remove, mixed advanced-block ordering, save/reload persistence, light/dark contrast, and desktop/tablet/mobile layouts were checked directly.",
         "Builder subtree copies now refresh block and option IDs recursively, SortableJS ordering now resolves real collection positions even while Advanced utility blocks are hidden, advanced utility cards expose drag handles, and tablet/mobile workspace tabs stay compact and reachable above the editor."
@@ -132,6 +133,7 @@
       "The first root UI/UX Phase 1 pass has landed: authenticated screens now use a fixed-height app frame with body/document scroll disabled, app-shell-main as the normal scroll owner, compact global/page headers, tighter record-edit summary/readiness chrome, and Complete and print as the primary record-entry action. Visual QA screenshots and metrics live under output/ui-ux-phase1/.",
       "The first root UI/UX Phase 2 atom pass has landed: shared theme.css control tokens now compact primary/ghost buttons, fields, chips, and modal radius; the broad button:not(...) primary selector was removed so password toggles, shell icon buttons, modal scrims, and record-picker cards keep their own treatment; public auth, shell, records, forms library, and settings CSS links were cache-busted to 20260607-ui-root-phase2. Visual QA screenshots and computed scroll/style metrics live under output/ui-ux-phase2/.",
       "The first root UI/UX Phase 3A records workbench/history pass has landed: /records and /records/history now use lighter row-like record surfaces, compact history search/filter controls, and the new-record modal plus /records/new fallback share the split searchable picker layout; records CSS was cache-busted to 20260607-ui-root-phase3. Visual QA screenshots and computed scroll/style metrics live under output/ui-ux-phase3/.",
+      "The first root UI/UX Phase 4A record entry/view pass has landed: /records/{id}/edit now has a compact readiness summary, flatter field-first entry panel, scoped sticky bottom action dock, Complete and print as the primary draft completion action, and safe long-text wrapping; /records/{id} now has clearer draft/completed/voided state hierarchy. Records CSS was cache-busted to 20260607-ui-root-phase4. Visual QA screenshots and computed scroll/style metrics live under output/ui-ux-phase4/.",
       "Quick light-mode audits were also run across the main non-print screens so the next review should not immediately hit obvious contrast regressions.",
       "Builder should stay denser than records, forms, and settings; the calmer content-first composition rule is mainly for the everyday non-builder product surfaces.",
       "Directness is now part of the live UI rule too: obvious screens should not over-explain themselves, and helper text should remain only where it prevents mistakes or clarifies non-obvious actions.",
@@ -170,8 +172,9 @@
       "normal record Print is completed-only now: draft edit/view no longer expose a generic Print action, direct draft /records/{id}/print redirects back to edit with a clear warning, and Complete and print remains the validated print path while editing a draft",
       "record-entry polish is calmer now too: ordinary draft saves return with a quiet Saved the draft banner, Sex now uses the same standard select in create and edit, and the image file hint no longer shows the old broken separator artifact",
       "record edit is more self-guiding now too: draft records already show a quiet readiness panel while editing, and that same panel flips between blocked and ready-to-complete states instead of waiting for a failed submit first",
-      "record edit now keeps Save draft, Complete and print, and Complete in a fixed bottom action dock with action-specific progress text",
-      "record edit and view now start faster too: the older heavy record hero/meta stack was replaced by a lighter compact summary shell, and deeper audit metadata now lives in a calmer collapsible Record info area instead of dominating the top of the page",
+      "record edit now keeps Save draft, Complete, and Complete and print in a sticky bottom action dock scoped to the edit form, with Complete and print as the primary action and action-specific progress text",
+      "record edit and view now start faster too: the older heavy record hero/meta stack was replaced by a lighter compact summary shell, summary readiness no longer uses a large pre-field checklist, and deeper audit metadata now lives in a calmer collapsible Record info area instead of dominating the top of the page",
+      "record view now wraps long titles and recorded values safely, including extreme patient-name cases, so it does not create horizontal overflow inside the app shell",
       "record edit is safer now too: it shows a quiet dirty-state label and browser leave protection now warns before accidental navigation away from unsaved changes",
       "record entry, record view, and print now render utility blocks more honestly too: note text, divider captions, and sample tables no longer fall back to generic placeholders",
       "the record header is more future-proof too: new, edit, view, and print can use generic record identity configured from the form builder, with old patient/case wording treated as compatibility fallback",

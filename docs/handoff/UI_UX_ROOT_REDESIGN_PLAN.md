@@ -428,6 +428,16 @@ Redesign:
 - sticky action dock
 - completion/readiness UI
 
+Current status:
+- first record entry/view pass landed on 2026-06-07; Phase 3B remains deferred for later
+- all records templates now load records CSS with `20260607-ui-root-phase4`
+- `/records/{id}/edit` has a compact summary readiness strip instead of the older large pre-field completion checklist, and the record-entry panel is flattened so fields start earlier
+- `Complete and print` remains the primary draft action and now sits in a sticky bottom action bar inside the app's real scroll owner; view-page void actions stay static and are not accidentally docked
+- `/records/{id}` now shows a compact draft/completed/voided state in the summary, with completed records reading as print-ready and voided records reading as view-only
+- long record titles and recorded values now wrap instead of creating horizontal overflow, including extreme patient-name cases
+- mobile record entry has tighter page-header actions and a denser summary block, while keeping the sticky `Complete and print` path reachable
+- visual QA screenshots and computed scroll/style metrics were saved under `output/ui-ux-phase4/`
+
 Definition of done:
 - fields appear earlier
 - `Complete and print` is the primary draft completion action

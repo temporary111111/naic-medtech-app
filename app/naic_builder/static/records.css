@@ -715,6 +715,14 @@
   margin: 0;
 }
 
+.record-top-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+}
+
 .danger-button {
   color: var(--danger);
   border-color: color-mix(in srgb, var(--danger) 26%, var(--line));
@@ -814,12 +822,20 @@
 .record-summary-main {
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 .record-summary-main h2 {
   font-size: clamp(1.9rem, 4vw, 3rem);
   line-height: 0.94;
   letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
+}
+
+.record-summary-main .panel-copy,
+.record-lifecycle-alert p,
+.record-card-copy h3 {
+  overflow-wrap: anywhere;
 }
 
 .record-summary-pills {
@@ -828,10 +844,18 @@
   flex-wrap: wrap;
 }
 
+.record-summary-side {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+  min-width: 0;
+}
+
 .record-meta-pill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   min-height: 34px;
   padding: 8px 12px;
   border-radius: 999px;
@@ -840,6 +864,7 @@
   color: var(--text);
   font-size: 12px;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .record-meta-pill strong {
@@ -1022,7 +1047,7 @@
 }
 
 .record-shell--entry .record-entry-form {
-  padding-bottom: 88px;
+  padding-bottom: 78px;
 }
 
 .record-section-jumps {
@@ -1070,15 +1095,16 @@
 .entry-stack,
 .record-value-grid {
   display: grid;
-  gap: 14px;
+  gap: 12px;
+  min-width: 0;
 }
 
 .record-shell--entry .entry-stack {
-  gap: 10px;
+  gap: 8px;
 }
 
 .record-shell--entry .record-entry-form > .entry-stack {
-  gap: 14px;
+  gap: 10px;
 }
 
 .record-basics-grid {
@@ -1099,8 +1125,8 @@
 
 .record-shell--entry .entry-field {
   gap: 6px;
-  padding: 10px 11px;
-  border-radius: var(--radius-lg);
+  padding: 9px 10px;
+  border-radius: var(--control-radius, 12px);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--panel-strong) 82%, transparent), color-mix(in srgb, var(--panel) 78%, transparent));
   box-shadow: none;
@@ -1197,12 +1223,12 @@
 .entry-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 24px;
-  padding: 4px 8px;
+  min-height: 22px;
+  padding: 3px 8px;
   border-radius: 999px;
   background: var(--accent-soft);
   color: var(--accent);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1283,7 +1309,7 @@
 .record-section,
 .record-values-panel {
   display: grid;
-  gap: 16px;
+  gap: 12px;
   border-radius: var(--radius-xl);
   border: 1px solid color-mix(in srgb, var(--line) 88%, transparent);
   background:
@@ -1329,6 +1355,10 @@
   gap: 6px;
 }
 
+.record-shell--entry .record-summary-side {
+  min-width: min(340px, 100%);
+}
+
 .record-shell--entry .record-meta-pill {
   min-height: 28px;
   padding: 5px 9px;
@@ -1342,16 +1372,17 @@
 }
 
 .record-shell--entry .record-entry-panel {
-  padding: 12px;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--panel-strong) 84%, transparent), color-mix(in srgb, var(--panel) 78%, transparent));
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .record-shell--entry .record-section,
 .record-shell--entry .entry-group {
-  gap: 10px;
-  padding: 13px;
-  border-radius: var(--radius-lg);
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--control-radius, 12px);
   box-shadow: none;
 }
 
@@ -1364,7 +1395,7 @@
 .record-shell--view .record-value-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
-  gap: 10px;
+  gap: 8px;
 }
 
 .record-shell--entry .record-section > .entry-stack > .record-section,
@@ -1413,6 +1444,12 @@
 .record-shell--entry .entry-block-head h4 {
   font-size: 1.02rem;
   line-height: 1.15;
+}
+
+.record-entry-alerts {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .entry-note {
@@ -1569,19 +1606,94 @@
   font-size: 13px;
 }
 
+.record-completion-brief,
+.record-view-state {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  min-width: min(260px, 100%);
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--warm) 26%, transparent);
+  border-radius: var(--control-radius, 12px);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--warm-soft) 62%, transparent), color-mix(in srgb, var(--panel) 84%, transparent));
+}
+
+.record-completion-brief.is-ready,
+.record-view-state[data-status="completed"] {
+  border-color: color-mix(in srgb, var(--success) 24%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--success-soft) 62%, transparent), color-mix(in srgb, var(--panel) 84%, transparent));
+}
+
+.record-view-state[data-status="voided"] {
+  border-color: color-mix(in srgb, var(--danger) 24%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--danger-soft) 60%, transparent), color-mix(in srgb, var(--panel) 84%, transparent));
+}
+
+.record-completion-brief > span,
+.record-view-state > span,
+.record-completion-details summary {
+  color: color-mix(in srgb, var(--muted) 78%, var(--text) 22%);
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.record-completion-brief.is-ready > span,
+.record-view-state[data-status="completed"] > span {
+  color: var(--success);
+}
+
+.record-view-state[data-status="voided"] > span {
+  color: var(--danger);
+}
+
+.record-completion-brief > strong,
+.record-view-state > strong {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.15;
+  text-align: right;
+}
+
+.record-completion-details {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+}
+
+.record-completion-details summary {
+  cursor: pointer;
+  list-style: none;
+  text-align: right;
+}
+
+.record-completion-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.record-completion-details .completion-issues {
+  padding-left: 16px;
+  font-size: 11.5px;
+  text-align: left;
+}
+
 .entry-actions {
   align-items: center;
   justify-content: flex-end;
   padding-top: 2px;
 }
 
-.record-shell--entry .entry-actions {
-  position: fixed;
-  left: 50%;
+.record-shell--entry .record-entry-form > .entry-actions {
+  position: sticky;
   bottom: max(14px, env(safe-area-inset-bottom));
   z-index: 46;
-  width: min(848px, calc(100vw - 32px));
-  transform: translateX(-50%);
+  width: min(848px, 100%);
+  margin: 14px auto 0;
   padding: 10px;
   border: 1px solid color-mix(in srgb, var(--line) 90%, transparent);
   border-radius: calc(var(--radius-xl) + 2px);
@@ -1664,6 +1776,7 @@
 .record-value-row {
   display: grid;
   gap: 8px;
+  min-width: 0;
   padding: 15px 16px;
   border-radius: var(--radius-xl);
   border: 1px solid color-mix(in srgb, var(--line) 88%, transparent);
@@ -1673,15 +1786,17 @@
 }
 
 .record-shell--view .record-values-panel {
-  padding: 16px;
+  padding: 12px;
+  border-radius: var(--control-radius, 12px);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--panel-strong) 84%, transparent), color-mix(in srgb, var(--panel) 78%, transparent));
+  box-shadow: none;
 }
 
 .record-shell--view .record-value-row {
   gap: 6px;
-  padding: 10px 11px;
-  border-radius: var(--radius-lg);
+  padding: 9px 10px;
+  border-radius: var(--control-radius, 12px);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--panel-strong) 82%, transparent), color-mix(in srgb, var(--panel) 78%, transparent));
   box-shadow: none;
@@ -1689,9 +1804,11 @@
 
 .record-value-answer {
   margin: 0;
+  min-width: 0;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.95rem;
   line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .record-value-answer.is-empty {
@@ -1792,6 +1909,12 @@ html[data-theme="dark"] .records-start-modal__dialog {
   border-color: rgba(223, 240, 245, 0.06);
 }
 
+html[data-theme="dark"] .record-shell--entry .record-entry-panel {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 html[data-theme="dark"] .record-card {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02)),
@@ -1881,6 +2004,31 @@ html[data-theme="dark"] .record-summary-shell .record-audit-item p {
 
 html[data-theme="dark"] .record-summary-shell .record-meta-details {
   border-top-color: rgba(223, 240, 245, 0.08);
+}
+
+html[data-theme="dark"] .record-completion-brief,
+html[data-theme="dark"] .record-view-state {
+  border-color: rgba(210, 174, 109, 0.18);
+  background:
+    linear-gradient(180deg, rgba(210, 174, 109, 0.1), rgba(255, 255, 255, 0.018));
+}
+
+html[data-theme="dark"] .record-completion-brief.is-ready,
+html[data-theme="dark"] .record-view-state[data-status="completed"] {
+  border-color: rgba(100, 187, 153, 0.18);
+  background:
+    linear-gradient(180deg, rgba(100, 187, 153, 0.1), rgba(255, 255, 255, 0.018));
+}
+
+html[data-theme="dark"] .record-view-state[data-status="voided"] {
+  border-color: rgba(221, 133, 120, 0.2);
+  background:
+    linear-gradient(180deg, rgba(221, 133, 120, 0.1), rgba(255, 255, 255, 0.018));
+}
+
+html[data-theme="dark"] .record-completion-brief > strong,
+html[data-theme="dark"] .record-view-state > strong {
+  color: var(--shell-text);
 }
 
 html[data-theme="dark"] .record-shell .panel-copy,
@@ -2097,7 +2245,7 @@ html[data-theme="dark"] .completion-checklist.is-ready {
     justify-content: stretch;
   }
 
-  .record-shell--entry .entry-actions {
+  .record-shell--entry .record-entry-form > .entry-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: stretch;
@@ -2204,10 +2352,60 @@ html[data-theme="dark"] .completion-checklist.is-ready {
 
   .record-shell--entry .record-summary-shell {
     grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .record-shell--entry .record-summary-main h2 {
+    font-size: 1.45rem;
+    line-height: 1.08;
   }
 
   .record-shell--entry .record-summary-pills {
     justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .record-shell--entry .record-summary-side {
+    justify-items: stretch;
+    min-width: 0;
+  }
+
+  .record-shell--entry .record-meta-pill {
+    min-height: 26px;
+    padding: 5px 8px;
+    font-size: 10.5px;
+  }
+
+  .record-shell--entry .record-completion-brief,
+  .record-shell--entry .record-view-state {
+    width: 100%;
+    min-width: 0;
+    justify-items: start;
+    padding: 7px 9px;
+  }
+
+  .record-shell--entry .record-completion-brief > strong,
+  .record-shell--entry .record-view-state > strong,
+  .record-shell--entry .record-completion-details summary {
+    text-align: left;
+  }
+
+  .app-page-header__actions .record-top-actions {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  .record-top-actions .primary-button,
+  .record-top-actions .ghost-button {
+    min-height: var(--control-height-compact, 34px);
+    padding: 0 12px;
+    font-size: 13px;
+  }
+
+  .record-top-actions .inline-danger-form {
+    flex: 0 1 auto;
   }
 
   .record-shell--entry .record-section > .entry-stack,
@@ -2216,8 +2414,8 @@ html[data-theme="dark"] .completion-checklist.is-ready {
     grid-template-columns: 1fr;
   }
 
-  .record-shell--entry .entry-actions {
-    width: calc(100vw - 24px);
+  .record-shell--entry .record-entry-form > .entry-actions {
+    width: min(100%, calc(100vw - 24px));
     bottom: max(10px, env(safe-area-inset-bottom));
     padding: 9px;
     border-radius: var(--radius-lg);

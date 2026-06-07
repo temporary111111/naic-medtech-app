@@ -5,7 +5,7 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
-  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20260607-ui-root-phase3">
+  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20260607-ui-root-phase4">
 {% endblock %}
 
 {% block shell_eyebrow %}Records{% endblock %}
@@ -17,6 +17,7 @@
 {% endblock %}
 
 {% block topbar_actions %}
+  <div class="record-top-actions record-top-actions--edit">
   <a class="ghost-button" href="/records/{{ record.id }}{% if history_query %}?{{ history_query }}{% endif %}">View</a>
   {% if record.status == "draft" %}
   <form method="post" action="/records/{{ record.id }}/delete-draft" class="inline-danger-form" data-confirm="Delete this draft? This keeps the audit trail but removes it from the work queue.">
@@ -27,6 +28,7 @@
     <button class="ghost-button danger-button" type="submit">Delete draft</button>
   </form>
   {% endif %}
+  </div>
 {% endblock %}
 
 {% block content %}
@@ -267,9 +269,28 @@
         <p class="panel-copy">{{ record.form_path_label }}</p>
       </div>
 
-      <div class="record-summary-pills">
-        <span class="record-meta-pill"><strong>{{ record.display_subtitle_label }}</strong>{{ record.display_subtitle or "Not set yet" }}</span>
-        <span class="record-meta-pill"><strong>Version</strong>Form v{{ record.form_version_number }}</span>
+      <div class="record-summary-side">
+        <div class="record-summary-pills">
+          <span class="record-meta-pill"><strong>{{ record.display_subtitle_label }}</strong>{{ record.display_subtitle or "Not set yet" }}</span>
+          <span class="record-meta-pill"><strong>Version</strong>Form v{{ record.form_version_number }}</span>
+        </div>
+        {% if record.status == "draft" %}
+        <section class="record-completion-brief{% if not validation_issues %} is-ready{% endif %}">
+          {% if validation_issues %}
+          <details class="record-completion-details" {% if error_message %}open{% endif %}>
+            <summary>{{ validation_issues|length }} required {{ "detail" if (validation_issues|length) == 1 else "details" }}</summary>
+            <ul class="completion-issues">
+              {% for issue in validation_issues %}
+              <li>{{ issue }}</li>
+              {% endfor %}
+            </ul>
+          </details>
+          {% else %}
+          <span>Ready to complete</span>
+          <strong>Required answers in place</strong>
+          {% endif %}
+        </section>
+        {% endif %}
       </div>
 
       <details class="record-meta-details">
@@ -295,28 +316,15 @@
     </section>
 
     <section class="panel records-main record-entry-panel">
+      {% if error_message or success_message %}
+      <div class="record-entry-alerts">
       {% if error_message %}
       <div class="error-banner">{{ error_message }}</div>
       {% endif %}
       {% if success_message %}
       <div class="success-banner">{{ success_message }}</div>
       {% endif %}
-      {% if record.status == "draft" %}
-      <section class="completion-checklist{% if not validation_issues %} is-ready{% endif %}">
-        <div class="entry-block-head">
-          <p class="eyebrow">{{ "Ready" if not validation_issues else "Before completing" }}</p>
-          <h3>{{ "This draft is ready to complete" if not validation_issues else "Finish these required details" }}</h3>
-        </div>
-        {% if validation_issues %}
-        <ul class="completion-issues">
-          {% for issue in validation_issues %}
-          <li>{{ issue }}</li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <p class="completion-ready-copy">Required field answers are already in place.</p>
-        {% endif %}
-      </section>
+      </div>
       {% endif %}
 
       <form method="post" action="/records/{{ record.id }}/edit" class="record-entry-form" data-dirty-guard>

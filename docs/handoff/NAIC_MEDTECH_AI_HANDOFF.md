@@ -185,10 +185,11 @@ Current June 7, 2026 decision:
 - the app should now be treated as a compact clinic operations workbench, not just a reskin needing small polish
 - the previous live reskin remains useful style context, but the current requested work is root workflow/layout correction
 - priority concerns from the user: compactness, accidental double-scroll, light-mode contrast, better back/return behavior, less bulky components, `Complete and print` as the primary record-entry action, a real modal system, and possible admin `Safety` navigation for backup/restore/LAN health
-- Phase 1/2 foundation plus the first Phase 3A records workbench/history pass are now the baseline; next UI work should continue into record entry/view rather than restarting shell/atom analysis
+- Phase 1/2 foundation plus the first Phase 3A records workbench/history pass and Phase 4A record entry/view pass are now the baseline; Phase 3B is intentionally deferred and the next UI work should move into the modal system/Safety IA decision rather than restarting shell/atom analysis
 - first Phase 1 pass has landed: authenticated screens now use a fixed-height app frame with body/document scroll disabled, `.app-shell-main` as the normal scroll owner, compact global/page headers, tighter record-edit summary/readiness chrome, and `Complete and print` as the primary record-entry action. Visual QA outputs are under `output/ui-ux-phase1/`
 - first Phase 2 atom pass has landed: shared `theme.css` control tokens now compact primary/ghost buttons, inputs, status chips, and modal radius; the risky broad `button:not(...)` primary selector was removed so password toggles, shell icon buttons, modal scrims, and record-picker cards keep their own treatment; public auth, records, forms library, settings, and shell CSS links were cache-busted to `20260607-ui-root-phase2`. Visual QA outputs and computed scroll/style metrics are under `output/ui-ux-phase2/`
 - first Phase 3A records workbench/history pass has landed: `/records` and `/records/history` use lighter row-like record surfaces, compact history search/filter controls, and a split new-record picker shared by the modal and `/records/new` fallback; records CSS was cache-busted to `20260607-ui-root-phase3`. Visual QA outputs and computed scroll/style metrics are under `output/ui-ux-phase3/`
+- first Phase 4A record entry/view pass has landed: `/records/{id}/edit` now uses a flatter field-first entry panel, compact summary readiness strip, scoped sticky bottom action bar with `Complete and print` primary, and safer long-text wrapping; `/records/{id}` now shows compact draft/completed/voided state hierarchy and no longer lets view-page void actions inherit the edit dock. Records CSS was cache-busted to `20260607-ui-root-phase4`. Visual QA outputs and computed scroll/style metrics are under `output/ui-ux-phase4/`
 
 Current live status:
 - the non-print app now has a materially landed live reskin pass under that direction
@@ -416,7 +417,7 @@ What exists now:
   - `Complete` also enforces form-design-required field answers
   - `Complete and print` uses the same validation and then redirects directly to `/records/{id}/print`
   - normal `Print` is completed-only now: draft edit/view no longer expose a generic `Print` action, direct draft `/records/{id}/print` redirects back to edit with a clear warning, and `Complete and print` remains the validated print path while editing a draft
-  - the edit screen now shows a quiet completion checklist when something is missing
+  - the edit screen now shows compact summary readiness when something is missing, instead of a large checklist above the fields
 - record cleanup now follows a safety-first lifecycle model:
   - draft records can be soft-deleted through `Delete draft`; this sets status `deleted`, hides the draft from normal work/history lists, and preserves audit data in `indexed_meta.lifecycle.deleted`
   - completed records are not hard-deleted; they can be voided with a required reason, status `voided`, and audit data in `indexed_meta.lifecycle.voided`
@@ -427,16 +428,17 @@ What exists now:
   - `Sex` now uses the same small standard select in both record create and record edit
   - the image file hint now uses plain ASCII text instead of the old broken separator artifact
 - record edit is more self-guiding now too:
-  - draft records already show a quiet readiness panel while editing
-  - if details are still missing, the panel lists what still blocks `Complete`
-  - if the draft is ready, the same panel flips into a calm ready-to-complete state
+  - draft records already show quiet summary readiness while editing
+  - if details are still missing, the summary can list what still blocks `Complete`
+  - if the draft is ready, the same summary flips into a calm ready-to-complete state
 - record edit and view now start faster too:
   - the older heavy record hero/meta stack was replaced by a lighter compact summary shell
   - deeper audit metadata now lives in a calmer collapsible `Record info` area instead of dominating the top of the page
 - record forms are safer now too:
   - `edit` now shows a quiet dirty-state label instead of leaving save state implicit
   - browser leave protection now warns before a medtech accidentally navigates away with unsaved record changes
-  - `Save draft`, `Complete and print`, and `Complete` now stay available in a fixed bottom action dock with action-specific progress text
+  - `Save draft`, `Complete`, and `Complete and print` now stay available in a sticky bottom action dock scoped to the edit form, with action-specific progress text
+  - long record titles and recorded values wrap safely instead of creating horizontal overflow in record view
 - record entry, record view, and print now render utility blocks more honestly too: note text, divider captions, and sample tables no longer fall back to generic placeholder cards
 - the record header is more clinic-ready too: new, edit, view, and print resolve generic record identity/search hints from builder fields instead of relying on a hardcoded patient panel
 - records are stored separately from forms and point to a frozen `form_version_id`

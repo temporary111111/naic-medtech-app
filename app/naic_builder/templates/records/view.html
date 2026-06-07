@@ -5,7 +5,7 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
-  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20260607-ui-root-phase3">
+  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20260607-ui-root-phase4">
 {% endblock %}
 
 {% block shell_eyebrow %}Records{% endblock %}
@@ -17,11 +17,13 @@
 {% endblock %}
 
 {% block topbar_actions %}
+  <div class="record-top-actions record-top-actions--view">
   {% if record.status == "draft" %}
   <a class="primary-button" href="/records/{{ record.id }}/edit{% if history_query %}?{{ history_query }}{% endif %}">Continue editing</a>
   {% elif record.status == "completed" %}
   <a class="primary-button" href="/records/{{ record.id }}/print{% if history_query %}?{{ history_query }}{% endif %}">Print</a>
   {% endif %}
+  </div>
 {% endblock %}
 
 {% block content %}
@@ -181,9 +183,23 @@
         <p class="panel-copy">{{ record.form_path_label }}</p>
       </div>
 
-      <div class="record-summary-pills">
-        <span class="record-meta-pill"><strong>{{ record.display_subtitle_label }}</strong>{{ record.display_subtitle or "Not set yet" }}</span>
-        <span class="record-meta-pill"><strong>Version</strong>Form v{{ record.form_version_number }}</span>
+      <div class="record-summary-side">
+        <div class="record-summary-pills">
+          <span class="record-meta-pill"><strong>{{ record.display_subtitle_label }}</strong>{{ record.display_subtitle or "Not set yet" }}</span>
+          <span class="record-meta-pill"><strong>Version</strong>Form v{{ record.form_version_number }}</span>
+        </div>
+        <div class="record-view-state" data-status="{{ record.status }}">
+          <span>{{ record.status_label or record.status }}</span>
+          {% if record.status == "draft" %}
+          <strong>Draft in progress</strong>
+          {% elif record.status == "completed" %}
+          <strong>Print-ready result</strong>
+          {% elif record.status == "voided" %}
+          <strong>View only</strong>
+          {% else %}
+          <strong>{{ record.form_name }}</strong>
+          {% endif %}
+        </div>
       </div>
 
       <details class="record-meta-details">
