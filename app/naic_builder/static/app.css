@@ -1343,7 +1343,7 @@ button.subtle[aria-pressed="true"] {
 }
 
 .action-details[open] {
-  z-index: 120;
+  z-index: 260;
 }
 
 .action-details summary {
@@ -1398,7 +1398,7 @@ button.subtle[aria-pressed="true"] {
   border-radius: var(--radius-md);
   background: rgba(255, 252, 247, 0.98);
   box-shadow: 0 18px 34px rgba(38, 29, 20, 0.12);
-  z-index: 130;
+  z-index: 300;
 }
 
 .action-menu button {
@@ -3121,6 +3121,26 @@ textarea:focus,
   top: var(--builder-sticky-top);
 }
 
+.shell .outline-panel,
+.shell .editor-panel {
+  padding: 10px;
+}
+
+.shell .outline-head h3 {
+  font-size: 16px;
+  line-height: 1.15;
+}
+
+.shell .outline-item {
+  min-height: 38px;
+  padding: 8px 10px;
+}
+
+.shell .outline-item.active,
+.shell .outline-subitem.active {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
 .shell .editor-card,
 .shell .section-card,
 .shell .item-card,
@@ -3142,7 +3162,13 @@ textarea:focus,
       color-mix(in srgb, var(--panel-strong) 78%, transparent),
       color-mix(in srgb, var(--surface-elevated) 88%, transparent)
     );
-  box-shadow: 0 12px 26px rgba(9, 23, 29, 0.06);
+  box-shadow: 0 8px 18px rgba(9, 23, 29, 0.045);
+}
+
+.shell .action-details[open],
+.shell .section-card:has(.action-details[open]),
+.shell .item-card:has(.action-details[open]) {
+  z-index: 280;
 }
 
 .shell .section-card,

@@ -7,7 +7,7 @@
 {% block body_attrs %}data-initial-form-slug="{{ initial_form_slug or '' }}" data-initial-builder-mode="{{ initial_builder_mode or '' }}"{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{{ url_for('static', path='app.css') }}?v=20260606-disclosure-chevrons">
+  <link rel="stylesheet" href="{{ url_for('static', path='app.css') }}?v=20260607-builder-polish">
 {% endblock %}
 
 {% block shell_eyebrow %}Builder{% endblock %}
@@ -47,7 +47,7 @@
           <details class="action-details topbar-actions">
             <summary aria-label="More actions" title="More actions">...</summary>
             <div class="action-menu">
-              <button id="duplicateFormBtn" class="ghost mini" type="button">Duplicate</button>
+              <button id="duplicateFormBtn" class="ghost mini" type="button">Copy</button>
             </div>
           </details>
           <button id="saveBtn" class="mini" type="button">Save</button>
@@ -138,5 +138,5 @@
 
 {% block page_scripts %}
   <script src="{{ url_for('static', path='vendor/sortable.min.js') }}" defer></script>
-  <script src="{{ url_for('static', path='app.js') }}?v=20260606-disclosure-chevrons" defer></script>
+  <script src="{{ url_for('static', path='app.js') }}?v=20260607-builder-polish" defer></script>
 {% endblock %}

@@ -193,6 +193,7 @@ Current June 7, 2026 decision:
 - first Phase 5A shared modal foundation has landed: authenticated non-print pages now have a shell-level decision modal exposed as `window.NAICApp.confirm()`, record `data-confirm` forms use it instead of browser `confirm()`, delete draft / void record / dirty internal navigation are covered, and destructive actions focus the safe cancel action first. Shell CSS/JS and records JS were cache-busted to `20260607-ui-root-phase5a*`. Visual QA outputs and modal/focus/overflow metrics are under `output/ui-ux-phase5a/`
 - Phase 5B safety-form modal application has landed: `shell.js` now owns a generic app-wide `[data-confirm]` submit handler, `/settings/desktop` backup/verify/settings/restore forms use the shared modal system, restore backup gets a destructive safe-cancel-first modal after normal required file/RESTORE validation, and shell JS is cache-busted to `20260607-ui-root-phase5b`. Visual QA outputs and modal/focus/overflow metrics are under `output/ui-ux-phase5b/`
 - Phase 6A Safety Center IA has landed: admins now get a top-level `Safety` drawer item, `/safety` frames verified backup/restore/LAN/QR/browser-desktop controls as operational safety rather than ordinary Settings, `/settings/desktop` remains as compatibility route, Safety actions use `/safety/...` aliases and redirect back to Safety, and `/safety/lan-qr` keeps the QR flow inside Safety. Visual QA outputs and route/overflow metrics are under `output/ui-ux-phase6a/`
+- Phase 7 Builder Workspace has been recalibrated as a no-rewrite polish/QA phase: do not reintroduce a permanent heavy inspector or duplicate content outline; keep the current recursive `Container`/`Field` canvas, optional preview, workspace rail, and command bar. A small builder polish pass has landed with aligned docs, builder asset cache-bust `20260607-builder-polish`, calmer rail/card density, stronger action-menu stacking, and `Copy` wording for duplicate form.
 
 Current live status:
 - the non-print app now has a materially landed live reskin pass under that direction
@@ -1030,7 +1031,7 @@ When continuing implementation, the next AI should:
 2. Read `docs/handoff/NAIC_MEDTECH_AI_CONTEXT.json`.
 3. Read `docs/handoff/PRINT_SYSTEM_HANDOFF.md` for print state and rules.
 4. Read `docs/handoff/DESKTOP_INSTALLER_ARCHITECTURE.md` before touching installer, LAN, browser, or backup behavior.
-5. Skim `docs/handoff/BUILDER_V2_PLAN.md` and `docs/handoff/FLEXIBLE_BUILDER_FOUNDATION.md` before changing builder architecture.
+5. Skim `docs/handoff/BUILDER_V2_PLAN.md` and `docs/handoff/FLEXIBLE_BUILDER_FOUNDATION.md` before changing builder architecture; do not restart the builder unless real clinic use exposes a concrete blocker.
 6. Treat the app as schema-driven and form-version-driven.
 7. Continue the existing builder-driven print config model.
 8. Avoid hardcoding individual lab forms, patient-info zones, signatory roles, or old template layouts.

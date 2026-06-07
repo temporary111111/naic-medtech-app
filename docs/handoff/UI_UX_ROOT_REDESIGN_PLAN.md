@@ -490,15 +490,22 @@ Definition of done:
 - restore remains deliberately hard to do accidentally
 
 ### Phase 7: Builder Workspace
-Redesign builder as editor:
-- structure pane
-- canvas/content pane
-- inspector pane
-- command bar
+Refine builder as an editor without restarting the current architecture:
+- workspace rail for `Basics`, `Content`, `Signatories`, and `Print`
+- recursive content canvas with `Container` and `Field` as the normal primitives
+- optional live preview that does not permanently compete with the editing task
+- command bar for preview, advanced mode, new/copy, save/status
 - responsive compact tabs for smaller screens
+
+Do not implement a permanent heavy inspector pane. Earlier builder experiments showed that a constant right inspector and duplicate content outline make the workspace feel wider and heavier. If deeper properties are needed, keep them inline, collapsed, or contextual.
+
+Current status:
+- the current builder already has the core no-rewrite direction in place
+- remaining work should be confirmed bug fixes, visual polish, contrast/overflow cleanup, and real-use QA
 
 Definition of done:
 - builder feels like a controlled tool, not a settings page
+- non-technical admins can edit a form without understanding schema concepts
 - current builder data model and save semantics remain intact
 
 ## QA Requirements

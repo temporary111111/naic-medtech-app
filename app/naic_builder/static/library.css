@@ -464,6 +464,11 @@ input:focus {
 
 .library-card-menu {
   position: relative;
+  z-index: 1;
+}
+
+.library-card-menu[open] {
+  z-index: 80;
 }
 
 .library-card-menu summary {
@@ -492,7 +497,7 @@ input:focus {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  z-index: 3;
+  z-index: 90;
   min-width: 164px;
   display: grid;
   gap: 4px;
@@ -527,6 +532,17 @@ input:focus {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.82)),
     radial-gradient(circle at top right, rgba(30, 93, 82, 0.04), transparent 48%);
+}
+
+.tree-folder,
+.tree-form-card {
+  position: relative;
+  overflow: visible;
+}
+
+.tree-folder:has(.library-card-menu[open]),
+.tree-form-card:has(.library-card-menu[open]) {
+  z-index: 70;
 }
 
 .tree-form-path {

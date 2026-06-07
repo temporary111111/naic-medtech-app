@@ -14,7 +14,7 @@
   "handoff_status": {
     "last_refreshed": "2026-06-07",
     "continuation_readiness": "ready_for_another_ai_if_it_reads_the_handoff_docs_first",
-    "current_priority": "root_ui_ux_phase_6b_safety_center_purpose_built_polish_or_phase_7_builder_workspace_after_user_review",
+    "current_priority": "manual_qa_safety_center_and_builder_polish_before_more_major_work",
     "must_not_reopen_without_evidence": [
       "schema-driven builder architecture",
       "builder-driven print configuration",
@@ -123,6 +123,7 @@
         "Root UI/UX Phase 5A has now landed for the shared modal foundation: authenticated non-print pages expose window.NAICApp.confirm(), record data-confirm forms use the shell modal instead of browser confirm(), and delete draft, void record, and dirty internal navigation are covered.",
         "Root UI/UX Phase 5B has now landed for safety forms: shell.js owns a generic app-wide data-confirm submit handler, /settings/desktop backup/verify/settings/restore forms use the shared modal system, and restore backup now gets a destructive safe-cancel-first modal while keeping the typed RESTORE server guard.",
         "Root UI/UX Phase 6A has now landed for Safety IA: admins see Safety as a top-level drawer item, /safety owns backup/restore/LAN/QR/browser-desktop operational controls, /settings/desktop remains as a compatibility route, and Safety actions post through /safety aliases so users stay in Safety after operations.",
+        "Root UI/UX Phase 7 has been recalibrated as builder polish/QA, not a rewrite: the current recursive Container/Field canvas, optional preview, workspace rail, and command bar stay; do not reintroduce a permanent heavy inspector or duplicate content outline.",
         "The builder stabilization pass is now landed too: builder-specific light/dark surfaces are tokenized, organizer rows no longer inherit primary button styling, preview is opt-in instead of open by default, command actions are grouped, and the workspace header no longer sticks over builder content while scrolling.",
         "The recursive builder integration has now passed a real-browser QA pass too: duplicate-form startup, nested containers and fields, choice options, numeric ranges, subtree copy/remove, mixed advanced-block ordering, save/reload persistence, light/dark contrast, and desktop/tablet/mobile layouts were checked directly.",
         "Builder subtree copies now refresh block and option IDs recursively, SortableJS ordering now resolves real collection positions even while Advanced utility blocks are hidden, advanced utility cards expose drag handles, and tablet/mobile workspace tabs stay compact and reachable above the editor."
@@ -140,6 +141,7 @@
       "The first root UI/UX Phase 5A shared modal foundation has landed: _authenticated_shell.html, shell.css, and shell.js provide a reusable decision modal through window.NAICApp.confirm(); records.js routes data-confirm forms and dirty internal navigation through it; Delete draft and Void record now have structured safe-cancel-first destructive dialogs. Shell CSS/JS and records JS were cache-busted to 20260607-ui-root-phase5a*. Visual QA screenshots and modal/focus/overflow metrics live under output/ui-ux-phase5a/.",
       "Root UI/UX Phase 5B has landed: shell.js now owns a generic app-wide [data-confirm] submit handler, /settings/desktop safety forms declare explicit modal copy for backup creation, local/external verification, desktop settings save, and restore backup; shell JS was cache-busted to 20260607-ui-root-phase5b. Visual QA screenshots and modal/focus/overflow metrics live under output/ui-ux-phase5b/.",
       "Root UI/UX Phase 6A has landed: the visible admin IA now includes a top-level Safety page at /safety for backup, restore, LAN/app access health, QR, browser preference, and desktop runtime controls; /settings/desktop remains available as a compatibility path but is no longer advertised in the Settings subnav. Visual QA screenshots and route/overflow metrics live under output/ui-ux-phase6a/.",
+      "Root UI/UX Phase 7 is now locked as a no-rewrite builder polish/QA pass: keep the current recursive Content model, optional preview, workspace rail, and command bar; avoid returning to a permanent inspector or duplicate outline model.",
       "Quick light-mode audits were also run across the main non-print screens so the next review should not immediately hit obvious contrast regressions.",
       "Builder should stay denser than records, forms, and settings; the calmer content-first composition rule is mainly for the everyday non-builder product surfaces.",
       "Directness is now part of the live UI rule too: obvious screens should not over-explain themselves, and helper text should remain only where it prevents mistakes or clarifies non-obvious actions.",

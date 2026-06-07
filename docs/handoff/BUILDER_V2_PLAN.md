@@ -19,7 +19,7 @@ The live builder has started applying the lab direction without rewriting storag
 - `Save` stays in the command bar/save dock instead of acting like another builder workspace
 - Content shows `Container` and `Field` as the normal primitives
 - internal `section` and `field_group` storage remains for compatibility
-- Content has an always-live input-form preview on desktop, while full preview remains optional
+- Content has an optional live input-form preview that can dock beside the editor when needed, without permanently competing for space
 - Content now uses a recursive canvas instead of organizer/focused-editor columns: containers collapse/expand in place, fields edit inside their own cards, and field details/options open inline only when needed
 - browser QA now covers duplicate-form startup, recursive container/field editing, choice options, numeric ranges, subtree copy/remove, mixed advanced blocks, save/reload persistence, light/dark modes, and desktop/tablet/mobile layouts
 - copied block subtrees now receive fresh recursive block and option IDs, preventing duplicated record-field identities
@@ -293,7 +293,7 @@ The non-print builder foundation is now stabilized enough for real client review
 - versioned save flow
 - recursive container/field editing
 - inline options and numeric-range editing
-- live input preview
+- optional live input preview
 - direct manipulation through SortableJS
 - safe subtree copy/remove behavior
 - compact responsive pane navigation
