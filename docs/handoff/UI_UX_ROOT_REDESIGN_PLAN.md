@@ -461,6 +461,10 @@ Current status:
 - record edit now intercepts internal navigation away from dirty forms and shows the shared unsaved-changes modal; native `beforeunload` remains only for browser tab close/reload because browsers require it
 - record view now loads `records.js` too, so the void-confirmation behavior is active there
 - visual QA screenshots and computed modal/focus/overflow metrics were saved under `output/ui-ux-phase5a/`
+- Phase 5B has now landed too: `shell.js` owns a generic app-wide `[data-confirm]` submit handler, so non-record authenticated forms can use the same modal system without duplicating page-local JavaScript
+- `/settings/desktop` backup creation, local backup verification, external backup verification, desktop app settings save, and restore backup now declare explicit modal copy through `data-confirm*` attributes
+- restore backup now gets a destructive shared modal after normal required file/RESTORE form validation, with safe cancel focused first and the current typed-confirmation server guard still intact
+- visual QA screenshots and computed modal/focus/overflow metrics were saved under `output/ui-ux-phase5b/`
 
 Definition of done:
 - all important modal interactions share one visual and behavioral system
@@ -518,13 +522,14 @@ Use temporary DB copies for visual QA whenever records need to be created or com
 - do not make `Complete` visually stronger than `Complete and print` in record entry
 - do not rely on browser back as the designed return path
 
-## First Implementation Recommendation
-Phase 1, the first Phase 2 atom pass, and the first Phase 3A records workbench/history pass have landed.
+## Current Implementation Recommendation
+Phase 1, Phase 2, Phase 3A, Phase 4A, Phase 5A, and Phase 5B have landed.
 
-The next highest-value implementation is Phase 4:
-- go deeper on the record-entry workflow and completed/draft view hierarchy
-- keep `Complete and print` visually primary for draft completion
-- make fields appear earlier, especially on mobile
+The next highest-value implementation is Phase 6A:
+- decide the top-level Safety IA without reopening the shell design from scratch
+- move or regroup backup, restore, LAN/app access health, and desktop runtime safety from ordinary Settings into a clearer admin Safety area
+- keep restore deliberately hard to trigger accidentally
+- preserve the existing backend routes and backup/restore behavior unless the Safety IA requires a low-risk alias route
 - continue using temporary DB copies for browser visual QA
 
-Do not redesign every remaining page at once. Continue from the browser-verified shell/atom foundation, keep behavior changes minimal unless they support the records workflow directly, preserve the already fixed `Complete and print` priority, and keep validating with temp-DB browser screenshots plus scroll metrics.
+Do not redesign every remaining page at once. Continue from the browser-verified shell/atom/modal foundation, keep behavior changes minimal unless they improve operational safety directly, preserve the already fixed `Complete and print` priority, and keep validating with temp-DB browser screenshots plus scroll metrics.

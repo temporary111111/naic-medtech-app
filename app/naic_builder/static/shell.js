@@ -180,6 +180,48 @@
     });
   };
 
+  const confirmOptionsFromElement = (element) => {
+    const tone = String(element.dataset.confirmTone || "").toLowerCase();
+    return {
+      eyebrow: element.dataset.confirmEyebrow || "Please confirm",
+      title: element.dataset.confirmTitle || "Continue?",
+      message: element.dataset.confirm || "Confirm this action before continuing.",
+      cancelLabel: element.dataset.confirmCancelLabel || "Cancel",
+      confirmLabel: element.dataset.confirmConfirmLabel || "Continue",
+      destructive: tone === "danger" || tone === "destructive",
+    };
+  };
+
+  const setupConfirmActions = () => {
+    document.querySelectorAll("[data-confirm]").forEach((element) => {
+      if (element.dataset.confirmReady === "true") {
+        return;
+      }
+      element.dataset.confirmReady = "true";
+
+      element.addEventListener("submit", async (event) => {
+        if (element.dataset.confirmSubmitting === "true") {
+          element.dataset.confirmSubmitting = "false";
+          return;
+        }
+
+        event.preventDefault();
+        const confirmed = await openDecisionModal(confirmOptionsFromElement(element));
+        if (!confirmed) {
+          return;
+        }
+
+        element.dataset.confirmSubmitting = "true";
+        window.dispatchEvent(new CustomEvent("naic:allow-unload"));
+        if (event.submitter && event.submitter.form === element) {
+          element.requestSubmit(event.submitter);
+        } else {
+          element.requestSubmit();
+        }
+      });
+    });
+  };
+
   decisionCancelers.forEach((button) => {
     button.addEventListener("click", () => closeDecisionModal(false));
   });
@@ -190,6 +232,8 @@
     ...(window.NAICApp || {}),
     confirm: openDecisionModal,
   };
+
+  setupConfirmActions();
 
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && modalResolver) {

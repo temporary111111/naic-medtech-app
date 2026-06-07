@@ -38,12 +38,31 @@
             </div>
             <p>{{ backup_health.detail }}</p>
           </div>
-          <form method="post" action="/settings/desktop/backup-now" class="inline-action-form">
+          <form
+            method="post"
+            action="/settings/desktop/backup-now"
+            class="inline-action-form"
+            data-confirm="The app will create and verify a snapshot of the current database, uploads, logos, avatars, and signatory stamps."
+            data-confirm-eyebrow="Backup"
+            data-confirm-title="Create a verified backup now?"
+            data-confirm-cancel-label="Not now"
+            data-confirm-confirm-label="Create backup"
+          >
             <button class="primary-button" type="submit">Create backup</button>
           </form>
         </section>
 
-        <form id="desktopSettingsForm" method="post" action="/settings/desktop" class="panel settings-utility-card">
+        <form
+          id="desktopSettingsForm"
+          method="post"
+          action="/settings/desktop"
+          class="panel settings-utility-card"
+          data-confirm="These settings affect how this workstation launches, how same-network access behaves, and where external backup copies are written."
+          data-confirm-eyebrow="Desktop settings"
+          data-confirm-title="Save desktop app settings?"
+          data-confirm-cancel-label="Review first"
+          data-confirm-confirm-label="Save settings"
+        >
           <div class="section-head settings-utility-head">
             <div>
               <p class="eyebrow">Local machine</p>
@@ -233,13 +252,40 @@
           </div>
 
           <div class="settings-utility-actions">
-            <form method="post" action="/settings/desktop/backup-now" class="inline-action-form">
+            <form
+              method="post"
+              action="/settings/desktop/backup-now"
+              class="inline-action-form"
+              data-confirm="The app will create and verify a snapshot of the current database, uploads, logos, avatars, and signatory stamps."
+              data-confirm-eyebrow="Backup"
+              data-confirm-title="Create a verified backup now?"
+              data-confirm-cancel-label="Not now"
+              data-confirm-confirm-label="Create backup"
+            >
               <button class="primary-button" type="submit">Create verified backup</button>
             </form>
-            <form method="post" action="/settings/desktop/backup-verify-latest" class="inline-action-form">
+            <form
+              method="post"
+              action="/settings/desktop/backup-verify-latest"
+              class="inline-action-form"
+              data-confirm="The app will re-check the latest local backup archive before reporting it as verified."
+              data-confirm-eyebrow="Backup check"
+              data-confirm-title="Verify the latest local backup?"
+              data-confirm-cancel-label="Cancel"
+              data-confirm-confirm-label="Verify backup"
+            >
               <button class="ghost-button" type="submit" {% if not backup_status.latest %}disabled{% endif %}>Verify latest</button>
             </form>
-            <form method="post" action="/settings/desktop/backup-verify-external-latest" class="inline-action-form">
+            <form
+              method="post"
+              action="/settings/desktop/backup-verify-external-latest"
+              class="inline-action-form"
+              data-confirm="The app will re-check the latest external backup archive in the configured external folder."
+              data-confirm-eyebrow="External backup check"
+              data-confirm-title="Verify the latest external backup?"
+              data-confirm-cancel-label="Cancel"
+              data-confirm-confirm-label="Verify external"
+            >
               <button class="ghost-button" type="submit" {% if not external_backup_status.latest %}disabled{% endif %}>Verify external</button>
             </form>
           </div>
@@ -255,7 +301,18 @@
             <div class="banner error">
               Restore replaces the current database and uploaded images. The app creates an emergency pre-restore backup first, then the desktop app should be closed and reopened.
             </div>
-            <form method="post" action="/settings/desktop/restore-backup" enctype="multipart/form-data" class="restore-backup-form">
+            <form
+              method="post"
+              action="/settings/desktop/restore-backup"
+              enctype="multipart/form-data"
+              class="restore-backup-form"
+              data-confirm="This will replace current records and uploaded files with the selected archive. The app creates an emergency pre-restore backup first, then sends you back to login."
+              data-confirm-eyebrow="Restore"
+              data-confirm-title="Restore this backup?"
+              data-confirm-cancel-label="Keep current data"
+              data-confirm-confirm-label="Restore backup"
+              data-confirm-tone="danger"
+            >
               <label class="field-stack">
                 <span>Backup archive</span>
                 <input name="backup_file" type="file" accept=".zip,application/zip" required>
