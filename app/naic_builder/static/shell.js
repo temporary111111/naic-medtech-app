@@ -16,11 +16,75 @@
   const decisionMessage = document.getElementById("appDecisionMessage");
   const decisionConfirm = document.querySelector("[data-app-modal-confirm]");
   const decisionCancelers = Array.from(document.querySelectorAll("[data-app-modal-cancel]"));
+  const zoomOutput = document.querySelector("[data-app-zoom-output]");
+  const zoomInput = document.querySelector("[data-app-zoom-input]");
+  const zoomDecrease = document.querySelector("[data-app-zoom-decrease]");
+  const zoomIncrease = document.querySelector("[data-app-zoom-increase]");
+  const zoomReset = document.querySelector("[data-app-zoom-reset]");
 
   let modalResolver = null;
   let modalReturnFocus = null;
 
   const openClass = "shell-drawer-open";
+  const zoomStorageKey = "naic.appZoomPercent";
+  const minZoom = 50;
+  const maxZoom = 200;
+  const zoomStep = 5;
+
+  const clampZoom = (value) => {
+    const numeric = Number.parseInt(String(value), 10);
+    if (!Number.isFinite(numeric)) {
+      return 100;
+    }
+    return Math.min(maxZoom, Math.max(minZoom, Math.round(numeric / zoomStep) * zoomStep));
+  };
+
+  const storedZoom = () => {
+    try {
+      return clampZoom(window.localStorage.getItem(zoomStorageKey) || "100");
+    } catch (_error) {
+      return 100;
+    }
+  };
+
+  const persistZoom = (value) => {
+    try {
+      if (value === 100) {
+        window.localStorage.removeItem(zoomStorageKey);
+      } else {
+        window.localStorage.setItem(zoomStorageKey, String(value));
+      }
+    } catch (_error) {
+      // Local storage can be unavailable in restricted browser modes.
+    }
+  };
+
+  const applyZoom = (value, { persist = true } = {}) => {
+    const zoom = clampZoom(value);
+    body.style.setProperty("--app-zoom", String(zoom / 100));
+    body.dataset.appZoom = String(zoom);
+    if (zoomOutput) {
+      zoomOutput.textContent = `${zoom}%`;
+    }
+    if (zoomInput) {
+      zoomInput.value = String(zoom);
+    }
+    if (zoomDecrease) {
+      zoomDecrease.disabled = zoom <= minZoom;
+    }
+    if (zoomIncrease) {
+      zoomIncrease.disabled = zoom >= maxZoom;
+    }
+    if (persist) {
+      persistZoom(zoom);
+    }
+    return zoom;
+  };
+
+  const changeZoomBy = (delta) => {
+    const current = clampZoom(body.dataset.appZoom || zoomInput?.value || "100");
+    applyZoom(current + delta);
+  };
 
   const syncState = () => {
     if (!drawer) {
@@ -231,7 +295,23 @@
   window.NAICApp = {
     ...(window.NAICApp || {}),
     confirm: openDecisionModal,
+    setZoom: applyZoom,
+    resetZoom: () => applyZoom(100),
   };
+
+  applyZoom(storedZoom(), { persist: false });
+
+  zoomDecrease?.addEventListener("click", () => changeZoomBy(-zoomStep));
+  zoomIncrease?.addEventListener("click", () => changeZoomBy(zoomStep));
+  zoomReset?.addEventListener("click", () => applyZoom(100));
+  zoomInput?.addEventListener("change", () => applyZoom(zoomInput.value));
+  zoomInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      applyZoom(zoomInput.value);
+      zoomInput.blur();
+    }
+  });
 
   setupConfirmActions();
 

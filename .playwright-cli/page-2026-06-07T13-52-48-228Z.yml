@@ -1,0 +1,44 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - paragraph [ref=e5]: Login
+      - heading "Naic Doctors Hospital | Laboratory Records System" [level=1] [ref=e6]
+      - paragraph [ref=e7]: Sign in with your email or login ID to continue to records and forms.
+    - generic [ref=e8]:
+      - button "Switch to dark mode" [ref=e9]:
+        - img [ref=e10]
+        - generic [ref=e13]: Dark
+      - link "Request account" [ref=e14] [cursor=pointer]:
+        - /url: /request-account
+  - generic [ref=e15]:
+    - generic [ref=e17]:
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - paragraph [ref=e20]: Access
+          - heading "Sign in" [level=2] [ref=e21]
+        - generic [ref=e22]: Email or login ID
+      - generic [ref=e23]:
+        - generic [ref=e24]:
+          - generic [ref=e25]: Email or login ID
+          - textbox "Email or login ID" [ref=e26]:
+            - /placeholder: example@clinic.com or medtech01
+        - generic [ref=e27]:
+          - generic [ref=e28]: Password
+          - generic [ref=e29]:
+            - textbox "Password" [ref=e30]
+            - button "Show password" [ref=e31] [cursor=pointer]: Show
+      - button "Sign in" [ref=e33] [cursor=pointer]
+    - complementary [ref=e34]:
+      - generic [ref=e36]:
+        - paragraph [ref=e37]: Clinic access
+        - heading "One sign-in path" [level=2] [ref=e38]
+      - generic [ref=e40]:
+        - generic [ref=e41]:
+          - term [ref=e42]: Identifier
+          - definition [ref=e43]: Email or login ID
+        - generic [ref=e44]:
+          - term [ref=e45]: Approval
+          - definition [ref=e46]: Pending accounts wait for admin
+        - generic [ref=e47]:
+          - term [ref=e48]: Admin-created
+          - definition [ref=e49]: Password change on first login

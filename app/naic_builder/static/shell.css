@@ -1,8 +1,17 @@
 .app-shell-body {
+  --app-zoom: 1;
   height: 100vh;
   height: 100dvh;
   min-height: 0;
   overflow: hidden;
+}
+
+.app-zoom-stage {
+  width: calc(100% / var(--app-zoom));
+  height: calc(100vh / var(--app-zoom));
+  height: calc(100dvh / var(--app-zoom));
+  transform: scale(var(--app-zoom));
+  transform-origin: top left;
 }
 
 .app-frame {
@@ -338,6 +347,78 @@
   gap: 14px;
   padding-top: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.app-view-size {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.018)),
+    radial-gradient(circle at top right, rgba(195, 160, 108, 0.1), transparent 46%);
+}
+
+.app-view-size__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  color: var(--shell-muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.app-view-size__head output {
+  color: var(--shell-text);
+  font-size: 12px;
+}
+
+.app-view-size__controls {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 38px;
+  gap: 8px;
+}
+
+.app-view-size__controls button,
+.app-view-size__custom input {
+  min-height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--shell-text);
+  font: inherit;
+  font-weight: 800;
+}
+
+.app-view-size__controls button {
+  cursor: pointer;
+}
+
+.app-view-size__controls button:hover,
+.app-view-size__controls button:focus-visible,
+.app-view-size__custom input:focus {
+  outline: none;
+  border-color: rgba(126, 205, 222, 0.28);
+  background: rgba(126, 205, 222, 0.1);
+}
+
+.app-view-size__custom {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  color: var(--shell-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.app-view-size__custom input {
+  width: 100%;
+  padding: 6px 10px;
 }
 
 .app-drawer__account {
