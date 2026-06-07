@@ -447,6 +447,7 @@ input:focus {
 
 .tree-node-body {
   margin-top: 10px;
+  position: relative;
 }
 
 .tree-folder-actions {
@@ -455,6 +456,12 @@ input:focus {
   flex-wrap: wrap;
   align-items: center;
   margin-bottom: 8px;
+  position: relative;
+  z-index: 2;
+}
+
+.tree-folder-actions:has(.library-card-menu[open]) {
+  z-index: 100;
 }
 
 .tree-folder-actions .ghost-button {
@@ -504,8 +511,15 @@ input:focus {
   padding: 8px;
   border: 1px solid rgba(68, 54, 40, 0.12);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--panel-strong) 96%, transparent);
-  box-shadow: var(--shadow-soft);
+  background: #fff;
+  box-shadow:
+    0 20px 46px rgba(9, 23, 29, 0.18),
+    0 0 0 1px rgba(255, 255, 255, 0.72) inset;
+}
+
+.tree-folder-actions .library-card-menu__list {
+  left: 0;
+  right: auto;
 }
 
 .library-card-menu__list a {
@@ -526,6 +540,8 @@ input:focus {
 .tree-children {
   display: grid;
   gap: 8px;
+  position: relative;
+  z-index: 1;
 }
 
 .tree-form-card {
@@ -630,6 +646,13 @@ html[data-theme="dark"] .tree-folder-nested,
 html[data-theme="dark"] .library-card-menu summary,
 html[data-theme="dark"] .library-card-menu__list {
   border-color: rgba(223, 240, 245, 0.06);
+}
+
+html[data-theme="dark"] .library-card-menu__list {
+  background: linear-gradient(180deg, #1a2e35, #122026);
+  box-shadow:
+    0 24px 54px rgba(0, 0, 0, 0.44),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
 }
 
 html[data-theme="dark"] .group-jump-link {
