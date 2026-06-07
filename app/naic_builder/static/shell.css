@@ -655,6 +655,35 @@
   font-weight: 700;
 }
 
+.app-global-header .shell-theme-toggle--icon {
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+  border-color: color-mix(in srgb, var(--line) 82%, var(--accent) 18%);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--panel-strong) 84%, transparent),
+      color-mix(in srgb, var(--surface-elevated) 86%, transparent)
+    );
+  color: color-mix(in srgb, var(--muted) 54%, var(--text) 46%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.48),
+    0 8px 18px rgba(9, 23, 29, 0.06);
+}
+
+.app-global-header .shell-theme-toggle--icon:hover,
+.app-global-header .shell-theme-toggle--icon:focus-visible {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.app-global-header .shell-theme-toggle--icon .theme-toggle-icon {
+  width: 17px;
+  height: 17px;
+}
+
 .app-global-header .app-zoom-chip {
   border-color: color-mix(in srgb, var(--line) 82%, var(--accent) 18%);
   background:
@@ -732,6 +761,19 @@ html[data-theme="dark"] .app-global-header .app-zoom-chip button:focus-visible {
 html[data-theme="dark"] .app-global-header .app-zoom-chip [data-app-zoom-reset] {
   background: rgba(255, 255, 255, 0.032);
   color: color-mix(in srgb, var(--shell-text) 78%, var(--shell-muted) 22%);
+}
+
+html[data-theme="dark"] .app-global-header .shell-theme-toggle--icon {
+  border-color: rgba(255, 255, 255, 0.055);
+  background: rgba(255, 255, 255, 0.026);
+  color: color-mix(in srgb, var(--shell-muted) 76%, var(--shell-text) 24%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+html[data-theme="dark"] .app-global-header .shell-theme-toggle--icon:hover,
+html[data-theme="dark"] .app-global-header .shell-theme-toggle--icon:focus-visible {
+  background: rgba(126, 205, 222, 0.12);
+  color: var(--shell-text);
 }
 
 .app-shell-main {

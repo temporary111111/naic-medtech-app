@@ -39,10 +39,10 @@
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
   <link rel="manifest" href="{{ url_for('static', path='manifest.webmanifest') }}?v=20260606-app-icon-source">
-  <script src="{{ url_for('static', path='theme.js') }}?v=20260606-icon-system"></script>
+  <script src="{{ url_for('static', path='theme.js') }}?v=20260607-icon-only-theme-toggle"></script>
   {% block extra_css %}{% endblock %}
   <link rel="stylesheet" href="{{ url_for('static', path='theme.css') }}?v=20260607-select-option-contrast">
-  <link rel="stylesheet" href="{{ url_for('static', path='shell.css') }}?v=20260607-app-zoom-contrast">
+  <link rel="stylesheet" href="{{ url_for('static', path='shell.css') }}?v=20260607-icon-theme-toggle">
 </head>
 <body class="app-shell-body{% if shell_variant|default('default') == 'workspace' %} app-shell-body--workspace{% endif %}" {% block body_attrs %}{% endblock %}>
   {% set clinic_profile = request.state.clinic_profile or {} %}
@@ -184,7 +184,7 @@
           </button>
           <button type="button" data-app-zoom-increase aria-label="Zoom in">+</button>
         </div>
-        <button class="shell-theme-toggle shell-theme-toggle--inline" type="button" data-theme-toggle></button>
+        <button class="shell-theme-toggle shell-theme-toggle--inline shell-theme-toggle--icon" type="button" data-theme-toggle></button>
         <button class="app-account-toggle" type="button" data-shell-drawer-toggle aria-expanded="false" aria-label="Open account and navigation" title="Open account and navigation">
           {% if user_avatar_url %}
           <img src="{{ user_avatar_url }}" alt="">

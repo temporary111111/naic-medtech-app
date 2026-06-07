@@ -47,6 +47,10 @@
     const next = theme === "dark" ? "light" : "dark";
     button.setAttribute("aria-label", `Switch to ${next} mode`);
     button.setAttribute("title", `Switch to ${next} mode`);
+    if (button.classList.contains("shell-theme-toggle--icon")) {
+      button.innerHTML = themeIcon(next);
+      return;
+    }
     if (button.classList.contains("shell-theme-toggle--inline")) {
       button.innerHTML = `
         ${themeIcon(next)}
