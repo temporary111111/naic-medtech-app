@@ -453,6 +453,15 @@ Standardize:
 - restore backup
 - backup/safety confirmations
 
+Current status:
+- first shared authenticated-shell modal foundation landed on 2026-06-07
+- `_authenticated_shell.html`, `shell.css`, and `shell.js` now provide a reusable decision modal for authenticated non-print pages through `window.NAICApp.confirm()`
+- record `data-confirm` forms now use the shared modal instead of native browser `confirm()`
+- `Delete draft` and `Void completed record` now have structured modal copy, safe-cancel focus, danger confirm styling, mobile bottom-sheet layout, and dark-mode destructive styling
+- record edit now intercepts internal navigation away from dirty forms and shows the shared unsaved-changes modal; native `beforeunload` remains only for browser tab close/reload because browsers require it
+- record view now loads `records.js` too, so the void-confirmation behavior is active there
+- visual QA screenshots and computed modal/focus/overflow metrics were saved under `output/ui-ux-phase5a/`
+
 Definition of done:
 - all important modal interactions share one visual and behavioral system
 

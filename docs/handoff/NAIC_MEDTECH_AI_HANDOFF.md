@@ -185,11 +185,12 @@ Current June 7, 2026 decision:
 - the app should now be treated as a compact clinic operations workbench, not just a reskin needing small polish
 - the previous live reskin remains useful style context, but the current requested work is root workflow/layout correction
 - priority concerns from the user: compactness, accidental double-scroll, light-mode contrast, better back/return behavior, less bulky components, `Complete and print` as the primary record-entry action, a real modal system, and possible admin `Safety` navigation for backup/restore/LAN health
-- Phase 1/2 foundation plus the first Phase 3A records workbench/history pass and Phase 4A record entry/view pass are now the baseline; Phase 3B is intentionally deferred and the next UI work should move into the modal system/Safety IA decision rather than restarting shell/atom analysis
+- Phase 1/2 foundation plus the first Phase 3A records workbench/history pass, Phase 4A record entry/view pass, and Phase 5A shared modal foundation are now the baseline; Phase 3B is intentionally deferred and the next UI work should move into Safety IA / backup-restore modal application rather than restarting shell/atom analysis
 - first Phase 1 pass has landed: authenticated screens now use a fixed-height app frame with body/document scroll disabled, `.app-shell-main` as the normal scroll owner, compact global/page headers, tighter record-edit summary/readiness chrome, and `Complete and print` as the primary record-entry action. Visual QA outputs are under `output/ui-ux-phase1/`
 - first Phase 2 atom pass has landed: shared `theme.css` control tokens now compact primary/ghost buttons, inputs, status chips, and modal radius; the risky broad `button:not(...)` primary selector was removed so password toggles, shell icon buttons, modal scrims, and record-picker cards keep their own treatment; public auth, records, forms library, settings, and shell CSS links were cache-busted to `20260607-ui-root-phase2`. Visual QA outputs and computed scroll/style metrics are under `output/ui-ux-phase2/`
 - first Phase 3A records workbench/history pass has landed: `/records` and `/records/history` use lighter row-like record surfaces, compact history search/filter controls, and a split new-record picker shared by the modal and `/records/new` fallback; records CSS was cache-busted to `20260607-ui-root-phase3`. Visual QA outputs and computed scroll/style metrics are under `output/ui-ux-phase3/`
 - first Phase 4A record entry/view pass has landed: `/records/{id}/edit` now uses a flatter field-first entry panel, compact summary readiness strip, scoped sticky bottom action bar with `Complete and print` primary, and safer long-text wrapping; `/records/{id}` now shows compact draft/completed/voided state hierarchy and no longer lets view-page void actions inherit the edit dock. Records CSS was cache-busted to `20260607-ui-root-phase4`. Visual QA outputs and computed scroll/style metrics are under `output/ui-ux-phase4/`
+- first Phase 5A shared modal foundation has landed: authenticated non-print pages now have a shell-level decision modal exposed as `window.NAICApp.confirm()`, record `data-confirm` forms use it instead of browser `confirm()`, delete draft / void record / dirty internal navigation are covered, and destructive actions focus the safe cancel action first. Shell CSS/JS and records JS were cache-busted to `20260607-ui-root-phase5a*`. Visual QA outputs and modal/focus/overflow metrics are under `output/ui-ux-phase5a/`
 
 Current live status:
 - the non-print app now has a materially landed live reskin pass under that direction
@@ -436,9 +437,12 @@ What exists now:
   - deeper audit metadata now lives in a calmer collapsible `Record info` area instead of dominating the top of the page
 - record forms are safer now too:
   - `edit` now shows a quiet dirty-state label instead of leaving save state implicit
-  - browser leave protection now warns before a medtech accidentally navigates away with unsaved record changes
+  - internal record navigation away from dirty edits now uses the shared app modal, while browser leave protection still covers tab close/reload
   - `Save draft`, `Complete`, and `Complete and print` now stay available in a sticky bottom action dock scoped to the edit form, with action-specific progress text
   - long record titles and recorded values wrap safely instead of creating horizontal overflow in record view
+- record destructive decisions now use the shared shell modal too:
+  - `Delete draft` and `Void record` no longer rely on native browser confirm dialogs
+  - destructive modals focus the safe cancel action first and keep danger styling in both light and dark mode
 - record entry, record view, and print now render utility blocks more honestly too: note text, divider captions, and sample tables no longer fall back to generic placeholder cards
 - the record header is more clinic-ready too: new, edit, view, and print resolve generic record identity/search hints from builder fields instead of relying on a hardcoded patient panel
 - records are stored separately from forms and point to a frozen `form_version_id`

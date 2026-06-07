@@ -26,6 +26,10 @@
   </div>
 {% endblock %}
 
+{% block page_scripts %}
+  <script src="{{ url_for('static', path='records.js') }}?v=20260607-ui-root-phase5a" defer></script>
+{% endblock %}
+
 {% block content %}
   {% macro render_values(blocks, values, asset_by_field, record_id) %}
     {% for block in blocks %}
@@ -272,7 +276,17 @@
     {% if record.status == "completed" %}
     <details class="record-danger-zone">
       <summary>Void this completed record</summary>
-      <form method="post" action="/records/{{ record.id }}/void" class="record-void-form" data-confirm="Void this completed record? It will stay in history but should no longer be printed as a valid result.">
+      <form
+        method="post"
+        action="/records/{{ record.id }}/void"
+        class="record-void-form"
+        data-confirm="This result stays in history as voided and should no longer be printed as a valid release."
+        data-confirm-eyebrow="Void result"
+        data-confirm-title="Void this completed record?"
+        data-confirm-cancel-label="Keep result"
+        data-confirm-confirm-label="Void record"
+        data-confirm-tone="danger"
+      >
         {% if history_return_url %}
         <input type="hidden" name="return_url" value="{{ history_return_url }}">
         {% endif %}

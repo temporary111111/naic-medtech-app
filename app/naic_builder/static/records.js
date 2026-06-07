@@ -1,14 +1,50 @@
 (() => {
+  const appConfirm = async (options) => {
+    if (window.NAICApp && typeof window.NAICApp.confirm === "function") {
+      return window.NAICApp.confirm(options);
+    }
+
+    const fallbackMessage = [options.title, options.message].filter(Boolean).join("\n\n");
+    return window.confirm(fallbackMessage || "Continue?");
+  };
+
+  const confirmOptionsFromElement = (element) => {
+    const tone = String(element.dataset.confirmTone || "").toLowerCase();
+    return {
+      eyebrow: element.dataset.confirmEyebrow || "Please confirm",
+      title: element.dataset.confirmTitle || "Continue?",
+      message: element.dataset.confirm || "Confirm this action before continuing.",
+      cancelLabel: element.dataset.confirmCancelLabel || "Cancel",
+      confirmLabel: element.dataset.confirmConfirmLabel || "Continue",
+      destructive: tone === "danger" || tone === "destructive",
+    };
+  };
+
   const setupConfirmActions = () => {
     document.querySelectorAll("[data-confirm]").forEach((element) => {
       if (element.dataset.confirmReady === "true") {
         return;
       }
       element.dataset.confirmReady = "true";
-      element.addEventListener("submit", (event) => {
-        const message = String(element.dataset.confirm || "Continue?");
-        if (!window.confirm(message)) {
-          event.preventDefault();
+
+      element.addEventListener("submit", async (event) => {
+        if (element.dataset.confirmSubmitting === "true") {
+          element.dataset.confirmSubmitting = "false";
+          return;
+        }
+
+        event.preventDefault();
+        const confirmed = await appConfirm(confirmOptionsFromElement(element));
+        if (!confirmed) {
+          return;
+        }
+
+        element.dataset.confirmSubmitting = "true";
+        window.dispatchEvent(new CustomEvent("naic:allow-unload"));
+        if (event.submitter && event.submitter.form === element) {
+          element.requestSubmit(event.submitter);
+        } else {
+          element.requestSubmit();
         }
       });
     });
@@ -157,6 +193,15 @@
       let dirty = false;
       let allowUnload = false;
 
+      const confirmLeavingDirtyRecord = () => appConfirm({
+        eyebrow: "Unsaved changes",
+        title: "Leave without saving?",
+        message: "This record has changes that have not been saved yet.",
+        cancelLabel: "Keep editing",
+        confirmLabel: "Leave anyway",
+        destructive: true,
+      });
+
       const setDirty = (value) => {
         dirty = value;
         if (!statusEl) {
@@ -209,6 +254,60 @@
       form.addEventListener("submit", () => {
         allowUnload = true;
       });
+
+      window.addEventListener("naic:allow-unload", () => {
+        allowUnload = true;
+      });
+
+      document.addEventListener("click", async (event) => {
+        if (!dirty || allowUnload || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+          return;
+        }
+
+        const clickTarget = event.target instanceof Element ? event.target : null;
+        const link = clickTarget?.closest("a[href]");
+        if (!link || form.contains(link) || (link.target && link.target !== "_self") || link.hasAttribute("download")) {
+          return;
+        }
+
+        const nextUrl = new URL(link.href, window.location.href);
+        const currentUrl = new URL(window.location.href);
+        const isSamePageHash = nextUrl.origin === currentUrl.origin
+          && nextUrl.pathname === currentUrl.pathname
+          && nextUrl.search === currentUrl.search
+          && nextUrl.hash
+          && nextUrl.hash !== currentUrl.hash;
+        if (isSamePageHash) {
+          return;
+        }
+
+        event.preventDefault();
+        if (await confirmLeavingDirtyRecord()) {
+          allowUnload = true;
+          window.location.assign(link.href);
+        }
+      }, true);
+
+      document.addEventListener("submit", async (event) => {
+        if (!dirty || allowUnload) {
+          return;
+        }
+
+        const targetForm = event.target;
+        if (!(targetForm instanceof HTMLFormElement) || targetForm === form || form.contains(targetForm) || targetForm.matches("[data-confirm]")) {
+          return;
+        }
+
+        event.preventDefault();
+        if (await confirmLeavingDirtyRecord()) {
+          allowUnload = true;
+          if (event.submitter && event.submitter.form === targetForm) {
+            targetForm.requestSubmit(event.submitter);
+          } else {
+            targetForm.requestSubmit();
+          }
+        }
+      }, true);
 
       window.addEventListener("beforeunload", (event) => {
         if (!dirty || allowUnload) {

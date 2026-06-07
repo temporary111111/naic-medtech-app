@@ -37,7 +37,7 @@
   <script src="{{ url_for('static', path='theme.js') }}?v=20260606-icon-system"></script>
   {% block extra_css %}{% endblock %}
   <link rel="stylesheet" href="{{ url_for('static', path='theme.css') }}?v=20260607-ui-root-phase2">
-  <link rel="stylesheet" href="{{ url_for('static', path='shell.css') }}?v=20260607-ui-root-phase1">
+  <link rel="stylesheet" href="{{ url_for('static', path='shell.css') }}?v=20260607-ui-root-phase5a-modal">
 </head>
 <body class="app-shell-body{% if shell_variant|default('default') == 'workspace' %} app-shell-body--workspace{% endif %}" {% block body_attrs %}{% endblock %}>
   {% set clinic_profile = request.state.clinic_profile or {} %}
@@ -47,7 +47,7 @@
   {% set user_avatar_version = (current_user.get('updated_at') or '') | urlencode %}
   {% set user_avatar_url = '/settings/account/avatar?v=' ~ user_avatar_version if current_user.get('has_avatar') else '' %}
 
-  <div class="app-frame{% if shell_variant|default('default') == 'workspace' %} app-frame--workspace{% endif %}">
+  <div class="app-frame{% if shell_variant|default('default') == 'workspace' %} app-frame--workspace{% endif %}" data-app-frame>
     <div class="app-drawer-scrim" data-shell-drawer-scrim data-shell-drawer-close hidden></div>
 
     <aside class="app-drawer panel" data-shell-drawer aria-hidden="true" hidden inert>
@@ -179,8 +179,32 @@
     </main>
   </div>
 
+  <div class="app-modal-layer" data-app-modal-layer hidden>
+    <button class="app-modal-scrim" type="button" data-app-modal-cancel aria-label="Close dialog" tabindex="-1"></button>
+    <section
+      class="app-decision-modal panel"
+      data-app-decision-modal
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="appDecisionTitle"
+      aria-describedby="appDecisionMessage"
+      aria-hidden="true"
+      tabindex="-1"
+    >
+      <div class="app-decision-modal__copy">
+        <p id="appDecisionEyebrow" class="eyebrow">Please confirm</p>
+        <h2 id="appDecisionTitle">Continue?</h2>
+        <p id="appDecisionMessage" class="panel-copy app-decision-modal__message">Confirm this action before continuing.</p>
+      </div>
+      <div class="app-decision-modal__actions">
+        <button class="ghost-button app-decision-modal__cancel" type="button" data-app-modal-cancel>Cancel</button>
+        <button class="primary-button app-decision-modal__confirm" type="button" data-app-modal-confirm>Continue</button>
+      </div>
+    </section>
+  </div>
+
   {% block page_scripts %}{% endblock %}
   <script src="{{ url_for('static', path='password-toggle.js') }}?v=20260606-password-toggle" defer></script>
-  <script src="{{ url_for('static', path='shell.js') }}" defer></script>
+  <script src="{{ url_for('static', path='shell.js') }}?v=20260607-ui-root-phase5a" defer></script>
 </body>
 </html>

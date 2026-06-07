@@ -20,7 +20,17 @@
   <div class="record-top-actions record-top-actions--edit">
   <a class="ghost-button" href="/records/{{ record.id }}{% if history_query %}?{{ history_query }}{% endif %}">View</a>
   {% if record.status == "draft" %}
-  <form method="post" action="/records/{{ record.id }}/delete-draft" class="inline-danger-form" data-confirm="Delete this draft? This keeps the audit trail but removes it from the work queue.">
+  <form
+    method="post"
+    action="/records/{{ record.id }}/delete-draft"
+    class="inline-danger-form"
+    data-confirm="This removes the draft from the active work queue. Audit data stays in the system."
+    data-confirm-eyebrow="Delete draft"
+    data-confirm-title="Delete this draft?"
+    data-confirm-cancel-label="Keep draft"
+    data-confirm-confirm-label="Delete draft"
+    data-confirm-tone="danger"
+  >
     {% if history_return_url %}
     <input type="hidden" name="return_to" value="history">
     <input type="hidden" name="return_url" value="{{ history_return_url }}">
@@ -355,5 +365,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', path='records.js') }}?v=20260607-ui-root-phase1" defer></script>
+  <script src="{{ url_for('static', path='records.js') }}?v=20260607-ui-root-phase5a" defer></script>
 {% endblock %}

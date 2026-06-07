@@ -32,7 +32,17 @@
     {% if record.status == "draft" %}
     <a class="primary-button" href="{{ edit_href }}">Continue</a>
     <a class="ghost-button" href="{{ view_href }}">View</a>
-    <form method="post" action="/records/{{ record.id }}/delete-draft" class="inline-danger-form" data-confirm="Delete this draft? This keeps the audit trail but removes it from the work queue.">
+    <form
+      method="post"
+      action="/records/{{ record.id }}/delete-draft"
+      class="inline-danger-form"
+      data-confirm="This removes the draft from the active work queue. Audit data stays in the system."
+      data-confirm-eyebrow="Delete draft"
+      data-confirm-title="Delete this draft?"
+      data-confirm-cancel-label="Keep draft"
+      data-confirm-confirm-label="Delete draft"
+      data-confirm-tone="danger"
+    >
       {% if from_history %}
       <input type="hidden" name="return_to" value="history">
       <input type="hidden" name="return_url" value="{{ return_url }}">
