@@ -1,9 +1,10 @@
 {% extends "_authenticated_shell.html" %}
-{% set safety_mode = safety_mode|default(false) %}
-{% set shell_active = "safety" if safety_mode else "settings" %}
+{% set shell_active = shell_active|default('clinic_link') %}
+{% set settings_mode = settings_mode|default(false) %}
 {% set settings_active = "desktop" %}
-{% set lan_qr_back_url = lan_qr_back_url|default('/settings/desktop') %}
-{% set lan_qr_svg_url = lan_qr_svg_url|default('/settings/desktop/lan-qr.svg') %}
+{% set lan_qr_back_url = lan_qr_back_url|default('/clinic-link') %}
+{% set lan_qr_back_label = lan_qr_back_label|default('Clinic link') %}
+{% set lan_qr_svg_url = lan_qr_svg_url|default('/clinic-link/lan-qr.svg') %}
 
 {% block html_title %}LAN QR Code | {{ app_title }}{% endblock %}
 
@@ -12,12 +13,12 @@
   <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20260607-ui-root-phase2">
 {% endblock %}
 
-{% block shell_eyebrow %}{{ 'Safety' if safety_mode else 'Settings' }}{% endblock %}
-{% block shell_title %}LAN QR code{% endblock %}
+{% block shell_eyebrow %}{{ 'Settings' if settings_mode else 'Clinic access' }}{% endblock %}
+{% block shell_title %}Full QR code{% endblock %}
 {% block shell_description %}{% endblock %}
 
 {% block page_header_nav %}
-  <a class="page-back-link" href="{{ lan_qr_back_url }}">Back to {{ 'Safety Center' if safety_mode else 'desktop settings' }}</a>
+  <a class="page-back-link" href="{{ lan_qr_back_url }}">Back to {{ lan_qr_back_label }}</a>
 {% endblock %}
 
 {% block topbar_actions %}
@@ -26,7 +27,7 @@
 
 {% block content %}
   <div class="auth-shell">
-    {% if not safety_mode %}
+    {% if settings_mode %}
     {% include "settings/_settings_nav.html" %}
     {% endif %}
 

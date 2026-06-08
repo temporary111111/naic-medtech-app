@@ -1,0 +1,183 @@
+{% extends "_authenticated_shell.html" %}
+{% set shell_active = "backup" %}
+{% set backup_now_action = backup_now_action|default('/backup/backup-now') %}
+{% set backup_verify_latest_action = backup_verify_latest_action|default('/backup/backup-verify-latest') %}
+{% set backup_verify_external_latest_action = backup_verify_external_latest_action|default('/backup/backup-verify-external-latest') %}
+{% set restore_backup_action = restore_backup_action|default('/backup/restore-backup') %}
+{% set external_chip_status = 'active' if external_backup_status.status == 'ready' else ('disabled' if external_backup_status.status == 'error' else 'pending') %}
+
+{% block html_title %}Backup | {{ app_title }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
+  <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20260608-ia-split">
+{% endblock %}
+
+{% block shell_eyebrow %}Protection{% endblock %}
+{% block shell_title %}Backup{% endblock %}
+{% block shell_description %}{% endblock %}
+
+{% block topbar_actions %}
+  <button class="primary-button" type="submit" form="backupNowForm">Create backup</button>
+{% endblock %}
+
+{% block content %}
+  <div class="auth-shell auth-shell--safety">
+    {% if error_message %}
+    <div class="banner error">{{ error_message }}</div>
+    {% endif %}
+    {% if success_message %}
+    <div class="banner success">{{ success_message }}</div>
+    {% endif %}
+
+    <section class="safety-overview panel" data-status="{{ backup_health.status }}">
+      <div class="safety-overview__copy">
+        <p class="eyebrow">Protection status</p>
+        <h2>{{ backup_health.title }}</h2>
+        <p>{{ backup_health.detail }}</p>
+      </div>
+
+      <div class="safety-overview__stats" aria-label="Backup status">
+        <article class="safety-stat" data-status="{{ backup_health.chip_status }}">
+          <span>Data backup</span>
+          <strong>{{ backup_health.label }}</strong>
+        </article>
+        <article class="safety-stat" data-status="{{ 'active' if backup_status.latest else 'pending' }}">
+          <span>Last local</span>
+          <strong>{{ 'Available' if backup_status.latest else 'None yet' }}</strong>
+        </article>
+        <article class="safety-stat" data-status="{{ external_chip_status }}">
+          <span>External copy</span>
+          <strong>{{ external_backup_status.label }}</strong>
+        </article>
+        <article class="safety-stat" data-status="{{ backup_schedule.chip_status }}">
+          <span>Automatic</span>
+          <strong>{{ backup_schedule.label }}</strong>
+        </article>
+      </div>
+    </section>
+
+    <section class="safety-command-grid safety-command-grid--single">
+      <section class="panel safety-card safety-card--protection">
+        <div class="safety-card__head">
+          <div>
+            <p class="eyebrow">Backup</p>
+            <h2>Create and verify</h2>
+          </div>
+          <span class="status-chip" data-status="{{ backup_schedule.chip_status }}">{{ backup_schedule.label }}</span>
+        </div>
+
+        <div class="safety-kv-list">
+          <article>
+            <span>Latest local backup</span>
+            <strong>{{ backup_status.latest.name if backup_status.latest else 'No backup yet' }}</strong>
+            <p>{{ backup_status.latest.modified_label if backup_status.latest else 'Create the first verified backup before real clinic use.' }}</p>
+          </article>
+          <article>
+            <span>Automatic backup</span>
+            <strong>{{ backup_schedule.title }}</strong>
+            <p>{{ backup_schedule.last_success_label or backup_schedule.detail }}</p>
+          </article>
+          <article>
+            <span>External copy</span>
+            <strong>{{ external_backup_status.label }}</strong>
+            <p>{{ external_backup_status.latest.name if external_backup_status.latest else external_backup_status.detail }}</p>
+          </article>
+        </div>
+
+        <div class="safety-actions">
+          <form
+            id="backupNowForm"
+            method="post"
+            action="{{ backup_now_action }}"
+            class="inline-action-form"
+            data-confirm="The app will create and verify a snapshot of the current database, uploads, logos, avatars, and signatory stamps."
+            data-confirm-eyebrow="Backup"
+            data-confirm-title="Create a verified backup now?"
+            data-confirm-cancel-label="Not now"
+            data-confirm-confirm-label="Create backup"
+          >
+            <button class="primary-button" type="submit">Create backup</button>
+          </form>
+          <form
+            method="post"
+            action="{{ backup_verify_latest_action }}"
+            class="inline-action-form"
+            data-confirm="The app will re-check the latest local backup archive before reporting it as verified."
+            data-confirm-eyebrow="Backup check"
+            data-confirm-title="Verify the latest local backup?"
+            data-confirm-cancel-label="Cancel"
+            data-confirm-confirm-label="Verify backup"
+          >
+            <button class="ghost-button" type="submit" {% if not backup_status.latest %}disabled{% endif %}>Verify local</button>
+          </form>
+          <form
+            method="post"
+            action="{{ backup_verify_external_latest_action }}"
+            class="inline-action-form"
+            data-confirm="The app will re-check the latest external backup archive in the configured external folder."
+            data-confirm-eyebrow="External backup check"
+            data-confirm-title="Verify the latest external backup?"
+            data-confirm-cancel-label="Cancel"
+            data-confirm-confirm-label="Verify external"
+          >
+            <button class="ghost-button" type="submit" {% if not external_backup_status.latest %}disabled{% endif %}>Verify external</button>
+          </form>
+        </div>
+
+        <details class="safety-details">
+          <summary>Backup folders and retention</summary>
+          <div class="safety-detail-grid">
+            <label class="field-stack">
+              <span>Local backup folder</span>
+              <input type="text" value="{{ backup_status.backup_dir }}" readonly>
+            </label>
+            <label class="field-stack">
+              <span>External backup path</span>
+              <input type="text" value="{{ external_backup_status.backup_dir or 'Not configured' }}" readonly>
+            </label>
+            <div class="safety-detail-note">
+              The app keeps the latest {{ desktop_settings.backup_retention_count or 30 }} verified archives. Change external folder and retention in <a href="/settings/desktop">Settings > App preferences</a>.
+            </div>
+          </div>
+        </details>
+
+        <details class="safety-details safety-details--danger">
+          <summary>Restore from backup</summary>
+          <div class="banner error">
+            Restore replaces the current database and uploaded images. Use only when you intentionally need to recover from a backup archive.
+          </div>
+          <form
+            method="post"
+            action="{{ restore_backup_action }}"
+            enctype="multipart/form-data"
+            class="restore-backup-form"
+            data-confirm="This will replace current records and uploaded files with the selected archive. The app creates an emergency pre-restore backup first, then sends you back to login."
+            data-confirm-eyebrow="Restore"
+            data-confirm-title="Restore this backup?"
+            data-confirm-cancel-label="Keep current data"
+            data-confirm-confirm-label="Restore backup"
+            data-confirm-tone="danger"
+          >
+            <label class="field-stack">
+              <span>Backup archive</span>
+              <input name="backup_file" type="file" accept=".zip,application/zip" required>
+            </label>
+            <label class="field-stack">
+              <span>Confirmation</span>
+              <input name="confirmation" type="text" autocomplete="off" placeholder="Type {{ restore_confirmation_text }}" required>
+              <p class="field-help">Type {{ restore_confirmation_text }} before restoring.</p>
+            </label>
+            <div class="settings-utility-actions restore-actions">
+              <button class="ghost-button warn-button" type="submit">Restore selected backup</button>
+            </div>
+          </form>
+        </details>
+      </section>
+    </section>
+  </div>
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{{ url_for('static', path='settings.js') }}" defer></script>
+{% endblock %}

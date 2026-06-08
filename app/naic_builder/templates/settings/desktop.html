@@ -1,24 +1,18 @@
 {% extends "_authenticated_shell.html" %}
-{% set safety_mode = safety_mode|default(false) %}
-{% set shell_active = "safety" if safety_mode else "settings" %}
+{% set shell_active = "settings" %}
 {% set settings_active = "desktop" %}
 {% set desktop_settings_action = desktop_settings_action|default('/settings/desktop') %}
-{% set backup_now_action = backup_now_action|default('/settings/desktop/backup-now') %}
-{% set backup_verify_latest_action = backup_verify_latest_action|default('/settings/desktop/backup-verify-latest') %}
-{% set backup_verify_external_latest_action = backup_verify_external_latest_action|default('/settings/desktop/backup-verify-external-latest') %}
-{% set restore_backup_action = restore_backup_action|default('/settings/desktop/restore-backup') %}
-{% set lan_qr_page_url = lan_qr_page_url|default('/settings/desktop/lan-qr') %}
-{% set lan_qr_svg_url = lan_qr_svg_url|default('/settings/desktop/lan-qr.svg') %}
+{% set lan_chip_status = 'active' if desktop_status.network.status == 'ready' else ('disabled' if desktop_status.network.status == 'disabled' else 'pending') %}
 
-{% block html_title %}{{ 'Safety Center' if safety_mode else 'Desktop App' }} | {{ app_title }}{% endblock %}
+{% block html_title %}App Preferences | {{ app_title }}{% endblock %}
 
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
-  <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20260607-ui-root-phase2">
+  <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20260608-ia-split">
 {% endblock %}
 
-{% block shell_eyebrow %}{{ 'Operations' if safety_mode else 'Settings' }}{% endblock %}
-{% block shell_title %}{{ 'Safety Center' if safety_mode else 'Desktop app' }}{% endblock %}
+{% block shell_eyebrow %}Settings{% endblock %}
+{% block shell_title %}App preferences{% endblock %}
 {% block shell_description %}{% endblock %}
 
 {% block topbar_actions %}
@@ -27,326 +21,97 @@
 
 {% block content %}
   <div class="auth-shell">
-    {% if not safety_mode %}
     {% include "settings/_settings_nav.html" %}
+
+    {% if error_message %}
+    <div class="banner error">{{ error_message }}</div>
+    {% endif %}
+    {% if success_message %}
+    <div class="banner success">{{ success_message }}</div>
     {% endif %}
 
     <section class="settings-utility-grid">
       <div class="settings-utility-main">
-        {% if error_message %}
-        <div class="banner error">{{ error_message }}</div>
-        {% endif %}
-        {% if success_message %}
-        <div class="banner success">{{ success_message }}</div>
-        {% endif %}
-
-        <section class="backup-health-banner" data-status="{{ backup_health.status }}">
-          <div class="backup-health-banner__copy">
-            <div class="backup-health-banner__title-row">
-              <h2>{{ backup_health.title }}</h2>
-              <span class="status-chip" data-status="{{ backup_health.chip_status }}">{{ backup_health.label }}</span>
-            </div>
-            <p>{{ backup_health.detail }}</p>
-          </div>
-          <form
-            method="post"
-            action="{{ backup_now_action }}"
-            class="inline-action-form"
-            data-confirm="The app will create and verify a snapshot of the current database, uploads, logos, avatars, and signatory stamps."
-            data-confirm-eyebrow="Backup"
-            data-confirm-title="Create a verified backup now?"
-            data-confirm-cancel-label="Not now"
-            data-confirm-confirm-label="Create backup"
-          >
-            <button class="primary-button" type="submit">Create backup</button>
-          </form>
-        </section>
-
         <form
           id="desktopSettingsForm"
           method="post"
           action="{{ desktop_settings_action }}"
           class="panel settings-utility-card"
           data-confirm="These settings affect how this workstation launches, how same-network access behaves, and where external backup copies are written."
-          data-confirm-eyebrow="Desktop settings"
-          data-confirm-title="Save desktop app settings?"
+          data-confirm-eyebrow="App preferences"
+          data-confirm-title="Save app preferences?"
           data-confirm-cancel-label="Review first"
           data-confirm-confirm-label="Save settings"
         >
-          <div class="section-head settings-utility-head">
+          <div class="settings-utility-head">
             <div>
-              <p class="eyebrow">Local machine</p>
-              <h2>Desktop launch and access</h2>
+              <p class="eyebrow">Workstation</p>
+              <h2>Desktop behavior</h2>
             </div>
-            <span class="settings-utility-pill">Desktop launcher</span>
+            <span class="settings-utility-pill">Admin</span>
           </div>
 
           <div class="settings-utility-section">
-            <label class="field-stack">
-              <span>Preferred browser</span>
-              <select name="browser_preference">
-                {% for option in browser_options %}
-                <option value="{{ option.value }}" {% if desktop_settings.browser_preference == option.value %}selected{% endif %}>{{ option.label }}</option>
-                {% endfor %}
-              </select>
-              <p class="field-help">Used the next time the desktop shortcut opens the app. Auto is the safest clinic default.</p>
-            </label>
-          </div>
+            <div class="settings-utility-field-grid">
+              <label class="field-stack">
+                <span>Preferred browser</span>
+                <select name="browser_preference">
+                  {% for option in browser_options %}
+                  <option value="{{ option.value }}" {% if desktop_settings.browser_preference == option.value %}selected{% endif %}>{{ option.label }}</option>
+                  {% endfor %}
+                </select>
+                <p class="field-help">Controls the browser/app window used by the desktop launcher.</p>
+              </label>
 
-          <div class="settings-utility-section">
-            <label class="field-stack">
-              <span>Same-network access</span>
-              <select name="network_mode">
-                {% for option in network_options %}
-                <option value="{{ option.value }}" {% if desktop_settings.network_mode == option.value %}selected{% endif %}>{{ option.label }}</option>
-                {% endfor %}
-              </select>
-              <p class="field-help">Use LAN only on the trusted clinic network. It takes effect when the desktop server starts.</p>
-            </label>
-          </div>
+              <label class="field-stack">
+                <span>Same-network access</span>
+                <select name="network_mode">
+                  {% for option in network_options %}
+                  <option value="{{ option.value }}" {% if desktop_settings.network_mode == option.value %}selected{% endif %}>{{ option.label }}</option>
+                  {% endfor %}
+                </select>
+                <p class="field-help">LAN is the recommended default for clinic flexibility.</p>
+              </label>
 
-          <div class="settings-utility-section">
-            <label class="field-stack">
-              <span>External backup folder</span>
-              <input name="external_backup_dir" type="text" value="{{ desktop_settings.external_backup_dir or '' }}" placeholder="Example: E:\NDHI LabRecords Backups">
-              <p class="field-help">Optional. Use a USB drive or external folder that is available on this host PC.</p>
-            </label>
-          </div>
+              <label class="field-stack settings-utility-span">
+                <span>External backup folder</span>
+                <input name="external_backup_dir" type="text" value="{{ desktop_settings.external_backup_dir or '' }}" placeholder="Example: E:\NDHI LabRecords Backups">
+                <p class="field-help">Optional second copy location, such as a USB drive or shared folder.</p>
+              </label>
 
-          <div class="settings-utility-section">
-            <label class="field-stack">
-              <span>Backups to keep</span>
-              <input name="backup_retention_count" type="number" min="5" max="365" step="1" value="{{ desktop_settings.backup_retention_count or 30 }}">
-              <p class="field-help">After a new verified backup, older local and external backup archives beyond this count are removed.</p>
-            </label>
-          </div>
-
-          <div class="settings-utility-section">
-            {% for option in browser_options %}
-            <article class="user-card user-card--compact">
-              <div class="user-card-main">
-                <div class="user-card-copy">
-                  <div class="user-card-title-row">
-                    <h3>{{ option.label }}</h3>
-                    {% if option.value == desktop_settings.browser_preference %}
-                    <span class="status-chip" data-status="active">selected</span>
-                    {% endif %}
-                  </div>
-                  <p>{{ option.description }}</p>
-                </div>
-              </div>
-            </article>
-            {% endfor %}
-          </div>
-
-        <div class="settings-utility-section">
-          {% for option in network_options %}
-            <article class="user-card user-card--compact">
-              <div class="user-card-main">
-                <div class="user-card-copy">
-                  <div class="user-card-title-row">
-                    <h3>{{ option.label }}</h3>
-                    {% if option.value == desktop_settings.network_mode %}
-                    <span class="status-chip" data-status="active">selected</span>
-                    {% endif %}
-                  </div>
-                  <p>{{ option.description }}</p>
-                </div>
-              </div>
-            </article>
-            {% endfor %}
+              <label class="field-stack">
+                <span>Backups to keep</span>
+                <input name="backup_retention_count" type="number" min="5" max="365" step="1" value="{{ desktop_settings.backup_retention_count or 30 }}">
+                <p class="field-help">Older local and external archives are pruned after this limit.</p>
+              </label>
+            </div>
           </div>
 
           <div class="settings-utility-actions">
-            <button class="primary-button" type="submit">Save desktop settings</button>
+            <button class="primary-button" type="submit">Save settings</button>
           </div>
         </form>
-
-        <section class="panel settings-utility-card">
-          <div class="section-head settings-utility-head">
-            <div>
-              <p class="eyebrow">Local backup</p>
-              <h2>Verified backup</h2>
-            </div>
-            <span class="settings-utility-pill">SQLite + uploads</span>
-          </div>
-
-          <div class="settings-utility-section">
-            <article class="user-card user-card--compact">
-              <div class="user-card-main">
-                <div class="user-card-copy">
-                  <div class="user-card-title-row">
-                    <h3>{{ backup_schedule.title }}</h3>
-                    <span class="status-chip" data-status="{{ backup_schedule.chip_status }}">{{ backup_schedule.label }}</span>
-                  </div>
-                  <p>{{ backup_schedule.detail }}</p>
-                  {% if backup_schedule.last_success_label %}
-                  <p>Last automatic backup: {{ backup_schedule.last_success_label }}</p>
-                  {% endif %}
-                  {% if backup_schedule.last_checked_label %}
-                  <p>Last checked: {{ backup_schedule.last_checked_label }}</p>
-                  {% endif %}
-                  {% if backup_schedule.last_external_archive_name %}
-                  <p>External copy: {{ backup_schedule.last_external_archive_name }}</p>
-                  {% elif backup_schedule.last_external_error %}
-                  <p>External copy: {{ backup_schedule.last_external_error }}</p>
-                  {% endif %}
-                </div>
-              </div>
-            </article>
-          </div>
-
-          <div class="settings-utility-section">
-            {% if backup_status.latest %}
-            <article class="user-card user-card--compact">
-              <div class="user-card-main">
-                <div class="user-card-copy">
-                  <div class="user-card-title-row">
-                    <h3>{{ backup_status.latest.name }}</h3>
-                    <span class="status-chip" data-status="active">{{ backup_status.latest.size_label }}</span>
-                  </div>
-                  <p>Created {{ backup_status.latest.modified_label }}</p>
-                </div>
-              </div>
-            </article>
-            {% else %}
-            <div class="empty-state empty-state--plain">
-              <h3>No local backup yet</h3>
-              <p class="panel-copy">Create a verified backup before real clinic data is entered.</p>
-            </div>
-            {% endif %}
-          </div>
-
-          <div class="settings-utility-section">
-            <label class="field-stack">
-              <span>Backup folder</span>
-              <input type="text" value="{{ backup_status.backup_dir }}" readonly>
-              <p class="field-help">Local backups stay on this PC. The app keeps the latest {{ desktop_settings.backup_retention_count or 30 }} backup archives.</p>
-            </label>
-          </div>
-
-          <div class="settings-utility-section">
-            <article class="user-card user-card--compact">
-              <div class="user-card-main">
-                <div class="user-card-copy">
-                  <div class="user-card-title-row">
-                    <h3>External copy</h3>
-                    <span class="status-chip" data-status="{{ 'active' if external_backup_status.status == 'ready' else ('disabled' if external_backup_status.status == 'disabled' else 'pending') }}">{{ external_backup_status.label }}</span>
-                  </div>
-                  <p>{{ external_backup_status.detail }}</p>
-                  {% if external_backup_status.backup_dir %}
-                  <p>{{ external_backup_status.backup_dir }}</p>
-                  {% endif %}
-                  {% if external_backup_status.latest %}
-                  <p>Latest: {{ external_backup_status.latest.name }} - {{ external_backup_status.latest.modified_label }}</p>
-                  {% endif %}
-                </div>
-              </div>
-            </article>
-          </div>
-
-          {% if external_backup_status.configured and external_backup_status.status != 'ready' %}
-          <div class="settings-utility-section">
-            <div class="banner">
-              The local backup will still be created if the external folder is unavailable, but the external copy needs the configured drive or folder to be connected.
-            </div>
-          </div>
-          {% endif %}
-
-          <div class="settings-utility-section">
-            <label class="field-stack">
-              <span>External backup path</span>
-              <input type="text" value="{{ external_backup_status.backup_dir or 'Not configured' }}" readonly>
-              <p class="field-help">The app verifies copied backup archives after writing them to the external folder.</p>
-            </label>
-          </div>
-
-          <div class="settings-utility-actions">
-            <form
-              method="post"
-              action="{{ backup_now_action }}"
-              class="inline-action-form"
-              data-confirm="The app will create and verify a snapshot of the current database, uploads, logos, avatars, and signatory stamps."
-              data-confirm-eyebrow="Backup"
-              data-confirm-title="Create a verified backup now?"
-              data-confirm-cancel-label="Not now"
-              data-confirm-confirm-label="Create backup"
-            >
-              <button class="primary-button" type="submit">Create verified backup</button>
-            </form>
-            <form
-              method="post"
-              action="{{ backup_verify_latest_action }}"
-              class="inline-action-form"
-              data-confirm="The app will re-check the latest local backup archive before reporting it as verified."
-              data-confirm-eyebrow="Backup check"
-              data-confirm-title="Verify the latest local backup?"
-              data-confirm-cancel-label="Cancel"
-              data-confirm-confirm-label="Verify backup"
-            >
-              <button class="ghost-button" type="submit" {% if not backup_status.latest %}disabled{% endif %}>Verify latest</button>
-            </form>
-            <form
-              method="post"
-              action="{{ backup_verify_external_latest_action }}"
-              class="inline-action-form"
-              data-confirm="The app will re-check the latest external backup archive in the configured external folder."
-              data-confirm-eyebrow="External backup check"
-              data-confirm-title="Verify the latest external backup?"
-              data-confirm-cancel-label="Cancel"
-              data-confirm-confirm-label="Verify external"
-            >
-              <button class="ghost-button" type="submit" {% if not external_backup_status.latest %}disabled{% endif %}>Verify external</button>
-            </form>
-          </div>
-
-          <div class="settings-utility-section restore-section">
-            <div class="section-head settings-utility-minihead">
-              <div>
-                <p class="eyebrow">Restore</p>
-                <h2>Restore from backup</h2>
-              </div>
-              <span class="status-chip" data-status="pending">Admin only</span>
-            </div>
-            <div class="banner error">
-              Restore replaces the current database and uploaded images. The app creates an emergency pre-restore backup first, then the desktop app should be closed and reopened.
-            </div>
-            <form
-              method="post"
-              action="{{ restore_backup_action }}"
-              enctype="multipart/form-data"
-              class="restore-backup-form"
-              data-confirm="This will replace current records and uploaded files with the selected archive. The app creates an emergency pre-restore backup first, then sends you back to login."
-              data-confirm-eyebrow="Restore"
-              data-confirm-title="Restore this backup?"
-              data-confirm-cancel-label="Keep current data"
-              data-confirm-confirm-label="Restore backup"
-              data-confirm-tone="danger"
-            >
-              <label class="field-stack">
-                <span>Backup archive</span>
-                <input name="backup_file" type="file" accept=".zip,application/zip" required>
-              </label>
-              <label class="field-stack">
-                <span>Confirmation</span>
-                <input name="confirmation" type="text" autocomplete="off" placeholder="Type {{ restore_confirmation_text }}" required>
-                <p class="field-help">Type {{ restore_confirmation_text }} to confirm that current records will be replaced.</p>
-              </label>
-              <div class="settings-utility-actions restore-actions">
-                <button class="ghost-button warn-button" type="submit">Restore selected backup</button>
-              </div>
-            </form>
-          </div>
-        </section>
       </div>
 
       <aside class="panel settings-utility-card settings-utility-card--aside">
-        <div class="section-head settings-utility-head">
+        <div class="settings-utility-head">
           <div>
-            <p class="eyebrow">LAN access</p>
-            <h2>This PC</h2>
+            <p class="eyebrow">Readiness</p>
+            <h2>Current status</h2>
           </div>
-          <span class="status-chip" data-status="{{ 'active' if desktop_status.network.status == 'ready' else 'pending' }}">{{ desktop_status.network.label }}</span>
+          <span class="status-chip" data-status="{{ lan_chip_status }}">{{ desktop_status.network.label }}</span>
+        </div>
+
+        <div class="settings-utility-section">
+          <div class="lan-guidance">
+            <strong>Clinic link is available from the main navigation.</strong>
+            <p>Staff can open the same-network link or QR without needing admin access.</p>
+          </div>
+        </div>
+
+        <div class="settings-utility-actions">
+          <a class="ghost-button" href="/clinic-link">Open Clinic link</a>
+          <a class="ghost-button" href="/backup">Open Backup</a>
         </div>
 
         <div class="settings-utility-section">
@@ -361,86 +126,22 @@
           </div>
         </div>
 
-        <div class="settings-utility-section">
-          <div class="lan-guidance">
-            <strong>How to use on another clinic PC</strong>
-            <p>Keep this host PC open and connected to the clinic network. On the other PC, open the recommended link below in a browser and log in normally.</p>
-          </div>
-        </div>
-
-        <div class="settings-utility-section">
-          <div class="lan-link-block">
-            <label class="field-stack">
-              <span>Recommended link</span>
-              <input type="text" value="{{ lan_access.hostname_url }}" readonly>
-              <p class="field-help">Use this first. It is easier than remembering an IP address.</p>
-            </label>
-            <div class="lan-link-actions">
-              <button class="ghost-button" type="button" data-copy-value="{{ lan_access.hostname_url }}">Copy link</button>
-              <a class="ghost-button" href="{{ lan_access.hostname_url }}">Open link</a>
-            </div>
-          </div>
-
-          {% if lan_access.ip_urls %}
-          <div class="lan-link-block">
-            <label class="field-stack">
-              <span>Fallback link</span>
-              <input type="text" value="{{ lan_access.ip_urls[0] }}" readonly>
-              <p class="field-help">Use this if the recommended link does not open from another PC.</p>
-            </label>
-            <div class="lan-link-actions">
-              <button class="ghost-button" type="button" data-copy-value="{{ lan_access.ip_urls[0] }}">Copy link</button>
-              <a class="ghost-button" href="{{ lan_access.ip_urls[0] }}">Open link</a>
-            </div>
-          </div>
-          {% else %}
-          <div class="banner">
-            No LAN IP address was detected yet. Connect this PC to the clinic network, then refresh this page.
-          </div>
-          {% endif %}
-
-          {% if desktop_settings.network_mode != 'lan' %}
-          <div class="banner">
-            Same-network access is currently off. Select "Same network / LAN" and save before using these links.
-          </div>
-          {% endif %}
-        </div>
-
-        <div class="settings-utility-section">
-          <div class="lan-qr-card">
-            <div class="lan-qr-frame">
-              <img src="{{ lan_qr_svg_url }}" alt="QR code for {{ lan_access.qr_url }}">
-            </div>
-            <div class="lan-guidance">
-              <strong>QR for phone or tablet</strong>
-              <p>Scan this on a device connected to the same clinic Wi-Fi/LAN. QR uses: {{ lan_access.qr_url }}</p>
-              <div class="lan-link-actions">
-                <a class="ghost-button" href="{{ lan_qr_page_url }}">Open full QR</a>
-                <a class="ghost-button" href="{{ lan_qr_svg_url }}?download=1">Download QR</a>
+        <details class="safety-details">
+          <summary>Detected browsers</summary>
+          <div class="safety-browser-list">
+            {% for key, browser in browser_status.items() %}
+            <article class="user-card user-card--compact">
+              <div class="user-card-copy">
+                <div class="user-card-title-row">
+                  <h3>{{ browser.label }}</h3>
+                  <span class="status-chip" data-status="{{ 'active' if browser.installed else 'disabled' }}">{{ 'available' if browser.installed else 'not found' }}</span>
+                </div>
+                <p>{{ browser.path }}</p>
               </div>
-            </div>
+            </article>
+            {% endfor %}
           </div>
-        </div>
-
-        <div class="settings-utility-section">
-          <div class="section-head settings-utility-head">
-            <div>
-              <p class="eyebrow">Detected browsers</p>
-              <h2>Launch options</h2>
-            </div>
-          </div>
-          {% for key, browser in browser_status.items() %}
-          <article class="user-card user-card--compact">
-            <div class="user-card-copy">
-              <div class="user-card-title-row">
-                <h3>{{ browser.label }}</h3>
-                <span class="status-chip" data-status="{{ 'active' if browser.installed else 'disabled' }}">{{ 'available' if browser.installed else 'not found' }}</span>
-              </div>
-              <p>{{ browser.path }}</p>
-            </div>
-          </article>
-          {% endfor %}
-        </div>
+        </details>
       </aside>
     </section>
   </div>

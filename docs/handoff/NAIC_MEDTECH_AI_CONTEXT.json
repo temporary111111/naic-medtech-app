@@ -14,7 +14,7 @@
   "handoff_status": {
     "last_refreshed": "2026-06-08",
     "continuation_readiness": "ready_for_another_ai_if_it_reads_the_handoff_docs_first",
-    "current_priority": "manual_review_of_phase_7b_builder_polish_or_phase_6b_safety_center_polish_before_more_major_work",
+    "current_priority": "manual_review_of_phase_6c_backup_clinic_link_split_and_phase_7b_builder_or_real_world_installed_app_qa",
     "must_not_reopen_without_evidence": [
       "schema-driven builder architecture",
       "builder-driven print configuration",
@@ -23,7 +23,7 @@
     ],
     "human_or_client_input_still_needed": [
       "manual QA of the installed app",
-      "user review of the root UI/UX redesign direction and the proposed Safety IA",
+      "manual review of the Phase 6C Backup / Clinic link / App preferences split and Phase 7B builder polish",
       "real clinic browser/printer behavior",
       "real production record samples",
       "clean-PC restore drill expectations and external backup folder decision",
@@ -42,9 +42,9 @@
       "LAN mode defaults on for fresh installs and binds to 0.0.0.0:8114",
       "host PC still opens through 127.0.0.1:8114",
       "installer-created Windows Firewall rule limited to Private/Domain local subnet",
-      "Settings -> Desktop app shows hostname/IP links, readiness cards, copy actions, full QR view, and downloadable SVG QR",
+      "Clinic link shows the reliable LAN share URL, QR preview, full QR view, hostname alternate, copy actions, and downloadable SVG QR for every signed-in user",
       "QR is generated locally with segno and prefers IP fallback when available",
-      "Settings -> Desktop app shows local/external backup status, automatic daily backup status, external backup folder, retention count, manual backup, latest-backup verification actions, and admin-only restore with RESTORE confirmation",
+      "Backup shows local/external backup status, automatic daily backup status, manual backup, latest-backup verification actions, retention readout, and admin-only restore with RESTORE confirmation; Settings -> App preferences owns external backup folder and retention count configuration",
       "daily automatic backup runs while the app is open, creates a verified daily-auto archive when no verified backup exists for the current day, and records scheduler status under runtime config",
       "restore verifies the selected archive, creates an emergency pre-restore backup, restores database and uploads, preserves machine-local desktop config by default, clears the current session, and sends the admin back to login using an account from the restored backup",
       "source Inno installer script attempts a verified pre-update backup before replacing binaries when an existing runtime database is present",
@@ -83,7 +83,7 @@
       "print_excluded": true
     },
     "records_reskin_phase": {
-      "status": "root_ui_phase_6a_safety_center_ia_landed",
+      "status": "root_ui_phase_6c_backup_clinic_link_app_preferences_split_landed",
       "primary_stylesheet": "app/naic_builder/static/records.css",
       "scope": [
         "records home",
@@ -122,7 +122,8 @@
         "Root UI/UX Phase 4A has now landed for record entry/view: /records/{id}/edit uses a flatter field-first panel, compact summary readiness, a sticky edit-form action bar with Complete and print primary, and safe long-text wrapping; /records/{id} shows clearer draft/completed/voided state hierarchy without accidentally docking view-page void actions.",
         "Root UI/UX Phase 5A has now landed for the shared modal foundation: authenticated non-print pages expose window.NAICApp.confirm(), record data-confirm forms use the shell modal instead of browser confirm(), and delete draft, void record, and dirty internal navigation are covered.",
         "Root UI/UX Phase 5B has now landed for safety forms: shell.js owns a generic app-wide data-confirm submit handler, /settings/desktop backup/verify/settings/restore forms use the shared modal system, and restore backup now gets a destructive safe-cancel-first modal while keeping the typed RESTORE server guard.",
-        "Root UI/UX Phase 6A has now landed for Safety IA: admins see Safety as a top-level drawer item, /safety owns backup/restore/LAN/QR/browser-desktop operational controls, /settings/desktop remains as a compatibility route, and Safety actions post through /safety aliases so users stay in Safety after operations.",
+        "Root UI/UX Phase 6A/6B were intermediate Safety Center passes and are now superseded by Phase 6C.",
+        "Root UI/UX Phase 6C has now landed for IA split: /backup is the visible admin protection area, /clinic-link is available to every signed-in user for LAN URL/QR sharing, /settings/desktop is the admin App preferences page, and /safety redirects to /backup while old /safety/... backup action aliases remain compatible.",
         "Root UI/UX Phase 7 has been recalibrated as builder polish/QA, not a rewrite: the current recursive Container/Field canvas, optional preview, workspace rail, and command bar stay; do not reintroduce a permanent heavy inspector or duplicate content outline.",
         "Authenticated pages now include topbar and drawer View size controls: scaled virtual app viewport from 50% to 200% in 5% steps, reset to 100%, persisted in localStorage, and intentionally separate from print output.",
         "The builder stabilization pass is now landed too: builder-specific light/dark surfaces are tokenized, organizer rows no longer inherit primary button styling, preview is opt-in instead of open by default, command actions are grouped, and the workspace header no longer sticks over builder content while scrolling.",
@@ -134,20 +135,21 @@
       "The preferred feel is premium, modern, calm, and authored rather than generic admin minimalism.",
       "Dark mode should stay curated and atmospheric, not neon and not pure black.",
       "The live app now has a shared theme foundation plus a browser-audited non-print reskin and consistency pass; these standalone files remain the locked visual north star for future UI work.",
-      "As of 2026-06-07, the active UI direction is no longer only bug/polish: the user requested a root UI/UX critique and accepted a workflow-first redesign plan. Continue from docs/handoff/UI_UX_ROOT_REDESIGN_PLAN.md before touching shell, scroll, density, records, modals, Safety, or builder UI.",
+      "As of 2026-06-07, the active UI direction is no longer only bug/polish: the user requested a root UI/UX critique and accepted a workflow-first redesign plan. Continue from docs/handoff/UI_UX_ROOT_REDESIGN_PLAN.md before touching shell, scroll, density, records, modals, Backup, Clinic link, Settings IA, or builder UI.",
       "The first root UI/UX Phase 1 pass has landed: authenticated screens now use a fixed-height app frame with body/document scroll disabled, app-shell-main as the normal scroll owner, compact global/page headers, tighter record-edit summary/readiness chrome, and Complete and print as the primary record-entry action. Visual QA screenshots and metrics live under output/ui-ux-phase1/.",
       "The first root UI/UX Phase 2 atom pass has landed: shared theme.css control tokens now compact primary/ghost buttons, fields, chips, and modal radius; the broad button:not(...) primary selector was removed so password toggles, shell icon buttons, modal scrims, and record-picker cards keep their own treatment; public auth, shell, records, forms library, and settings CSS links were cache-busted to 20260607-ui-root-phase2. Visual QA screenshots and computed scroll/style metrics live under output/ui-ux-phase2/.",
       "The first root UI/UX Phase 3A records workbench/history pass has landed: /records and /records/history now use lighter row-like record surfaces, compact history search/filter controls, and the new-record modal plus /records/new fallback share the split searchable picker layout; records CSS was cache-busted to 20260607-ui-root-phase3. Visual QA screenshots and computed scroll/style metrics live under output/ui-ux-phase3/.",
       "The first root UI/UX Phase 4A record entry/view pass has landed: /records/{id}/edit now has a compact readiness summary, flatter field-first entry panel, scoped sticky bottom action dock, Complete and print as the primary draft completion action, and safe long-text wrapping; /records/{id} now has clearer draft/completed/voided state hierarchy. Records CSS was cache-busted to 20260607-ui-root-phase4. Visual QA screenshots and computed scroll/style metrics live under output/ui-ux-phase4/.",
       "The first root UI/UX Phase 5A shared modal foundation has landed: _authenticated_shell.html, shell.css, and shell.js provide a reusable decision modal through window.NAICApp.confirm(); records.js routes data-confirm forms and dirty internal navigation through it; Delete draft and Void record now have structured safe-cancel-first destructive dialogs. Shell CSS/JS and records JS were cache-busted to 20260607-ui-root-phase5a*. Visual QA screenshots and modal/focus/overflow metrics live under output/ui-ux-phase5a/.",
       "Root UI/UX Phase 5B has landed: shell.js now owns a generic app-wide [data-confirm] submit handler, /settings/desktop safety forms declare explicit modal copy for backup creation, local/external verification, desktop settings save, and restore backup; shell JS was cache-busted to 20260607-ui-root-phase5b. Visual QA screenshots and modal/focus/overflow metrics live under output/ui-ux-phase5b/.",
-      "Root UI/UX Phase 6A has landed: the visible admin IA now includes a top-level Safety page at /safety for backup, restore, LAN/app access health, QR, browser preference, and desktop runtime controls; /settings/desktop remains available as a compatibility path but is no longer advertised in the Settings subnav. Visual QA screenshots and route/overflow metrics live under output/ui-ux-phase6a/.",
+      "Root UI/UX Phase 6A/6B were intermediate Safety Center passes and should be treated as superseded history.",
+      "Root UI/UX Phase 6C has landed: the mixed Safety page is split into admin-only /backup, all-user /clinic-link, and admin /settings/desktop App preferences; /safety redirects to /backup and old /safety backup action aliases remain compatible. Browser QA screenshots live under output/ui-ux-phase6c/.",
       "Root UI/UX Phase 7 is now locked as a no-rewrite builder polish/QA pass: keep the current recursive Content model, optional preview, workspace rail, and command bar; avoid returning to a permanent inspector or duplicate outline model.",
       "The authenticated shell now has app-level View size controls in the topbar and drawer, using a scaled virtual app viewport rather than browser zoom; keep print pages excluded from this scaling.",
       "Quick light-mode audits were also run across the main non-print screens so the next review should not immediately hit obvious contrast regressions.",
       "Builder should stay denser than records, forms, and settings; the calmer content-first composition rule is mainly for the everyday non-builder product surfaces.",
       "Directness is now part of the live UI rule too: obvious screens should not over-explain themselves, and helper text should remain only where it prevents mistakes or clarifies non-obvious actions.",
-      "The previous non-print reskin remains useful context, but the current accepted product direction is a compact clinic operations workbench with one scroll owner per screen, stronger light-mode contrast, denser records workflows, a real modal system, Complete and print as the primary record-entry completion action, and a likely top-level admin Safety area for backup/restore/LAN health."
+      "The previous non-print reskin remains useful context, but the current accepted product direction is a compact clinic operations workbench with one scroll owner per screen, stronger light-mode contrast, denser records workflows, a real modal system, Complete and print as the primary record-entry completion action, admin Backup for data protection, and all-user Clinic link for LAN sharing."
     ]
   },
   "alignment_lock": [

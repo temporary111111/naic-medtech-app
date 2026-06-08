@@ -12,8 +12,8 @@ Current repo state:
 - patient-facing browser-print output is implemented through the builder-driven print model
 - automated print smoke passes across the current 16 seeded forms; browser PDF page-count QA remains a Windows-side validation task when Playwright dependencies are available
 - local-first Windows desktop installer foundation exists and has a current `0.1.4-dev` QR/LAN reliability build
-- same-network LAN access defaults on for fresh desktop installs; Settings shows hostname/IP links and a downloadable QR code
-- Settings now exposes local/external verified backups, automatic daily backup status, backup retention, latest-backup verification, and admin-only restore with an emergency pre-restore backup; the source Inno installer script now has a pre-update backup hook
+- same-network LAN access defaults on for fresh desktop installs; signed-in users can open `Clinic link` for the reliable same-network URL, full QR page, and downloadable QR code
+- the admin-only `Backup` page now exposes local/external verified backups, automatic daily backup status, latest-backup verification, and protected restore with an emergency pre-restore backup; `Settings > App preferences` controls browser preference, LAN mode, external backup folder, and retention count
 - root UI/UX redesign planning is now active as of June 7, 2026; read `docs/handoff/UI_UX_ROOT_REDESIGN_PLAN.md` before making UI changes
 
 Still not clinic-release-complete:
@@ -59,7 +59,7 @@ Current status snapshot:
 - print should continue from the builder-driven `record_identity` and `print_config` model
 - a local-first Windows desktop-installer foundation now exists under `tools/desktop/`; continue from `docs/handoff/DESKTOP_INSTALLER_ARCHITECTURE.md`
 - the desktop layer intentionally keeps FastAPI as the product core: a launcher starts the local server and opens a browser-powered app window
-- fresh desktop installs default to LAN mode so same-network clinic devices can connect with the hostname/IP/QR shown in Settings
+- fresh desktop installs default to LAN mode so same-network clinic devices can connect with the URL/QR shown in `Clinic link`
 - the verified backup foundation now includes local/external backup UI, daily automatic backup while the app is open, admin-only restore with a pre-restore emergency backup, and a source installer pre-update hook, but clean-PC restore drills and Windows upgrade-flow validation are still required before clinic release
 
 ## Historical Phase 1 Priority
@@ -184,15 +184,16 @@ Active root UI/UX plan:
 Current June 7, 2026 decision:
 - the app should now be treated as a compact clinic operations workbench, not just a reskin needing small polish
 - the previous live reskin remains useful style context, but the current requested work is root workflow/layout correction
-- priority concerns from the user: compactness, accidental double-scroll, light-mode contrast, better back/return behavior, less bulky components, `Complete and print` as the primary record-entry action, a real modal system, and possible admin `Safety` navigation for backup/restore/LAN health
-- Phase 1/2 foundation plus the first Phase 3A records workbench/history pass, Phase 4A record entry/view pass, Phase 5A shared modal foundation, and Phase 5B safety-form modal application are now the baseline; Phase 3B is intentionally deferred and the next UI work should move into Safety IA / Safety Center organization rather than restarting shell/atom/modal analysis
+- priority concerns from the user: compactness, accidental double-scroll, light-mode contrast, better back/return behavior, less bulky components, `Complete and print` as the primary record-entry action, a real modal system, and clear data-protection/LAN access IA
+- Phase 1/2 foundation plus Phase 3A records workbench/history, Phase 4A record entry/view, Phase 5A shared modal foundation, Phase 5B safety-form modal application, and Phase 6C Backup / Clinic link / App preferences split are now the baseline; Phase 3B is intentionally deferred and the next UI work should not restart shell/atom/modal analysis without evidence
 - first Phase 1 pass has landed: authenticated screens now use a fixed-height app frame with body/document scroll disabled, `.app-shell-main` as the normal scroll owner, compact global/page headers, tighter record-edit summary/readiness chrome, and `Complete and print` as the primary record-entry action. Visual QA outputs are under `output/ui-ux-phase1/`
 - first Phase 2 atom pass has landed: shared `theme.css` control tokens now compact primary/ghost buttons, inputs, status chips, and modal radius; the risky broad `button:not(...)` primary selector was removed so password toggles, shell icon buttons, modal scrims, and record-picker cards keep their own treatment; public auth, records, forms library, settings, and shell CSS links were cache-busted to `20260607-ui-root-phase2`. Visual QA outputs and computed scroll/style metrics are under `output/ui-ux-phase2/`
 - first Phase 3A records workbench/history pass has landed: `/records` and `/records/history` use lighter row-like record surfaces, compact history search/filter controls, and a split new-record picker shared by the modal and `/records/new` fallback; records CSS was cache-busted to `20260607-ui-root-phase3`. Visual QA outputs and computed scroll/style metrics are under `output/ui-ux-phase3/`
 - first Phase 4A record entry/view pass has landed: `/records/{id}/edit` now uses a flatter field-first entry panel, compact summary readiness strip, scoped sticky bottom action bar with `Complete and print` primary, and safer long-text wrapping; `/records/{id}` now shows compact draft/completed/voided state hierarchy and no longer lets view-page void actions inherit the edit dock. Records CSS was cache-busted to `20260607-ui-root-phase4`. Visual QA outputs and computed scroll/style metrics are under `output/ui-ux-phase4/`
 - first Phase 5A shared modal foundation has landed: authenticated non-print pages now have a shell-level decision modal exposed as `window.NAICApp.confirm()`, record `data-confirm` forms use it instead of browser `confirm()`, delete draft / void record / dirty internal navigation are covered, and destructive actions focus the safe cancel action first. Shell CSS/JS and records JS were cache-busted to `20260607-ui-root-phase5a*`. Visual QA outputs and modal/focus/overflow metrics are under `output/ui-ux-phase5a/`
 - Phase 5B safety-form modal application has landed: `shell.js` now owns a generic app-wide `[data-confirm]` submit handler, `/settings/desktop` backup/verify/settings/restore forms use the shared modal system, restore backup gets a destructive safe-cancel-first modal after normal required file/RESTORE validation, and shell JS is cache-busted to `20260607-ui-root-phase5b`. Visual QA outputs and modal/focus/overflow metrics are under `output/ui-ux-phase5b/`
-- Phase 6A Safety Center IA has landed: admins now get a top-level `Safety` drawer item, `/safety` frames verified backup/restore/LAN/QR/browser-desktop controls as operational safety rather than ordinary Settings, `/settings/desktop` remains as compatibility route, Safety actions use `/safety/...` aliases and redirect back to Safety, and `/safety/lan-qr` keeps the QR flow inside Safety. Visual QA outputs and route/overflow metrics are under `output/ui-ux-phase6a/`
+- Phase 6A/6B Safety Center work was superseded by the Phase 6C IA split: the mixed Safety page was split into admin-only `Backup`, all-user `Clinic link`, and admin `Settings > App preferences`.
+- Phase 6C IA split has landed: `/backup` is the visible admin protection area, `/clinic-link` is available to every signed-in user for LAN URL/QR sharing, `/settings/desktop` is the admin app-preferences page, and `/safety` now redirects to `/backup` while old `/safety/...` backup action aliases remain compatible. Browser QA screenshots are under `output/ui-ux-phase6c/`
 - Phase 7 Builder Workspace has been recalibrated as a no-rewrite polish/QA phase: do not reintroduce a permanent heavy inspector or duplicate content outline; keep the current recursive `Container`/`Field` canvas, optional preview, workspace rail, and command bar. A small builder polish pass has landed with aligned docs, builder asset cache-bust `20260607-builder-polish`, calmer rail/card density, stronger action-menu stacking, and `Copy` wording for duplicate form.
 - App-level View size controls now exist in the authenticated topbar and drawer. This is not browser zoom; it uses a scaled virtual app viewport with a flexible 50%-200% range, 5% steps, localStorage persistence, and Reset back to 100%. Print pages remain separate and should not inherit this comfort scaling.
 
@@ -948,6 +949,16 @@ Current builder implementation is still:
 - the library header itself is tighter too: spacing is calmer, the top band sits lower visually, and the first impression is less crowded
 
 The repo has not been migrated to Alpine.js. Alpine.js was only a possible helper direction discussed for future UI simplification, not a current dependency.
+
+## Current Backup And Clinic Access UX Checkpoint
+- Phase 6C landed on 2026-06-08 and should be treated as the current IA baseline.
+- Do not recombine Backup, Clinic link, and App preferences into one broad Safety page unless the user explicitly asks for that direction again.
+- `/backup` is admin-only and should stay focused on protection: backup health, latest local/external backup, create/verify actions, retention readout, and protected restore.
+- `/clinic-link` is available to every signed-in user and should stay lightweight: reliable share URL, QR preview, full QR page, QR download, and hostname alternate. Do not expose firewall/browser diagnostics to normal users.
+- `/settings/desktop` is admin-only and owns app preferences: preferred browser, LAN mode, external backup folder, retention count, and compact readiness diagnostics.
+- `/safety` is now only a compatibility redirect to `/backup`; old `/safety/...` backup action aliases remain so stale pages/forms do not break.
+- Restore must remain visually and operationally protected with typed `RESTORE`, server guard, and destructive modal.
+- Browser QA used a temp runtime copy under `output/ui-ux-phase6c/runtime-20260608-ia-split`; screenshots include admin Backup, Clinic link, App preferences, full QR, dark/mobile states, and medtech drawer/access checks.
 
 ## Current Domain Structure
 Client-approved current groups:

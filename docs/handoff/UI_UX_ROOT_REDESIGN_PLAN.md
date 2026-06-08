@@ -107,30 +107,36 @@ Current root problems:
 ## Information Architecture
 Current global nav:
 - Records
-- Forms
+- Forms (admin)
+- Clinic link
+- Backup (admin)
 - Settings
 
 Recommended target nav:
 - Records
-- Forms
-- Safety
+- Forms (admin)
+- Clinic link
+- Backup (admin)
 - Settings
 
 Medtech view:
 - Records as the main app area
+- Clinic link for sharing the app on the same network without needing admin
 - account/settings access remains available
 
 Admin view:
 - Records for daily work
 - Forms for form library and builder
-- Safety for backup, restore, LAN/app access health, and release/update readiness
+- Clinic link for same-network URL/QR sharing
+- Backup for backup, restore, and data-protection readiness
 - Settings for account, users, clinic profile, and preferences
 
-Why `Safety` should exist:
+Why the old `Safety` concept was split:
 - backup and restore are not ordinary preferences
-- local-first Windows apps need visible operational trust
-- a non-technical admin should know where to check whether the clinic data is safe
-- backup/restore should not be buried beside browser preference and LAN details
+- LAN sharing is useful to all signed-in users, not only admins
+- local-first Windows apps need visible operational trust, but one page mixing backup, QR sharing, browser preference, and diagnostics becomes too heavy
+- a non-technical admin should know where to check whether the clinic data is safe, so Backup is visible and admin-only
+- app behavior settings should live in Settings, not beside day-to-day sharing links
 
 Builder should stay under Forms:
 - it is an admin setup tool
@@ -142,7 +148,7 @@ Target shell:
 - no default body scroll
 - smaller global header
 - compact brand treatment
-- hidden drawer can remain, but it should not be the only clear navigation model if `Safety` becomes a major admin area
+- hidden drawer can remain; visible nav labels should stay role-based and not overload one catch-all operations page
 - page headers should be shorter and less hero-like
 - page actions should be close to the page task
 
@@ -298,25 +304,27 @@ Recommended builder architecture:
 
 Builder can be denser than the rest of the app because it is a power tool.
 
-### Safety Center
+### Backup And Clinic Access
 Goal:
-- make data safety obvious for a non-technical admin
+- make data safety obvious for a non-technical admin and same-network sharing easy for all signed-in staff
 
 Move or regroup:
-- backup now
-- latest backup status
-- external backup folder
-- restore backup
-- restore warnings and emergency backup behavior
-- LAN/app access health
-- desktop launcher/browser behavior
+- backup now, latest backup status, external backup status, restore backup, restore warnings, and emergency backup behavior under admin-only `Backup`
+- same-network URL, QR preview, full QR page, QR download, and hostname alternate under all-user `Clinic link`
+- browser preference, LAN mode, external backup folder, retention count, and technical readiness diagnostics under admin-only `Settings > App preferences`
 - update/release readiness if added later
 
-Target structure:
+Backup target structure:
 - status overview at top
 - plain language: `Protected`, `Needs attention`, `Not configured`
 - guided actions
 - dangerous restore flow behind a strong modal or dedicated step-by-step screen
+
+Clinic link target structure:
+- reliable URL first
+- QR preview and full QR access
+- minimal copy
+- no admin diagnostics for ordinary users
 
 ### Settings
 Goal:
@@ -326,9 +334,9 @@ Recommended settings groups:
 - My account
 - Users and access
 - Clinic profile
-- App preferences, if needed
+- App preferences
 
-Backup and restore should move to Safety.
+Backup and restore should stay in Backup, not in ordinary Settings. LAN/app behavior preferences stay in App preferences.
 
 ### Auth
 Goal:
@@ -469,24 +477,28 @@ Current status:
 Definition of done:
 - all important modal interactions share one visual and behavioral system
 
-### Phase 6: Safety Center
+### Phase 6: Backup, Clinic Link, And App Preferences IA
 Create or reorganize:
-- `/safety` or an equivalent admin top-level area
-- backup and restore
-- LAN/app access health
-- desktop launcher settings
+- `/backup` as the admin-only protection area
+- `/clinic-link` as the all-user same-network share/QR area
+- `/settings/desktop` as admin-only app preferences and technical readiness
+- compatibility redirects/aliases for older `/safety` routes
 
 Current status:
-- Phase 6A has landed: admins now see `Safety` as a top-level drawer navigation item beside Records, Forms, and Settings
-- `/safety` renders the existing verified backup, restore, LAN access, QR, browser preference, and desktop launcher safety controls as an operational Safety Center instead of burying them only under ordinary Settings
-- `/settings/desktop` remains available as a compatibility route, but the visible Settings subnav no longer advertises `Desktop app`
-- Safety actions post through `/safety/...` aliases and redirect back to `/safety` after save/backup/verify flows
-- `/safety/lan-qr` and `/safety/lan-qr.svg` are available, and the Safety QR page links back to Safety without showing the Settings subnav
-- existing backend backup/restore/LAN behavior was preserved; this phase changed IA/routing and page framing, not the backup engine
-- visual QA screenshots and computed route/overflow metrics were saved under `output/ui-ux-phase6a/`
+- Phase 6A/6B were intermediate Safety Center passes and are now superseded by Phase 6C.
+- Phase 6C landed on 2026-06-08: the mixed Safety page was split into `Backup`, `Clinic link`, and `Settings > App preferences`.
+- Admin drawer now shows Records, Forms, Clinic link, Backup, Settings.
+- Medtech drawer now shows Records, Clinic link, Settings.
+- `/backup` is admin-only and focuses on backup health, latest local/external backup, create/verify actions, retention readout, and protected restore.
+- `/clinic-link` is available to all signed-in users and focuses only on reliable share URL, QR preview, full QR page, download, and hostname alternate. Normal users do not see firewall/browser diagnostics.
+- `/settings/desktop` is admin-only and is advertised in Settings as `App preferences`; it owns preferred browser, LAN mode, external backup folder, retention count, and compact readiness diagnostics.
+- `/safety` now redirects to `/backup`; old `/safety/...` backup action aliases remain compatible.
+- existing backend backup/restore/LAN behavior was preserved; this phase changed IA/routing and page framing, not the backup engine.
+- browser QA screenshots were saved under `output/ui-ux-phase6c/`.
 
 Definition of done:
-- non-technical admin can understand whether clinic data is protected
+- non-technical admin can understand whether clinic data is protected from Backup
+- any signed-in staff member can share the LAN app link/QR without logging in as admin
 - restore remains deliberately hard to do accidentally
 
 ### Phase 7: Builder Workspace
@@ -545,11 +557,12 @@ Use temporary DB copies for visual QA whenever records need to be created or com
 - do not rely on browser back as the designed return path
 
 ## Current Implementation Recommendation
-Phase 1, Phase 2, Phase 3A, Phase 4A, Phase 5A, Phase 5B, Phase 6A, and Phase 7B have landed.
+Phase 1, Phase 2, Phase 3A, Phase 4A, Phase 5A, Phase 5B, Phase 6C, and Phase 7B have landed. Phase 6A/6B were intermediate Safety Center passes and should be treated as superseded by the current Backup / Clinic link / App preferences split.
 
-The next highest-value implementation is a focused Phase 6B or final manual review decision:
-- Phase 6B if the user wants the Safety Center itself to feel more purpose-built, with clearer status grouping and less inherited Desktop-settings wording
+The next highest-value work is manual review or real-world QA, not another speculative UI restructure:
+- manual Backup, Clinic link, and App preferences review if the user wants to judge the current IA split in real use
 - manual builder review if the user wants to personally judge the Phase 7B browser-verified builder feel before more code
+- installed-app, LAN, backup/restore, and print QA on real or clinic-like Windows devices
 - keep restore deliberately hard to trigger accidentally
 - preserve the existing backup/restore engine unless a validated release requirement demands backend changes
 - continue using temporary DB copies for browser visual QA

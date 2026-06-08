@@ -1,0 +1,112 @@
+{% extends "_authenticated_shell.html" %}
+{% set shell_active = "clinic_link" %}
+{% set lan_qr_page_url = lan_qr_page_url|default('/clinic-link/lan-qr') %}
+{% set lan_qr_svg_url = lan_qr_svg_url|default('/clinic-link/lan-qr.svg') %}
+{% set lan_chip_status = 'active' if desktop_status.network.status == 'ready' else ('disabled' if desktop_status.network.status == 'disabled' else 'pending') %}
+
+{% block html_title %}Clinic Link | {{ app_title }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
+  <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20260608-ia-split">
+{% endblock %}
+
+{% block shell_eyebrow %}Clinic access{% endblock %}
+{% block shell_title %}Clinic link{% endblock %}
+{% block shell_description %}{% endblock %}
+
+{% block topbar_actions %}
+  <a class="primary-button" href="{{ lan_qr_svg_url }}?download=1">Download QR</a>
+{% endblock %}
+
+{% block content %}
+  <div class="auth-shell">
+    <section class="settings-utility-grid clinic-link-grid">
+      <div class="settings-utility-main">
+        <article class="panel settings-utility-card">
+          <div class="settings-utility-head">
+            <div>
+              <p class="eyebrow">Same network</p>
+              <h2>Share this app</h2>
+            </div>
+            <span class="status-chip" data-status="{{ lan_chip_status }}">{{ desktop_status.network.label }}</span>
+          </div>
+
+          {% if desktop_settings.network_mode != 'lan' %}
+          <div class="banner">
+            Same-network access is currently off. Ask an admin to turn on LAN mode in Settings > App preferences.
+          </div>
+          {% endif %}
+
+          <div class="settings-utility-section">
+            <div class="safety-link-card clinic-link-card">
+              <label class="field-stack">
+                <span>Recommended link</span>
+                <input type="text" value="{{ lan_access.qr_url }}" readonly>
+                <p class="field-help">{{ lan_access.qr_url_label }} is used because it is the most reliable link for QR sharing.</p>
+              </label>
+              <div class="lan-link-actions">
+                <button class="ghost-button" type="button" data-copy-value="{{ lan_access.qr_url }}">Copy</button>
+                <a class="ghost-button" href="{{ lan_access.qr_url }}">Open</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-utility-section">
+            <div class="lan-qr-card">
+              <div class="lan-qr-frame">
+                <img src="{{ lan_qr_svg_url }}" alt="QR code for {{ lan_access.qr_url }}">
+              </div>
+              <div class="lan-guidance">
+                <strong>For phones, tablets, or another clinic PC</strong>
+                <p>Use only while connected to the same clinic Wi-Fi or local network.</p>
+                <div class="lan-link-actions">
+                  <a class="ghost-button" href="{{ lan_qr_page_url }}">Full QR</a>
+                  <a class="ghost-button" href="{{ lan_qr_svg_url }}?download=1">Download</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <aside class="panel settings-utility-card settings-utility-card--aside">
+        <div class="settings-utility-head">
+          <div>
+            <p class="eyebrow">Alternate</p>
+            <h2>Hostname</h2>
+          </div>
+        </div>
+
+        <div class="settings-utility-section">
+          <label class="field-stack">
+            <span>Cleaner PC link</span>
+            <input type="text" value="{{ lan_access.hostname_url }}" readonly>
+            <p class="field-help">Use this when clinic PCs can resolve the host computer name.</p>
+          </label>
+        </div>
+        <div class="settings-utility-actions">
+          <button class="ghost-button" type="button" data-copy-value="{{ lan_access.hostname_url }}">Copy hostname</button>
+          <a class="ghost-button" href="{{ lan_access.hostname_url }}">Open</a>
+        </div>
+
+        {% if not lan_access.ip_urls %}
+        <div class="settings-utility-section">
+          <div class="banner">No LAN IP address was detected yet. Connect this PC to the clinic network, then refresh.</div>
+        </div>
+        {% endif %}
+
+        <div class="settings-utility-section">
+          <div class="lan-guidance">
+            <strong>Keep the host PC open.</strong>
+            <p>This link only works while this computer is on and the desktop app/server is running.</p>
+          </div>
+        </div>
+      </aside>
+    </section>
+  </div>
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{{ url_for('static', path='settings.js') }}" defer></script>
+{% endblock %}

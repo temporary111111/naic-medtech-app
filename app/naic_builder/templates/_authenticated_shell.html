@@ -24,6 +24,20 @@
     <path d="M12 4.25 18.25 6.5v4.9c0 3.9-2.5 6.55-6.25 8.35-3.75-1.8-6.25-4.45-6.25-8.35V6.5L12 4.25Z" />
     <path d="m9.25 12.15 1.85 1.85 3.9-4.15" />
   </svg>
+  {%- elif name == "backup" -%}
+  <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M6.25 7.25c0-1.35 2.57-2.45 5.75-2.45s5.75 1.1 5.75 2.45-2.57 2.45-5.75 2.45-5.75-1.1-5.75-2.45Z" />
+    <path d="M6.25 7.25v4.8c0 1.36 2.57 2.45 5.75 2.45s5.75-1.09 5.75-2.45v-4.8" />
+    <path d="M6.25 12.05v4.7c0 1.35 2.57 2.45 5.75 2.45s5.75-1.1 5.75-2.45v-4.7" />
+    <path d="m14.75 15.95 1.1 1.1 2.2-2.3" />
+  </svg>
+  {%- elif name == "clinic_link" -%}
+  <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M8.75 7.25h-1.5a3.5 3.5 0 0 0 0 7h2.25" />
+    <path d="M15.25 16.75h1.5a3.5 3.5 0 0 0 0-7H14.5" />
+    <path d="M8.75 12h6.5" />
+    <path d="M6.75 18.25h3.5v-3.5h-3.5v3.5ZM13.75 8.25h3.5v-3.5h-3.5v3.5Z" />
+  </svg>
   {%- elif name == "settings" -%}
   <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
     <path d="M4.5 7.25h4.25M13.25 7.25h6.25M10.75 9.75a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM4.5 16.75h6.25M15.25 16.75h4.25M13.25 19.25a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
@@ -91,11 +105,19 @@
           </span>
           <strong>Forms</strong>
         </a>
-        <a class="app-drawer__item{% if active_nav == 'safety' %} is-active{% endif %}" href="/safety">
+        {% endif %}
+        <a class="app-drawer__item{% if active_nav == 'clinic_link' %} is-active{% endif %}" href="/clinic-link">
           <span class="app-drawer__glyph" aria-hidden="true">
-            {{ shell_icon("safety") }}
+            {{ shell_icon("clinic_link") }}
           </span>
-          <strong>Safety</strong>
+          <strong>Clinic link</strong>
+        </a>
+        {% if request.state.is_admin %}
+        <a class="app-drawer__item{% if active_nav == 'backup' %} is-active{% endif %}" href="/backup">
+          <span class="app-drawer__glyph" aria-hidden="true">
+            {{ shell_icon("backup") }}
+          </span>
+          <strong>Backup</strong>
         </a>
         {% endif %}
         <a class="app-drawer__item{% if active_nav == 'settings' %} is-active{% endif %}" href="/settings">

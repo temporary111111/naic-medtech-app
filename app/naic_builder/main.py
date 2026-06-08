@@ -146,7 +146,7 @@ PUBLIC_PATHS = {
     "/change-password",
 }
 PUBLIC_PREFIXES = ("/static",)
-ADMIN_PREFIXES = ("/forms", "/folders", "/builder", "/api/forms", "/api/builder", "/api/library", "/safety")
+ADMIN_PREFIXES = ("/forms", "/folders", "/builder", "/api/forms", "/api/builder", "/api/library", "/backup", "/safety")
 ADMIN_SETTINGS_PREFIXES = ("/settings/users", "/settings/desktop")
 RESTORE_CONFIRMATION_TEXT = "RESTORE"
 RECORDS_HISTORY_PAGE_SIZE = 40
@@ -436,40 +436,26 @@ def render_settings_users_page(
     )
 
 
-def render_settings_desktop_page(
+def render_backup_page(
     request: Request,
     *,
-    settings_override: dict[str, str] | None = None,
-    safety_mode: bool | None = None,
     error_message: str = "",
     success_message: str = "",
     status_code: int = 200,
 ) -> HTMLResponse:
-    if safety_mode is None:
-        safety_mode = request.url.path.startswith("/safety")
-    desktop_settings = settings_override or read_desktop_settings()
+    desktop_settings = read_desktop_settings()
     backup_status = local_backup_status()
     external_status = external_backup_status(desktop_settings.get("external_backup_dir"))
-    desktop_base = "/safety" if safety_mode else "/settings/desktop"
     return templates.TemplateResponse(
         request=request,
-        name="settings/desktop.html",
+        name="settings/backup.html",
         context={
             "app_title": APP_TITLE,
-            "safety_mode": safety_mode,
             "desktop_settings": desktop_settings,
-            "desktop_settings_action": desktop_base,
-            "backup_now_action": f"{desktop_base}/backup-now",
-            "backup_verify_latest_action": f"{desktop_base}/backup-verify-latest",
-            "backup_verify_external_latest_action": f"{desktop_base}/backup-verify-external-latest",
-            "restore_backup_action": f"{desktop_base}/restore-backup",
-            "lan_qr_page_url": f"{desktop_base}/lan-qr",
-            "lan_qr_svg_url": f"{desktop_base}/lan-qr.svg",
-            "browser_options": BROWSER_PREFERENCE_OPTIONS,
-            "network_options": NETWORK_MODE_OPTIONS,
-            "browser_status": detect_desktop_browsers(),
-            "lan_access": lan_access_details(),
-            "desktop_status": desktop_runtime_status(desktop_settings),
+            "backup_now_action": "/backup/backup-now",
+            "backup_verify_latest_action": "/backup/backup-verify-latest",
+            "backup_verify_external_latest_action": "/backup/backup-verify-external-latest",
+            "restore_backup_action": "/backup/restore-backup",
             "backup_status": backup_status,
             "external_backup_status": external_status,
             "backup_health": backup_health_summary(backup_status, external_status),
@@ -479,6 +465,49 @@ def render_settings_desktop_page(
             "success_message": success_message,
         },
         status_code=status_code,
+    )
+
+
+def render_settings_desktop_page(
+    request: Request,
+    *,
+    settings_override: dict[str, str] | None = None,
+    error_message: str = "",
+    success_message: str = "",
+    status_code: int = 200,
+) -> HTMLResponse:
+    desktop_settings = settings_override or read_desktop_settings()
+    return templates.TemplateResponse(
+        request=request,
+        name="settings/desktop.html",
+        context={
+            "app_title": APP_TITLE,
+            "desktop_settings": desktop_settings,
+            "desktop_settings_action": "/settings/desktop",
+            "browser_options": BROWSER_PREFERENCE_OPTIONS,
+            "network_options": NETWORK_MODE_OPTIONS,
+            "browser_status": detect_desktop_browsers(),
+            "desktop_status": desktop_runtime_status(desktop_settings),
+            "error_message": error_message,
+            "success_message": success_message,
+        },
+        status_code=status_code,
+    )
+
+
+def render_clinic_link_page(request: Request) -> HTMLResponse:
+    desktop_settings = read_desktop_settings()
+    return templates.TemplateResponse(
+        request=request,
+        name="settings/clinic_link.html",
+        context={
+            "app_title": APP_TITLE,
+            "desktop_settings": desktop_settings,
+            "desktop_status": desktop_runtime_status(desktop_settings),
+            "lan_access": lan_access_details(),
+            "lan_qr_page_url": "/clinic-link/lan-qr",
+            "lan_qr_svg_url": "/clinic-link/lan-qr.svg",
+        },
     )
 
 
@@ -497,7 +526,12 @@ def desktop_success_message(request: Request) -> str:
 
 
 def desktop_operation_base_path(request: Request) -> str:
-    return "/safety" if request.url.path.startswith("/safety") else "/settings/desktop"
+    path = request.url.path
+    if path.startswith(("/backup", "/safety")) or path.endswith(
+        ("/backup-now", "/backup-verify-latest", "/backup-verify-external-latest", "/restore-backup")
+    ):
+        return "/backup"
+    return "/settings/desktop"
 
 
 def render_new_user_page(
@@ -2053,10 +2087,24 @@ def settings_clinic_logo_file(session: Session = Depends(get_session)) -> FileRe
     )
 
 
-@app.get("/safety", response_class=HTMLResponse)
+@app.get("/safety")
+def safety_legacy_page() -> RedirectResponse:
+    return RedirectResponse(url="/backup", status_code=303)
+
+
+@app.get("/backup", response_class=HTMLResponse)
+def backup_page(request: Request) -> HTMLResponse:
+    return render_backup_page(request, success_message=desktop_success_message(request))
+
+
 @app.get("/settings/desktop", response_class=HTMLResponse)
 def settings_desktop_page(request: Request) -> HTMLResponse:
     return render_settings_desktop_page(request, success_message=desktop_success_message(request))
+
+
+@app.get("/clinic-link", response_class=HTMLResponse)
+def clinic_link_page(request: Request) -> HTMLResponse:
+    return render_clinic_link_page(request)
 
 
 @app.post("/safety")
@@ -2074,6 +2122,7 @@ async def save_settings_desktop_page(request: Request):
 
 @app.get("/safety/lan-qr.svg")
 @app.get("/settings/desktop/lan-qr.svg")
+@app.get("/clinic-link/lan-qr.svg")
 def settings_desktop_lan_qr(download: str = "") -> Response:
     lan_access = lan_access_details()
     svg = qr_svg_bytes(str(lan_access.get("qr_url") or ""))
@@ -2087,6 +2136,7 @@ def settings_desktop_lan_qr(download: str = "") -> Response:
     )
 
 
+@app.post("/backup/backup-now")
 @app.post("/safety/backup-now")
 @app.post("/settings/desktop/backup-now")
 def settings_desktop_backup_now_page(request: Request) -> Response:
@@ -2099,7 +2149,7 @@ def settings_desktop_backup_now_page(request: Request) -> Response:
                 backup_path = create_verified_backup(reason="manual-app")
                 prune_backup_archives(keep_count=backup_retention_count)
             except Exception as exc:
-                return render_settings_desktop_page(
+                return render_backup_page(
                     request,
                     error_message=f"Backup failed: {exc}",
                     status_code=500,
@@ -2112,13 +2162,13 @@ def settings_desktop_backup_now_page(request: Request) -> Response:
                         backup_dir=Path(external_backup_dir).expanduser(),
                     )
             except Exception as exc:
-                return render_settings_desktop_page(
+                return render_backup_page(
                     request,
                     error_message=f"Local backup was created and verified, but the external copy failed: {exc}",
                     status_code=500,
                 )
     except BackupOperationBusyError as exc:
-        return render_settings_desktop_page(
+        return render_backup_page(
             request,
             error_message=str(exc),
             status_code=409,
@@ -2128,6 +2178,7 @@ def settings_desktop_backup_now_page(request: Request) -> Response:
     return RedirectResponse(url=f"{desktop_operation_base_path(request)}?backup=created", status_code=303)
 
 
+@app.post("/backup/backup-verify-latest")
 @app.post("/safety/backup-verify-latest")
 @app.post("/settings/desktop/backup-verify-latest")
 def settings_desktop_backup_verify_latest_page(request: Request) -> Response:
@@ -2135,13 +2186,13 @@ def settings_desktop_backup_verify_latest_page(request: Request) -> Response:
         with backup_operation_lock(blocking=False):
             verify_latest_backup_archive()
     except BackupOperationBusyError as exc:
-        return render_settings_desktop_page(
+        return render_backup_page(
             request,
             error_message=str(exc),
             status_code=409,
         )
     except Exception as exc:
-        return render_settings_desktop_page(
+        return render_backup_page(
             request,
             error_message=f"Backup verification failed: {exc}",
             status_code=500,
@@ -2149,6 +2200,7 @@ def settings_desktop_backup_verify_latest_page(request: Request) -> Response:
     return RedirectResponse(url=f"{desktop_operation_base_path(request)}?backup=verified", status_code=303)
 
 
+@app.post("/backup/backup-verify-external-latest")
 @app.post("/safety/backup-verify-external-latest")
 @app.post("/settings/desktop/backup-verify-external-latest")
 def settings_desktop_backup_verify_external_latest_page(request: Request) -> Response:
@@ -2157,13 +2209,13 @@ def settings_desktop_backup_verify_external_latest_page(request: Request) -> Res
         with backup_operation_lock(blocking=False):
             verify_latest_external_backup_archive(str(desktop_settings.get("external_backup_dir") or ""))
     except BackupOperationBusyError as exc:
-        return render_settings_desktop_page(
+        return render_backup_page(
             request,
             error_message=str(exc),
             status_code=409,
         )
     except Exception as exc:
-        return render_settings_desktop_page(
+        return render_backup_page(
             request,
             error_message=f"External backup verification failed: {exc}",
             status_code=500,
@@ -2171,6 +2223,7 @@ def settings_desktop_backup_verify_external_latest_page(request: Request) -> Res
     return RedirectResponse(url=f"{desktop_operation_base_path(request)}?backup=external_verified", status_code=303)
 
 
+@app.post("/backup/restore-backup")
 @app.post("/safety/restore-backup")
 @app.post("/settings/desktop/restore-backup")
 async def settings_desktop_restore_backup_page(
@@ -2179,7 +2232,7 @@ async def settings_desktop_restore_backup_page(
     confirmation: str = Form(""),
 ) -> Response:
     if str(confirmation or "").strip() != RESTORE_CONFIRMATION_TEXT:
-        return render_settings_desktop_page(
+        return render_backup_page(
             request,
             error_message=f'Type {RESTORE_CONFIRMATION_TEXT} before restoring a backup.',
             status_code=400,
@@ -2187,7 +2240,7 @@ async def settings_desktop_restore_backup_page(
 
     original_filename = Path(backup_file.filename or "").name
     if not original_filename.lower().endswith(".zip"):
-        return render_settings_desktop_page(
+        return render_backup_page(
             request,
             error_message="Choose an NDHI backup ZIP archive.",
             status_code=400,
@@ -2205,14 +2258,14 @@ async def settings_desktop_restore_backup_page(
                 bytes_written += len(chunk)
 
         if bytes_written <= 0:
-            return render_settings_desktop_page(
+            return render_backup_page(
                 request,
                 error_message="The selected backup archive is empty.",
                 status_code=400,
             )
 
         if not begin_restore_maintenance():
-            return render_settings_desktop_page(
+            return render_backup_page(
                 request,
                 error_message="A backup restore is already in progress.",
                 status_code=409,
@@ -2221,13 +2274,13 @@ async def settings_desktop_restore_backup_page(
             with backup_operation_lock(blocking=False):
                 restore_verified_backup(uploaded_path)
         except BackupOperationBusyError as exc:
-            return render_settings_desktop_page(
+            return render_backup_page(
                 request,
                 error_message=str(exc),
                 status_code=409,
             )
         except Exception as exc:
-            return render_settings_desktop_page(
+            return render_backup_page(
                 request,
                 error_message=f"Backup restore failed: {exc}",
                 status_code=500,
@@ -2241,22 +2294,26 @@ async def settings_desktop_restore_backup_page(
 
 @app.get("/safety/lan-qr", response_class=HTMLResponse)
 @app.get("/settings/desktop/lan-qr", response_class=HTMLResponse)
+@app.get("/clinic-link/lan-qr", response_class=HTMLResponse)
 def settings_desktop_lan_qr_page(request: Request) -> HTMLResponse:
     lan_access = lan_access_details()
-    safety_mode = request.url.path.startswith("/safety")
-    desktop_base = "/safety" if safety_mode else "/settings/desktop"
+    path = request.url.path
+    settings_mode = path.startswith("/settings/desktop")
+    desktop_base = "/settings/desktop" if settings_mode else "/clinic-link"
     return templates.TemplateResponse(
         request=request,
         name="settings/lan_qr.html",
         context={
             "app_title": APP_TITLE,
-            "safety_mode": safety_mode,
+            "shell_active": "settings" if settings_mode else "clinic_link",
+            "settings_mode": settings_mode,
             "lan_access": lan_access,
             "desktop_settings": read_desktop_settings(),
             "desktop_status": desktop_runtime_status(),
             "lan_qr_page_url": f"{desktop_base}/lan-qr",
             "lan_qr_svg_url": f"{desktop_base}/lan-qr.svg",
             "lan_qr_back_url": desktop_base,
+            "lan_qr_back_label": "app preferences" if settings_mode else "Clinic link",
         },
     )
 
