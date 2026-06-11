@@ -182,6 +182,80 @@
     });
   };
 
+  const setupTemporalInputs = () => {
+    const temporalInputs = Array.from(document.querySelectorAll("[data-temporal-input]"));
+    if (!temporalInputs.length) {
+      return;
+    }
+
+    const pad = (value) => String(value).padStart(2, "0");
+    const dateValue = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    const timeValue = (date) => `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    const valueForKind = (kind) => {
+      const now = new Date();
+      if (kind === "time") {
+        return timeValue(now);
+      }
+      if (kind === "datetime") {
+        return `${dateValue(now)}T${timeValue(now)}`;
+      }
+      return dateValue(now);
+    };
+
+    const shouldSkipAutoFill = (input) => {
+      const label = String(input.dataset.temporalLabel || "").toLowerCase();
+      return [
+        "birth",
+        "birthday",
+        "birthdate",
+        "dob",
+        "age",
+        "expiry",
+        "expiration",
+        "expires",
+      ].some((term) => label.includes(term));
+    };
+
+    const setTemporalValue = (input, value) => {
+      if (!input || input.value === value) {
+        return;
+      }
+      input.value = value;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+
+    temporalInputs.forEach((input) => {
+      const kind = input.dataset.temporalKind || input.type;
+      if (!input.value && !shouldSkipAutoFill(input)) {
+        setTemporalValue(input, valueForKind(kind));
+      }
+    });
+
+    document.querySelectorAll("[data-temporal-action]").forEach((button) => {
+      if (button.dataset.temporalReady === "true") {
+        return;
+      }
+      button.dataset.temporalReady = "true";
+
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const field = button.closest("[data-temporal-field]");
+        const input = field?.querySelector("[data-temporal-input]");
+        if (!input) {
+          return;
+        }
+
+        const action = button.dataset.temporalAction;
+        const kind = input.dataset.temporalKind || input.type;
+        setTemporalValue(input, action === "clear" ? "" : valueForKind(kind));
+        input.focus({ preventScroll: true });
+      });
+    });
+  };
+
   const setupDirtyGuards = () => {
     const guardedForms = document.querySelectorAll("[data-dirty-guard]");
     if (!guardedForms.length) {
@@ -446,6 +520,7 @@
   };
 
   setupDirtyGuards();
+  setupTemporalInputs();
   setupRequiredFieldAttention();
   setupRecordFormPickers();
   setupRecordStartModal();
