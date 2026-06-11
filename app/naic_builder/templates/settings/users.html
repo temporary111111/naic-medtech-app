@@ -6,7 +6,7 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
-  <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20260607-ui-root-phase2">
+  <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20260612-default-avatar">
 {% endblock %}
 
 {% block shell_eyebrow %}Settings{% endblock %}
@@ -19,7 +19,6 @@
 
 {% block content %}
   {% macro render_user_card(user, section) %}
-  {% set user_initial = ((user.full_name or user.login_id or 'U')[:1]) | upper %}
   {% set user_avatar_version = (user.updated_at or '') | urlencode %}
   {% set user_avatar_url = '/settings/users/' ~ user.id ~ '/avatar?v=' ~ user_avatar_version if user.has_avatar else '' %}
   <article
@@ -33,7 +32,7 @@
         {% if user_avatar_url %}
         <img src="{{ user_avatar_url }}" alt="">
         {% else %}
-        <span>{{ user_initial }}</span>
+        {% include "_default_avatar_icon.html" %}
         {% endif %}
       </div>
       <div class="user-card-copy">

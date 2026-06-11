@@ -208,6 +208,23 @@
   font-size: 36px;
 }
 
+.account-avatar-frame .default-avatar-icon,
+.user-card-avatar .default-avatar-icon {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.85;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.82;
+}
+
+.account-avatar-frame--large .default-avatar-icon {
+  width: 42px;
+  height: 42px;
+}
+
 .account-identity-head {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);

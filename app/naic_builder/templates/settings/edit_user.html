@@ -1,7 +1,6 @@
 {% extends "_authenticated_shell.html" %}
 {% set shell_active = "settings" %}
 {% set settings_active = "users" %}
-{% set target_initial = ((target_user.full_name or target_user.login_id or 'U')[:1]) | upper %}
 {% set target_avatar_version = (target_user.updated_at or '') | urlencode %}
 {% set target_avatar_url = '/settings/users/' ~ target_user.id ~ '/avatar?v=' ~ target_avatar_version if target_user.has_avatar else '' %}
 {% set managing_self = (request.state.current_user or {}).get('id') == target_user.id %}
@@ -10,7 +9,7 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
-  <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20260607-ui-root-phase2">
+  <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20260612-default-avatar">
 {% endblock %}
 
 {% block shell_eyebrow %}Settings{% endblock %}
@@ -77,7 +76,7 @@
             {% if target_avatar_url %}
             <img src="{{ target_avatar_url }}" alt="">
             {% else %}
-            <span>{{ target_initial }}</span>
+            {% include "_default_avatar_icon.html" %}
             {% endif %}
           </div>
           <div class="brand-copy">

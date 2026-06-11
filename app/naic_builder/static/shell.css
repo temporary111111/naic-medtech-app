@@ -281,6 +281,18 @@
   border-radius: inherit;
 }
 
+.app-account-toggle .default-avatar-icon,
+.app-drawer__account-avatar .default-avatar-icon {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.85;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.88;
+}
+
 .app-zoom-chip {
   display: grid;
   grid-template-columns: 28px minmax(44px, auto) 28px;
@@ -503,6 +515,11 @@
   font-family: var(--font-heading);
   font-size: 17px;
   line-height: 1;
+}
+
+.app-drawer__account-avatar .default-avatar-icon {
+  width: 23px;
+  height: 23px;
 }
 
 .app-drawer__account-copy {

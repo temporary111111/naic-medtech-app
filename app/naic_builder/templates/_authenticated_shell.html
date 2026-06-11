@@ -56,13 +56,12 @@
   <script src="{{ url_for('static', path='theme.js') }}?v=20260607-icon-only-theme-toggle"></script>
   {% block extra_css %}{% endblock %}
   <link rel="stylesheet" href="{{ url_for('static', path='theme.css') }}?v=20260607-select-option-contrast">
-  <link rel="stylesheet" href="{{ url_for('static', path='shell.css') }}?v=20260607-icon-theme-toggle">
+  <link rel="stylesheet" href="{{ url_for('static', path='shell.css') }}?v=20260612-default-avatar">
 </head>
 <body class="app-shell-body{% if shell_variant|default('default') == 'workspace' %} app-shell-body--workspace{% endif %}" {% block body_attrs %}{% endblock %}>
   {% set clinic_profile = request.state.clinic_profile or {} %}
   {% set current_user = request.state.current_user or {} %}
   {% set active_nav = shell_active|default('records') %}
-  {% set user_initial = ((current_user.get('full_name') or 'U')[:1]) | upper %}
   {% set user_avatar_version = (current_user.get('updated_at') or '') | urlencode %}
   {% set user_avatar_url = '/settings/account/avatar?v=' ~ user_avatar_version if current_user.get('has_avatar') else '' %}
 
@@ -142,7 +141,7 @@
             {% if user_avatar_url %}
             <img src="{{ user_avatar_url }}" alt="">
             {% else %}
-            <span>{{ user_initial }}</span>
+            {% include "_default_avatar_icon.html" %}
             {% endif %}
           </div>
           <div class="app-drawer__account-copy">
@@ -207,13 +206,13 @@
           <button type="button" data-app-zoom-increase aria-label="Zoom in">+</button>
         </div>
         <button class="shell-theme-toggle shell-theme-toggle--inline shell-theme-toggle--icon" type="button" data-theme-toggle></button>
-        <button class="app-account-toggle" type="button" data-shell-drawer-toggle aria-expanded="false" aria-label="Open account and navigation" title="Open account and navigation">
+        <a class="app-account-toggle" href="/settings/account" aria-label="Open My account" title="Open My account">
           {% if user_avatar_url %}
           <img src="{{ user_avatar_url }}" alt="">
           {% else %}
-          <span>{{ user_initial }}</span>
+          {% include "_default_avatar_icon.html" %}
           {% endif %}
-        </button>
+        </a>
       </div>
     </header>
 
