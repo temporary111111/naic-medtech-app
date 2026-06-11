@@ -155,20 +155,14 @@
           </div>
         </div>
 
-        <section class="app-view-size" aria-label="View size">
-          <div class="app-view-size__head">
-            <span>View size</span>
-            <output data-app-zoom-output>100%</output>
-          </div>
-          <div class="app-view-size__controls">
-            <button type="button" data-app-zoom-decrease aria-label="Zoom out">-</button>
-            <button type="button" data-app-zoom-reset>Reset</button>
-            <button type="button" data-app-zoom-increase aria-label="Zoom in">+</button>
-          </div>
+        <section class="app-view-size" aria-label="Custom view size">
+          <span class="app-view-size__label">Custom view</span>
           <label class="app-view-size__custom">
-            <span>Custom</span>
+            <span class="sr-only">Custom view size</span>
             <input type="number" min="50" max="200" step="5" value="100" inputmode="numeric" data-app-zoom-input>
+            <span aria-hidden="true">%</span>
           </label>
+          <button type="button" data-app-zoom-reset>Reset</button>
         </section>
 
         <div class="app-drawer__footer-actions">

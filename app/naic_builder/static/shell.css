@@ -6,6 +6,18 @@
   overflow: hidden;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .app-zoom-stage {
   width: calc(100% / var(--app-zoom));
   height: calc(100vh / var(--app-zoom));
@@ -406,75 +418,69 @@
 }
 
 .app-view-size {
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.018)),
-    radial-gradient(circle at top right, rgba(195, 160, 108, 0.1), transparent 46%);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 100%;
+  padding: 8px 9px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  background: rgba(255, 255, 255, 0.022);
 }
 
-.app-view-size__head {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: center;
+.app-view-size__label {
   color: var(--shell-muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.app-view-size__head output {
-  color: var(--shell-text);
-  font-size: 12px;
-}
-
-.app-view-size__controls {
-  display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) 38px;
-  gap: 8px;
-}
-
-.app-view-size__controls button,
-.app-view-size__custom input {
-  min-height: 36px;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.045);
-  color: var(--shell-text);
+.app-view-size button {
+  min-width: 0;
+  height: 28px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: color-mix(in srgb, var(--shell-muted) 82%, var(--shell-text) 18%);
   font: inherit;
+  font-size: 11px;
   font-weight: 800;
-}
-
-.app-view-size__controls button {
   cursor: pointer;
 }
 
-.app-view-size__controls button:hover,
-.app-view-size__controls button:focus-visible,
+.app-view-size button:hover,
+.app-view-size button:focus-visible,
 .app-view-size__custom input:focus {
   outline: none;
-  border-color: rgba(126, 205, 222, 0.28);
   background: rgba(126, 205, 222, 0.1);
+  color: var(--shell-text);
 }
 
 .app-view-size__custom {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 8px;
+  display: flex;
+  gap: 4px;
   align-items: center;
-  color: var(--shell-muted);
-  font-size: 12px;
-  font-weight: 800;
+  color: color-mix(in srgb, var(--shell-muted) 84%, var(--shell-text) 16%);
+  font-size: 11px;
+  font-weight: 900;
 }
 
 .app-view-size__custom input {
-  width: 100%;
-  padding: 6px 10px;
+  width: 58px;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.026);
+  color: var(--shell-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
 }
 
 .app-drawer__account {
