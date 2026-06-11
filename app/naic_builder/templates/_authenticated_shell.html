@@ -56,12 +56,14 @@
   <script src="{{ url_for('static', path='theme.js') }}?v=20260607-icon-only-theme-toggle"></script>
   {% block extra_css %}{% endblock %}
   <link rel="stylesheet" href="{{ url_for('static', path='theme.css') }}?v=20260607-select-option-contrast">
-  <link rel="stylesheet" href="{{ url_for('static', path='shell.css') }}?v=20260612-default-avatar">
+  <link rel="stylesheet" href="{{ url_for('static', path='shell.css') }}?v=20260612-clinic-link-topbar">
 </head>
 <body class="app-shell-body{% if shell_variant|default('default') == 'workspace' %} app-shell-body--workspace{% endif %}" {% block body_attrs %}{% endblock %}>
   {% set clinic_profile = request.state.clinic_profile or {} %}
   {% set current_user = request.state.current_user or {} %}
   {% set active_nav = shell_active|default('records') %}
+  {% set desktop_settings = request.state.desktop_settings or {} %}
+  {% set lan_mode_enabled = desktop_settings.get('network_mode') == 'lan' %}
   {% set user_avatar_version = (current_user.get('updated_at') or '') | urlencode %}
   {% set user_avatar_url = '/settings/account/avatar?v=' ~ user_avatar_version if current_user.get('has_avatar') else '' %}
 
@@ -105,12 +107,6 @@
           <strong>Forms</strong>
         </a>
         {% endif %}
-        <a class="app-drawer__item{% if active_nav == 'clinic_link' %} is-active{% endif %}" href="/clinic-link">
-          <span class="app-drawer__glyph" aria-hidden="true">
-            {{ shell_icon("clinic_link") }}
-          </span>
-          <strong>Clinic link</strong>
-        </a>
         {% if request.state.is_admin %}
         <a class="app-drawer__item{% if active_nav == 'backup' %} is-active{% endif %}" href="/backup">
           <span class="app-drawer__glyph" aria-hidden="true">
@@ -199,6 +195,11 @@
           </button>
           <button type="button" data-app-zoom-increase aria-label="Zoom in">+</button>
         </div>
+        {% if lan_mode_enabled %}
+        <a class="app-account-toggle app-clinic-link-toggle{% if active_nav == 'clinic_link' %} is-active{% endif %}" href="/clinic-link" aria-label="Open Clinic link" title="Clinic link">
+          {{ shell_icon("clinic_link") }}
+        </a>
+        {% endif %}
         <button class="shell-theme-toggle shell-theme-toggle--inline shell-theme-toggle--icon" type="button" data-theme-toggle></button>
         <a class="app-account-toggle" href="/settings/account" aria-label="Open My account" title="Open My account">
           {% if user_avatar_url %}

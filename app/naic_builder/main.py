@@ -228,6 +228,7 @@ class AuthFlowMiddleware(BaseHTTPMiddleware):
             request.state.has_users = user_present
             request.state.is_admin = bool(session_user is not None and session_user.role == "admin")
             request.state.clinic_profile = clinic_profile
+            request.state.desktop_settings = read_desktop_settings()
 
             if not user_present:
                 if path == "/setup":
