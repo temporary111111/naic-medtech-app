@@ -133,6 +133,8 @@
 }
 
 .app-drawer {
+  --drawer-text: color-mix(in srgb, var(--text) 94%, #000 6%);
+  --drawer-muted: color-mix(in srgb, var(--muted) 70%, var(--text) 30%);
   position: fixed;
   left: 16px;
   top: 16px;
@@ -147,6 +149,7 @@
   background: color-mix(in srgb, var(--shell-bg) 90%, black 10%);
   border-color: var(--shell-line);
   box-shadow: var(--shadow-strong);
+  color: var(--drawer-text);
 }
 
 .app-drawer::before {
@@ -212,7 +215,7 @@
 
 .app-drawer__brand-mark span {
   font-size: 22px;
-  color: var(--shell-text);
+  color: var(--drawer-text);
 }
 
 .app-drawer__brand-copy,
@@ -222,7 +225,20 @@
   min-width: 0;
 }
 
-.app-drawer__brand-copy strong,
+.app-drawer__brand-copy strong {
+  color: var(--drawer-text);
+  font-family: var(--font-heading);
+  font-size: 18px;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.app-drawer__brand-copy span {
+  color: var(--drawer-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .app-global-header__brand-copy strong {
   color: var(--shell-text);
   font-family: var(--font-heading);
@@ -231,7 +247,6 @@
   letter-spacing: -0.03em;
 }
 
-.app-drawer__brand-copy span,
 .app-global-header__brand-copy span {
   color: var(--shell-muted);
   font-size: 12px;
@@ -418,7 +433,7 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.018));
-  color: var(--shell-text);
+  color: var(--drawer-text);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
@@ -484,7 +499,7 @@
 }
 
 .app-view-size__label {
-  color: var(--shell-muted);
+  color: var(--drawer-muted);
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -498,7 +513,7 @@
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: color-mix(in srgb, var(--shell-muted) 82%, var(--shell-text) 18%);
+  color: color-mix(in srgb, var(--drawer-muted) 68%, var(--drawer-text) 32%);
   font: inherit;
   font-size: 11px;
   font-weight: 800;
@@ -510,14 +525,14 @@
 .app-view-size__custom input:focus {
   outline: none;
   background: rgba(126, 205, 222, 0.1);
-  color: var(--shell-text);
+  color: var(--drawer-text);
 }
 
 .app-view-size__custom {
   display: flex;
   gap: 4px;
   align-items: center;
-  color: color-mix(in srgb, var(--shell-muted) 84%, var(--shell-text) 16%);
+  color: color-mix(in srgb, var(--drawer-muted) 72%, var(--drawer-text) 28%);
   font-size: 11px;
   font-weight: 900;
 }
@@ -529,7 +544,7 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.026);
-  color: var(--shell-text);
+  color: var(--drawer-text);
   font: inherit;
   font-size: 12px;
   font-weight: 900;
@@ -560,7 +575,7 @@
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.025)),
     radial-gradient(circle at top right, rgba(195, 160, 108, 0.18), transparent 56%);
-  color: var(--shell-text);
+  color: var(--drawer-text);
 }
 
 .app-drawer__account-avatar img {
@@ -588,14 +603,14 @@
 }
 
 .app-drawer__account-copy strong {
-  color: var(--shell-text);
+  color: var(--drawer-text);
   font-family: var(--font-display);
   font-size: 15px;
   letter-spacing: -0.02em;
 }
 
 .app-drawer__account-copy span {
-  color: var(--shell-muted);
+  color: var(--drawer-muted);
   font-size: 12px;
   line-height: 1.4;
   overflow-wrap: anywhere;
@@ -614,7 +629,7 @@
   border-color: rgba(255, 255, 255, 0.08);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.024));
-  color: var(--shell-text);
+  color: var(--drawer-text);
 }
 
 .app-global-header {
@@ -816,6 +831,11 @@ html[data-theme="dark"] .app-global-header__brand {
     linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
     radial-gradient(circle at top right, rgba(195, 160, 108, 0.22), transparent 54%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme="dark"] .app-drawer {
+  --drawer-text: var(--shell-text);
+  --drawer-muted: var(--shell-muted);
 }
 
 html[data-theme="dark"] .app-global-header__brand span,
