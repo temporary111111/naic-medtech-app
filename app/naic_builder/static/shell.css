@@ -648,6 +648,15 @@
   flex: 0 0 auto;
 }
 
+.app-global-header__actions .app-clinic-link-toggle,
+.app-global-header__actions .app-account-toggle,
+.app-global-header .shell-theme-toggle--icon {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  border-radius: 13px;
+}
+
 .app-global-header__brand {
   border-color: var(--line);
   background:
@@ -701,7 +710,7 @@
   gap: 8px;
   width: auto;
   min-width: 0;
-  min-height: 38px;
+  min-height: 36px;
   padding: 8px 12px;
   border-radius: 999px;
   border: 1px solid var(--line);
@@ -732,11 +741,7 @@
 }
 
 .app-global-header .shell-theme-toggle--icon {
-  width: 38px;
-  height: 38px;
-  min-height: 38px;
   padding: 0;
-  border-radius: 14px;
   border-color: color-mix(in srgb, var(--line-strong) 74%, var(--accent) 26%);
   background:
     linear-gradient(
