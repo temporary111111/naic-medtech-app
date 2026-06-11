@@ -2,6 +2,7 @@
 {% set shell_active = "clinic_link" %}
 {% set lan_qr_page_url = lan_qr_page_url|default('/clinic-link/lan-qr') %}
 {% set lan_qr_svg_url = lan_qr_svg_url|default('/clinic-link/lan-qr.svg') %}
+{% set lan_enabled = desktop_settings.network_mode == 'lan' %}
 {% set lan_chip_status = 'active' if desktop_status.network.status == 'ready' else ('disabled' if desktop_status.network.status == 'disabled' else 'pending') %}
 
 {% block html_title %}Clinic Link | {{ app_title }}{% endblock %}
@@ -16,7 +17,9 @@
 {% block shell_description %}{% endblock %}
 
 {% block topbar_actions %}
+  {% if lan_enabled %}
   <a class="primary-button" href="{{ lan_qr_svg_url }}?download=1">Download QR</a>
+  {% endif %}
 {% endblock %}
 
 {% block content %}
@@ -32,38 +35,55 @@
             <span class="status-chip" data-status="{{ lan_chip_status }}">{{ desktop_status.network.label }}</span>
           </div>
 
-          {% if desktop_settings.network_mode != 'lan' %}
-          <div class="banner">
-            Same-network access is currently off. Ask an admin to turn on LAN mode in Settings > App preferences.
+          {% if not lan_enabled %}
+          <div class="banner clinic-link-off-banner">
+            <strong>LAN sharing is off.</strong>
+            <span>This app is currently set to This PC only. Links and QR codes are shown as a preview, but they are not ready to share until an admin turns on LAN mode in Settings > App preferences.</span>
           </div>
           {% endif %}
 
-          <div class="settings-utility-section">
+          <div class="settings-utility-section{% if not lan_enabled %} is-disabled-preview{% endif %}">
             <div class="safety-link-card clinic-link-card">
               <label class="field-stack">
-                <span>Recommended link</span>
-                <input type="text" value="{{ lan_access.qr_url }}" readonly>
-                <p class="field-help">{{ lan_access.qr_url_label }} is used because it is the most reliable link for QR sharing.</p>
+                <span>{{ "Recommended link" if lan_enabled else "LAN link preview" }}</span>
+                <input type="text" value="{{ lan_access.qr_url if lan_enabled else 'Turn on LAN mode to share this app' }}" readonly>
+                <p class="field-help">
+                  {% if lan_enabled %}
+                  {{ lan_access.qr_url_label }} is used because it is the most reliable link for QR sharing.
+                  {% else %}
+                  Ask an admin to turn on same-network access before copying this link to another device.
+                  {% endif %}
+                </p>
               </label>
+              {% if lan_enabled %}
               <div class="lan-link-actions">
                 <button class="ghost-button" type="button" data-copy-value="{{ lan_access.qr_url }}">Copy</button>
                 <a class="ghost-button" href="{{ lan_access.qr_url }}">Open</a>
               </div>
+              {% endif %}
             </div>
           </div>
 
-          <div class="settings-utility-section">
+          <div class="settings-utility-section{% if not lan_enabled %} is-disabled-preview{% endif %}">
             <div class="lan-qr-card">
               <div class="lan-qr-frame">
+                {% if lan_enabled %}
                 <img src="{{ lan_qr_svg_url }}" alt="QR code for {{ lan_access.qr_url }}">
+                {% else %}
+                <div class="lan-qr-disabled" aria-hidden="true">
+                  <span></span>
+                </div>
+                {% endif %}
               </div>
               <div class="lan-guidance">
-                <strong>For phones, tablets, or another clinic PC</strong>
-                <p>Use only while connected to the same clinic Wi-Fi or local network.</p>
+                <strong>{{ "For phones, tablets, or another clinic PC" if lan_enabled else "QR sharing is unavailable" }}</strong>
+                <p>{{ "Use only while connected to the same clinic Wi-Fi or local network." if lan_enabled else "Turn on LAN mode first so phones, tablets, and other clinic PCs can open the app." }}</p>
+                {% if lan_enabled %}
                 <div class="lan-link-actions">
                   <a class="ghost-button" href="{{ lan_qr_page_url }}">Full QR</a>
                   <a class="ghost-button" href="{{ lan_qr_svg_url }}?download=1">Download</a>
                 </div>
+                {% endif %}
               </div>
             </div>
           </div>
@@ -78,17 +98,19 @@
           </div>
         </div>
 
-        <div class="settings-utility-section">
+        <div class="settings-utility-section{% if not lan_enabled %} is-disabled-preview{% endif %}">
           <label class="field-stack">
-            <span>Cleaner PC link</span>
-            <input type="text" value="{{ lan_access.hostname_url }}" readonly>
-            <p class="field-help">Use this when clinic PCs can resolve the host computer name.</p>
+            <span>{{ "Cleaner PC link" if lan_enabled else "Hostname preview" }}</span>
+            <input type="text" value="{{ lan_access.hostname_url if lan_enabled else 'Turn on LAN mode to share by hostname' }}" readonly>
+            <p class="field-help">{{ "Use this when clinic PCs can resolve the host computer name." if lan_enabled else "This becomes useful after same-network access is enabled." }}</p>
           </label>
         </div>
+        {% if lan_enabled %}
         <div class="settings-utility-actions">
           <button class="ghost-button" type="button" data-copy-value="{{ lan_access.hostname_url }}">Copy hostname</button>
           <a class="ghost-button" href="{{ lan_access.hostname_url }}">Open</a>
         </div>
+        {% endif %}
 
         {% if not lan_access.ip_urls %}
         <div class="settings-utility-section">

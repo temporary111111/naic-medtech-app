@@ -844,6 +844,66 @@
   margin: 0;
 }
 
+.clinic-link-off-banner {
+  display: grid;
+  gap: 4px;
+  border-color: color-mix(in srgb, var(--warning) 34%, var(--line) 66%);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--warning) 12%, var(--panel-strong) 88%), color-mix(in srgb, var(--panel) 92%, transparent)),
+    radial-gradient(circle at top right, color-mix(in srgb, var(--warning) 12%, transparent), transparent 42%);
+}
+
+.clinic-link-off-banner strong {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+
+.clinic-link-off-banner span {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.is-disabled-preview {
+  opacity: 0.62;
+}
+
+.is-disabled-preview input {
+  border-style: dashed;
+}
+
+.lan-qr-disabled {
+  width: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: inherit;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--muted) 10%, transparent) 25%, transparent 25% 50%, color-mix(in srgb, var(--muted) 10%, transparent) 50% 75%, transparent 75%),
+    color-mix(in srgb, var(--surface-elevated) 76%, transparent);
+  background-size: 18px 18px;
+}
+
+.lan-qr-disabled span {
+  width: 54px;
+  height: 54px;
+  border: 2px solid color-mix(in srgb, var(--muted) 54%, transparent);
+  border-radius: 999px;
+  position: relative;
+}
+
+.lan-qr-disabled span::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: 68px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 58%, transparent);
+  transform: translate(-50%, -50%) rotate(42deg);
+}
+
 .settings-utility-card > .banner {
   margin: 0 20px 18px;
 }

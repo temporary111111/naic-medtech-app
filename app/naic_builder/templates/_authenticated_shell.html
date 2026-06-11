@@ -195,11 +195,14 @@
           </button>
           <button type="button" data-app-zoom-increase aria-label="Zoom in">+</button>
         </div>
-        {% if lan_mode_enabled %}
-        <a class="app-account-toggle app-clinic-link-toggle{% if active_nav == 'clinic_link' %} is-active{% endif %}" href="/clinic-link" aria-label="Open Clinic link" title="Clinic link">
+        <a
+          class="app-account-toggle app-clinic-link-toggle{% if active_nav == 'clinic_link' %} is-active{% endif %}{% if not lan_mode_enabled %} is-off{% endif %}"
+          href="/clinic-link"
+          aria-label="{{ 'Open Clinic link' if lan_mode_enabled else 'Clinic link is off' }}"
+          title="{{ 'Clinic link' if lan_mode_enabled else 'Clinic link is off' }}"
+        >
           {{ shell_icon("clinic_link") }}
         </a>
-        {% endif %}
         <button class="shell-theme-toggle shell-theme-toggle--inline shell-theme-toggle--icon" type="button" data-theme-toggle></button>
         <a class="app-account-toggle" href="/settings/account" aria-label="Open My account" title="Open My account">
           {% if user_avatar_url %}
