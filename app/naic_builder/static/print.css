@@ -117,6 +117,11 @@ body {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.print-inline-form {
+  display: contents;
 }
 
 .print-fit-badge {
@@ -172,6 +177,17 @@ body {
   color: var(--accent);
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.9);
+}
+
+.print-link--next {
+  color: var(--accent);
+  border-color: rgba(30, 93, 82, 0.22);
+  background: rgba(30, 93, 82, 0.08);
+}
+
+.print-link--subtle {
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.66);
 }
 
 .print-button {

@@ -6,7 +6,7 @@
   <title>Print Record | {{ document.form_name }}</title>
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
-  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260430-signature-stamp">
+  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260612-print-workflow">
 </head>
 <body class="print-density-{{ document.print_config.density }} print-font-{{ (document.print_config.font_family or 'arial_narrow') | replace('_', '-') }}" style="--accent: {{ document.print_config.accent_color }}; --accent-ink: {{ document.print_accent_ink or '#ffffff' }}">
   {% from "records/_print_document.html" import render_print_page %}
@@ -24,8 +24,15 @@
         <span>{{ fit.detail or "Use browser print preview for final confirmation." }}</span>
       </div>
       <div class="print-toolbar-actions">
-        <a class="print-link" href="{{ back_href }}">{{ back_label }}</a>
         <button class="print-button" type="button" onclick="window.print()">Print / Save PDF</button>
+        {% if record_meta.form_slug %}
+        <form method="post" action="/records/new" class="print-inline-form">
+          <input type="hidden" name="form_slug" value="{{ record_meta.form_slug }}">
+          <button class="print-link print-link--next" type="submit">Next same form</button>
+        </form>
+        {% endif %}
+        <a class="print-link" href="/records/new">Choose form</a>
+        <a class="print-link print-link--subtle" href="{{ back_href }}">{{ back_label }}</a>
       </div>
     </div>
 
