@@ -5,7 +5,7 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
-  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20260612-temporal-inputs">
+  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20260612-temporal-polish">
 {% endblock %}
 
 {% block shell_eyebrow %}Records{% endblock %}
@@ -149,8 +149,10 @@
           >
           <div class="entry-temporal-actions" aria-label="{{ block.name }} quick date actions">
             <button class="entry-quick-fill" type="button" data-temporal-action="today">Today</button>
+            <button class="entry-quick-fill" type="button" data-temporal-action="yesterday">Yesterday</button>
             <button class="entry-quick-fill" type="button" data-temporal-action="clear">Clear</button>
           </div>
+          <small class="entry-temporal-preview" data-temporal-preview></small>
         </div>
         {% elif props.data_type == "time" %}
         <div class="entry-temporal-field" data-temporal-field>
@@ -167,6 +169,7 @@
             <button class="entry-quick-fill" type="button" data-temporal-action="now">Now</button>
             <button class="entry-quick-fill" type="button" data-temporal-action="clear">Clear</button>
           </div>
+          <small class="entry-temporal-preview" data-temporal-preview></small>
         </div>
         {% elif props.data_type == "datetime" %}
         <div class="entry-temporal-field" data-temporal-field>
@@ -181,8 +184,10 @@
           >
           <div class="entry-temporal-actions" aria-label="{{ block.name }} quick date and time actions">
             <button class="entry-quick-fill" type="button" data-temporal-action="now">Now</button>
+            <button class="entry-quick-fill" type="button" data-temporal-action="yesterday">Yesterday</button>
             <button class="entry-quick-fill" type="button" data-temporal-action="clear">Clear</button>
           </div>
+          <small class="entry-temporal-preview" data-temporal-preview></small>
         </div>
         {% elif props.data_type == "number" %}
         <input type="number" step="any" name="value__{{ block.id }}" value="{{ block_value }}">
@@ -407,5 +412,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', path='records.js') }}?v=20260612-temporal-defaults" defer></script>
+  <script src="{{ url_for('static', path='records.js') }}?v=20260612-temporal-polish" defer></script>
 {% endblock %}

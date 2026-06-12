@@ -191,6 +191,20 @@
     const pad = (value) => String(value).padStart(2, "0");
     const dateValue = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
     const timeValue = (date) => `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    const relativeDate = (days) => {
+      const date = new Date();
+      date.setDate(date.getDate() + days);
+      return date;
+    };
+    const formatDate = (date) => new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(date);
+    const formatTime = (date) => new Intl.DateTimeFormat(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(date);
     const valueForKind = (kind) => {
       const now = new Date();
       if (kind === "time") {
@@ -208,10 +222,71 @@
       if (mode === "today") {
         return kind === "date" ? dateValue(new Date()) : valueForKind(kind);
       }
+      if (mode === "yesterday") {
+        const yesterday = relativeDate(-1);
+        if (kind === "time") {
+          return timeValue(new Date());
+        }
+        if (kind === "datetime") {
+          return `${dateValue(yesterday)}T${timeValue(new Date())}`;
+        }
+        return dateValue(yesterday);
+      }
       if (mode === "now" || mode === "current_datetime") {
         return valueForKind(kind);
       }
       return valueForKind(kind);
+    };
+    const dateFromDateValue = (value) => {
+      const [year, month, day] = String(value || "").split("-").map(Number);
+      if (!year || !month || !day) {
+        return null;
+      }
+      return new Date(year, month - 1, day);
+    };
+    const dateFromTimeValue = (value) => {
+      const [hour, minute] = String(value || "").split(":").map(Number);
+      if (Number.isNaN(hour) || Number.isNaN(minute)) {
+        return null;
+      }
+      const date = new Date();
+      date.setHours(hour, minute, 0, 0);
+      return date;
+    };
+    const dateFromDatetimeValue = (value) => {
+      const [datePart, timePart] = String(value || "").split("T");
+      const date = dateFromDateValue(datePart);
+      const time = dateFromTimeValue(timePart);
+      if (!date || !time) {
+        return null;
+      }
+      date.setHours(time.getHours(), time.getMinutes(), 0, 0);
+      return date;
+    };
+    const previewTextForInput = (input) => {
+      const kind = input.dataset.temporalKind || input.type;
+      if (!input.value) {
+        return "";
+      }
+      if (kind === "time") {
+        const date = dateFromTimeValue(input.value);
+        return date ? formatTime(date) : "";
+      }
+      if (kind === "datetime") {
+        const date = dateFromDatetimeValue(input.value);
+        return date ? `${formatDate(date)}, ${formatTime(date)}` : "";
+      }
+      const date = dateFromDateValue(input.value);
+      return date ? formatDate(date) : "";
+    };
+    const updateTemporalPreview = (input) => {
+      const field = input.closest("[data-temporal-field]");
+      const preview = field?.querySelector("[data-temporal-preview]");
+      if (!preview) {
+        return;
+      }
+      preview.textContent = previewTextForInput(input);
+      preview.hidden = !preview.textContent;
     };
 
     const shouldSkipAutoFill = (input) => {
@@ -238,6 +313,10 @@
     };
 
     temporalInputs.forEach((input) => {
+      input.addEventListener("input", () => updateTemporalPreview(input));
+      input.addEventListener("change", () => updateTemporalPreview(input));
+      updateTemporalPreview(input);
+
       const kind = input.dataset.temporalKind || input.type;
       const mode = String(input.dataset.temporalDefault || "smart").trim() || "smart";
       if (input.value || mode === "blank") {

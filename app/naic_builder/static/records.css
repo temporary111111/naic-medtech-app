@@ -1231,6 +1231,18 @@
   gap: 6px;
 }
 
+.entry-temporal-preview {
+  min-height: 15px;
+  color: color-mix(in srgb, var(--muted) 76%, var(--text) 24%);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.entry-temporal-preview:empty {
+  display: none;
+}
+
 .entry-quick-fill {
   appearance: none;
   min-height: 28px;
