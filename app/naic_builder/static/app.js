@@ -37,6 +37,14 @@ const INPUT_TYPES = [
   { id: "time", label: "Time", control: "input", dataType: "time" },
   { id: "datetime", label: "Date & time", control: "input", dataType: "datetime" },
 ];
+const TEMPORAL_INPUT_TYPES = new Set(["date", "time", "datetime"]);
+const TEMPORAL_DEFAULT_MODES = [
+  { id: "smart", label: "Smart default" },
+  { id: "blank", label: "Blank" },
+  { id: "today", label: "Today" },
+  { id: "now", label: "Now" },
+  { id: "current_datetime", label: "Current date & time" },
+];
 const ACTIVE_BLOCK_SCHEMA_SOURCE = "builder_blocks_v1";
 const DEFAULT_PRINT_ACCENT_COLOR = "#1e5d52";
 const PRINT_SUMMARY_SOURCES = [
@@ -1162,6 +1170,65 @@ function getInputNormalMax(field) {
   return isBlockNode(field) ? String(getNodeProps(field).normal_max || "").trim() : "";
 }
 
+function isTemporalInputType(inputType) {
+  return TEMPORAL_INPUT_TYPES.has(String(inputType || "").trim());
+}
+
+function normalizeTemporalDefaultMode(mode, inputType = "") {
+  const normalized = compactText(mode) || "smart";
+  const allowed = new Set(TEMPORAL_DEFAULT_MODES.map((item) => item.id));
+  if (!allowed.has(normalized)) {
+    return "smart";
+  }
+  if (!isTemporalInputType(inputType)) {
+    return "";
+  }
+  if (inputType === "date" && normalized === "now") {
+    return "today";
+  }
+  if (inputType === "time" && (normalized === "today" || normalized === "current_datetime")) {
+    return "now";
+  }
+  if (inputType === "datetime" && (normalized === "today" || normalized === "now")) {
+    return "current_datetime";
+  }
+  return normalized;
+}
+
+function getInputDefaultValueMode(field) {
+  if (!isBlockNode(field)) {
+    return "smart";
+  }
+  return normalizeTemporalDefaultMode(getNodeProps(field).default_value_mode, inferInputType(field)) || "smart";
+}
+
+function renderTemporalDefaultEditor(field, path, inputType) {
+  if (!isTemporalInputType(inputType)) {
+    return "";
+  }
+  const currentMode = getInputDefaultValueMode(field);
+  const visibleModes = TEMPORAL_DEFAULT_MODES.filter((mode) => {
+    if (inputType === "date") {
+      return !["now", "current_datetime"].includes(mode.id);
+    }
+    if (inputType === "time") {
+      return !["today", "current_datetime"].includes(mode.id);
+    }
+    if (inputType === "datetime") {
+      return !["today", "now"].includes(mode.id);
+    }
+    return true;
+  });
+  return `
+    <label>
+      <span>Default answer</span>
+      <select data-path="${encodePath(path)}" data-bind="default_value_mode">
+        ${visibleModes.map((mode) => `<option value="${mode.id}"${mode.id === currentMode ? " selected" : ""}>${mode.label}</option>`).join("")}
+      </select>
+    </label>
+  `;
+}
+
 function inputNormalRangeLabel(field) {
   const min = compactText(getInputNormalMin(field));
   const max = compactText(getInputNormalMax(field));
@@ -1237,6 +1304,13 @@ function normalizeLiveBlockNode(node) {
   }
 
   if (blockKind(node) === "field") {
+    const inputType = inferInputType(node);
+    const defaultValueMode = normalizeTemporalDefaultMode(props.default_value_mode, inputType);
+    if (defaultValueMode) {
+      props.default_value_mode = defaultValueMode;
+    } else {
+      delete props.default_value_mode;
+    }
     if (props.required) {
       props.required = true;
     } else {
@@ -2199,6 +2273,7 @@ function setBoundValue(target, bind, rawValue) {
       bind === "normal_min" ||
       bind === "normal_max" ||
       bind === "unit_hint" ||
+      bind === "default_value_mode" ||
       bind === "content" ||
       bind === "columns"
     ) {
@@ -2322,6 +2397,7 @@ function makeDefaultPatientInfoBlock() {
       order: index + 1,
       control: field.control || "input",
       data_type: field.dataType,
+      default_value_mode: isTemporalInputType(field.dataType) ? "smart" : "",
       unit_hint: "",
       reference_text: "",
       normal_min: "",
@@ -2506,6 +2582,12 @@ function applyInputType(field, typeId) {
   delete props.field_type;
   props.control = selected.control;
   props.data_type = selected.dataType;
+  const defaultValueMode = normalizeTemporalDefaultMode(props.default_value_mode, selected.id);
+  if (defaultValueMode) {
+    props.default_value_mode = defaultValueMode;
+  } else {
+    delete props.default_value_mode;
+  }
   if (selected.id === "choice") {
     const options = getInputOptions(field);
     if (!options.length) {
@@ -4272,6 +4354,7 @@ function renderItemCard(item, path, options = {}) {
                         <span>Unit</span>
                         <input data-path="${encodePath(path)}" data-bind="unit_hint" value="${escapeHtml(getInputUnitHint(item) || "")}" placeholder="Example: mg/dL">
                       </label>
+                      ${renderTemporalDefaultEditor(item, path, inputType)}
                     </div>
                     ${inputType === "number" ? `
                       <div class="reference-range">
@@ -4387,6 +4470,7 @@ function renderItemCard(item, path, options = {}) {
                   <span>Unit</span>
                   <input data-path="${encodePath(path)}" data-bind="unit_hint" value="${escapeHtml(getInputUnitHint(item) || "")}" placeholder="Example: mg/dL">
                 </label>
+                ${renderTemporalDefaultEditor(item, path, inputType)}
               </div>
               ${inputType === "number" ? `
                 <div class="reference-range">

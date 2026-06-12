@@ -145,6 +145,7 @@
             data-temporal-input
             data-temporal-kind="date"
             data-temporal-label="{{ block.name }}"
+            data-temporal-default="{{ props.default_value_mode or 'smart' }}"
           >
           <div class="entry-temporal-actions" aria-label="{{ block.name }} quick date actions">
             <button class="entry-quick-fill" type="button" data-temporal-action="today">Today</button>
@@ -160,6 +161,7 @@
             data-temporal-input
             data-temporal-kind="time"
             data-temporal-label="{{ block.name }}"
+            data-temporal-default="{{ props.default_value_mode or 'smart' }}"
           >
           <div class="entry-temporal-actions" aria-label="{{ block.name }} quick time actions">
             <button class="entry-quick-fill" type="button" data-temporal-action="now">Now</button>
@@ -175,6 +177,7 @@
             data-temporal-input
             data-temporal-kind="datetime"
             data-temporal-label="{{ block.name }}"
+            data-temporal-default="{{ props.default_value_mode or 'smart' }}"
           >
           <div class="entry-temporal-actions" aria-label="{{ block.name }} quick date and time actions">
             <button class="entry-quick-fill" type="button" data-temporal-action="now">Now</button>
@@ -404,5 +407,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', path='records.js') }}?v=20260612-temporal-inputs" defer></script>
+  <script src="{{ url_for('static', path='records.js') }}?v=20260612-temporal-defaults" defer></script>
 {% endblock %}

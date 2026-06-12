@@ -201,6 +201,18 @@
       }
       return dateValue(now);
     };
+    const valueForMode = (kind, mode) => {
+      if (mode === "blank") {
+        return "";
+      }
+      if (mode === "today") {
+        return kind === "date" ? dateValue(new Date()) : valueForKind(kind);
+      }
+      if (mode === "now" || mode === "current_datetime") {
+        return valueForKind(kind);
+      }
+      return valueForKind(kind);
+    };
 
     const shouldSkipAutoFill = (input) => {
       const label = String(input.dataset.temporalLabel || "").toLowerCase();
@@ -227,8 +239,16 @@
 
     temporalInputs.forEach((input) => {
       const kind = input.dataset.temporalKind || input.type;
-      if (!input.value && !shouldSkipAutoFill(input)) {
-        setTemporalValue(input, valueForKind(kind));
+      const mode = String(input.dataset.temporalDefault || "smart").trim() || "smart";
+      if (input.value || mode === "blank") {
+        return;
+      }
+      if (mode === "smart" && shouldSkipAutoFill(input)) {
+        return;
+      }
+      const nextValue = valueForMode(kind, mode);
+      if (nextValue) {
+        setTemporalValue(input, nextValue);
       }
     });
 
@@ -250,7 +270,7 @@
 
         const action = button.dataset.temporalAction;
         const kind = input.dataset.temporalKind || input.type;
-        setTemporalValue(input, action === "clear" ? "" : valueForKind(kind));
+        setTemporalValue(input, action === "clear" ? "" : valueForMode(kind, action));
         input.focus({ preventScroll: true });
       });
     });

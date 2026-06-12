@@ -760,6 +760,10 @@ def normalize_field(field: dict[str, Any], parent_id: str, order: int, used_keys
     if bool(field.get("required")):
         normalized["required"] = True
 
+    default_value_mode = normalize_temporal_default_mode(field.get("default_value_mode"), data_type)
+    if default_value_mode:
+        normalized["default_value_mode"] = default_value_mode
+
     unit_hint = compact_text(field.get("unit_hint"))
     if unit_hint:
         normalized["unit_hint"] = unit_hint
@@ -1160,6 +1164,10 @@ def legacy_field_to_block(field: dict[str, Any]) -> dict[str, Any]:
     props["data_type"] = compact_text(field.get("data_type")) or "text"
     props["required"] = bool(field.get("required") or False)
 
+    default_value_mode = normalize_temporal_default_mode(field.get("default_value_mode"), props["data_type"])
+    if default_value_mode:
+        props["default_value_mode"] = default_value_mode
+
     unit_hint = compact_text(field.get("unit_hint"))
     if unit_hint:
         props["unit_hint"] = unit_hint
@@ -1417,6 +1425,10 @@ def block_field_to_legacy_field(block: dict[str, Any], parent_id: str, order: in
     if bool(props.get("required")):
         raw_field["required"] = True
 
+    default_value_mode = normalize_temporal_default_mode(props.get("default_value_mode"), data_type)
+    if default_value_mode:
+        raw_field["default_value_mode"] = default_value_mode
+
     unit_hint = compact_text(props.get("unit_hint"))
     if unit_hint:
         raw_field["unit_hint"] = unit_hint
@@ -1558,6 +1570,27 @@ def normalize_block_option_props(raw_options: Any) -> list[dict[str, Any]]:
     return normalized
 
 
+TEMPORAL_FIELD_TYPES = {"date", "time", "datetime"}
+TEMPORAL_DEFAULT_MODES = {"smart", "blank", "today", "now", "current_datetime"}
+
+
+def normalize_temporal_default_mode(value: Any, data_type: Any) -> str:
+    field_type = compact_text(data_type)
+    if field_type not in TEMPORAL_FIELD_TYPES:
+        return ""
+
+    mode = compact_text(value) or "smart"
+    if mode not in TEMPORAL_DEFAULT_MODES:
+        mode = "smart"
+    if field_type == "date" and mode == "now":
+        return "today"
+    if field_type == "time" and mode in {"today", "current_datetime"}:
+        return "now"
+    if field_type == "datetime" and mode in {"today", "now"}:
+        return "current_datetime"
+    return mode
+
+
 def normalize_active_block_storage_node(node: dict[str, Any]) -> bool:
     if not isinstance(node, dict):
         return False
@@ -1577,6 +1610,18 @@ def normalize_active_block_storage_node(node: dict[str, Any]) -> bool:
                     changed = True
             elif "required" in props:
                 props.pop("required", None)
+                changed = True
+
+            default_value_mode = normalize_temporal_default_mode(
+                props.get("default_value_mode"),
+                props.get("data_type"),
+            )
+            if default_value_mode:
+                if props.get("default_value_mode") != default_value_mode:
+                    props["default_value_mode"] = default_value_mode
+                    changed = True
+            elif "default_value_mode" in props:
+                props.pop("default_value_mode", None)
                 changed = True
 
         reference_text = compact_text(props.get("reference_text") or props.get("normal_value"))
