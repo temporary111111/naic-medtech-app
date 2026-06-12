@@ -742,6 +742,7 @@ function normalizePrintSummaryItems(items) {
 function getDraftPrintConfig(draft = state.draft) {
   if (!draft || typeof draft !== "object") {
     return {
+      report_title: "",
       accent_color: DEFAULT_PRINT_ACCENT_COLOR,
       density: "compact",
       font_family: "arial_narrow",
@@ -772,6 +773,7 @@ function getDraftPrintConfig(draft = state.draft) {
     meta.print_config = {};
   }
   const config = meta.print_config;
+  config.report_title = compactText(config.report_title);
   config.accent_color = normalizePrintAccentColor(config.accent_color);
   config.density = normalizePrintDensity(config.density);
   config.font_family = normalizePrintFontFamily(config.font_family);
@@ -803,7 +805,9 @@ function setDraftPrintConfigValue(key, value, draft = state.draft) {
     return;
   }
   const config = getDraftPrintConfig(draft);
-  if (key === "accent_color") {
+  if (key === "report_title") {
+    config.report_title = compactText(value);
+  } else if (key === "accent_color") {
     config.accent_color = normalizePrintAccentColor(value);
   } else if (key === "density") {
     config.density = normalizePrintDensity(value);
@@ -912,6 +916,20 @@ function currentPrintPreviewSignature() {
     location_name: displayLocationName(state.draft),
     form_schema: state.draft.block_schema || {},
   });
+}
+
+function defaultPrintReportTitle(draft = state.draft) {
+  const fallback = compactText(draft?.name) || "Untitled Form";
+  const pathLabel = displayLocationName(draft);
+  if (!pathLabel || pathLabel === fallback || pathLabel === "Top level") {
+    return fallback;
+  }
+  return compactText(pathLabel.split("/", 1)[0]) || fallback;
+}
+
+function resolvedPrintReportTitle(draft = state.draft) {
+  const config = getDraftPrintConfig(draft);
+  return compactText(config.report_title) || defaultPrintReportTitle(draft);
 }
 
 function printPreviewIsCurrent() {
@@ -3117,6 +3135,7 @@ function renderPrintSummaryRow(item, index, fields, totalCount) {
 }
 
 function renderPrintSummaryPreview(config) {
+  const reportTitle = resolvedPrintReportTitle(state.draft);
   const rows = config.summary_items.map((item) => {
     const sourceLabel = item.source === "field"
       ? defaultPrintSummaryLabel(item.source, item.field_id)
@@ -3133,7 +3152,7 @@ function renderPrintSummaryPreview(config) {
     <div class="print-mini-preview ${escapeHtml(printFontClass(config.font_family))}" style="--preview-accent: ${escapeHtml(config.accent_color)}; --preview-accent-ink: ${escapeHtml(printAccentInkColor(config.accent_color))}">
       <div class="print-mini-preview__head">
         <span></span>
-        <strong>${escapeHtml(state.draft.name || "Untitled Form")}</strong>
+        <strong>${escapeHtml(reportTitle)}</strong>
       </div>
       ${config.show_summary ? `
         <div class="print-mini-preview__meta">
@@ -3365,6 +3384,11 @@ function renderPrintCard() {
               </span>
             </summary>
             <div class="print-settings-body">
+              <label class="stacked-input">
+                <span>Printed title</span>
+                <input data-bind="print_config.report_title" value="${escapeHtml(config.report_title)}" placeholder="Auto: ${escapeHtml(defaultPrintReportTitle(state.draft))}">
+              </label>
+
               <div class="setup-grid">
                 <label>
                   <span>Header color</span>

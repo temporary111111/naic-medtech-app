@@ -159,8 +159,8 @@
     <section class="print-exam-head">
       <div class="print-exam-copy">
         <p class="print-eyebrow">Examination</p>
-        <h1 class="print-title">{{ document.form_name }}</h1>
-        {% if document.form_path_label and document.form_path_label != document.form_name %}
+        <h1 class="print-title">{{ document.report_title or document.form_name }}</h1>
+        {% if document.form_path_label and document.form_path_label != (document.report_title or document.form_name) %}
         <p class="print-path">{{ document.form_path_label }}</p>
         {% endif %}
       </div>

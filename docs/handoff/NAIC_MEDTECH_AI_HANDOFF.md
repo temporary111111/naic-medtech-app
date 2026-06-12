@@ -368,6 +368,7 @@ Current implementation checkpoint:
 - generic record identity config lives at `block_schema.meta.record_identity`
 - print config lives at `block_schema.meta.print_config`
 - signatory config lives at `block_schema.meta.signatories`
+- `print_config.report_title` is the optional patient-facing printed heading override; when blank, print resolves the latest template title from the root folder name, so `Clinical Microscopy / Semen` prints `Clinical Microscopy` while keeping the form name `Semen` inside the app
 - current forms now have a normal editable `Patient Information` builder group based on the original `default_lab_request` fields, with Name and Case Number marked required and wired as record identity/search hints
 - Medical Technologist and Pathologist were removed from normal Patient Information fields and migrated into the generic Signatories pane; current defaults are two medtech slots and one fixed pathologist slot from the source workbook
 - the builder `Print` pane now generates a backend-built sample print preview from the current unsaved draft, with an estimated one-page fit signal

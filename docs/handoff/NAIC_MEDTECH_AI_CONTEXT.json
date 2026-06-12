@@ -507,6 +507,7 @@
       "generic record_identity config at block_schema.meta.record_identity",
       "current forms now carry a normal editable Patient Information builder group from the original default_lab_request fields, with Name and Case Number required and wired into record identity/search",
       "print_config at block_schema.meta.print_config",
+      "print_config.report_title is the optional patient-facing printed heading override; if blank, print uses the latest template default from the root folder name, so Clinical Microscopy / Semen prints Clinical Microscopy while the internal form stays Semen",
       "signatory config at block_schema.meta.signatories",
       "builder Print pane for accent color, density, show/hide controls, configurable summary rows, controlled result-body options, and result layout",
       "builder Signatories pane for role labels, dropdown people, fixed people, fixed stamp images, manual entry, blank lines, required completion, print visibility, signature lines, and license display",

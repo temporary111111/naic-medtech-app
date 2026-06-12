@@ -130,6 +130,7 @@ Important rule: these fields are generic identity hints only. They are not a har
 Current shape:
 ```json
 {
+  "report_title": "",
   "accent_color": "#2563eb",
   "density": "compact",
   "font_family": "arial_narrow",
@@ -160,6 +161,8 @@ Current shape:
   ]
 }
 ```
+
+`report_title` is the patient-facing printed heading override. If blank, print uses the latest form template default: root folder name from `form_path_label` when the form is inside a folder, otherwise the form name. Example: `Clinical Microscopy / Semen` prints `Clinical Microscopy` as the main title unless the admin sets an explicit `Printed title` in Builder > Print. This is intentionally not snapshotted into records; old and new records use the latest form print setting.
 
 Legacy `signature_left_*` and `signature_right_*` print-config keys still exist as fallback compatibility only. The active model is `block_schema.meta.signatories`.
 

@@ -306,6 +306,7 @@ def normalize_print_config(raw_config: Any) -> dict[str, Any]:
         summary_items = [dict(item) for item in DEFAULT_PRINT_SUMMARY_ITEMS]
 
     return {
+        "report_title": compact_text(config.get("report_title")),
         "accent_color": normalize_print_accent_color(config.get("accent_color")),
         "density": normalize_print_density(config.get("density")),
         "font_family": normalize_print_font_family(config.get("font_family")),
@@ -330,6 +331,25 @@ def normalize_print_config(raw_config: Any) -> dict[str, Any]:
         "signature_right_field_id": compact_text(config.get("signature_right_field_id")),
         "summary_items": summary_items,
     }
+
+
+def default_print_report_title(form_name: Any, form_path_label: Any = "") -> str:
+    fallback = compact_text(form_name) or "Untitled Form"
+    path_label = compact_text(form_path_label)
+    if not path_label or path_label == fallback or path_label == "Top level":
+        return fallback
+    root_label = compact_text(path_label.split("/", 1)[0])
+    return root_label or fallback
+
+
+def resolve_print_report_title(
+    print_config: dict[str, Any] | None,
+    *,
+    form_name: Any,
+    form_path_label: Any = "",
+) -> str:
+    config = print_config if isinstance(print_config, dict) else {}
+    return compact_text(config.get("report_title")) or default_print_report_title(form_name, form_path_label)
 
 
 def password_hash_value(password: str) -> str:
@@ -3210,6 +3230,11 @@ def build_form_print_preview_document(
     print_accent_ink = print_accent_text_color(print_config.get("accent_color"))
     normalized_form_name = compact_text(form_name) or "Untitled Form"
     normalized_path = compact_text(form_path_label) or "Builder preview"
+    report_title = resolve_print_report_title(
+        print_config,
+        form_name=normalized_form_name,
+        form_path_label=normalized_path,
+    )
     serialized = {
         "id": 0,
         "record_key": "PREVIEW-0001",
@@ -3243,7 +3268,7 @@ def build_form_print_preview_document(
             "name": "Clinic lab result",
             "page_size": "A4",
         },
-        "title": normalized_form_name,
+        "title": report_title,
         "status": "draft",
         "display_title": compact_text(identity.get("primary_value")) or normalized_form_name,
         "display_subtitle": compact_text(identity.get("secondary_value")),
@@ -3254,6 +3279,7 @@ def build_form_print_preview_document(
         "patient_sex": "",
         "case_number": compact_text(identity.get("secondary_value")),
         "form_name": normalized_form_name,
+        "report_title": report_title,
         "form_path_label": normalized_path,
         "form_version_number": "draft",
         "record_key": "PREVIEW-0001",
@@ -3302,6 +3328,11 @@ def build_record_print_document(
     meta = entry_schema.get("meta") if isinstance(entry_schema.get("meta"), dict) else {}
     print_config = normalize_print_config(meta.get("print_config"))
     print_accent_ink = print_accent_text_color(print_config.get("accent_color"))
+    report_title = resolve_print_report_title(
+        print_config,
+        form_name=serialized["form_name"],
+        form_path_label=serialized["form_path_label"],
+    )
     summary_items = build_print_summary_items(
         print_config,
         serialized,
@@ -3320,7 +3351,7 @@ def build_record_print_document(
             "name": "Clinic lab result",
             "page_size": "A4",
         },
-        "title": serialized["form_name"],
+        "title": report_title,
         "status": serialized["status"],
         "display_title": serialized["display_title"],
         "display_subtitle": serialized["display_subtitle"],
@@ -3331,6 +3362,7 @@ def build_record_print_document(
         "patient_sex": serialized["patient_sex"] or "",
         "case_number": serialized["case_number"] or "",
         "form_name": serialized["form_name"],
+        "report_title": report_title,
         "form_path_label": serialized["form_path_label"],
         "form_version_number": serialized["form_version_number"],
         "record_key": serialized["record_key"],
