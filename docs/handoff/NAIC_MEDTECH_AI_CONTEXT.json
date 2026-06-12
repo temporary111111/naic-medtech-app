@@ -12,14 +12,15 @@
   "active_desktop_installer_doc": "docs/handoff/DESKTOP_INSTALLER_ARCHITECTURE.md",
   "main_goal_status": "continuation_ready_real_world_qa_remaining",
   "handoff_status": {
-    "last_refreshed": "2026-06-08",
+    "last_refreshed": "2026-06-12",
     "continuation_readiness": "ready_for_another_ai_if_it_reads_the_handoff_docs_first",
-    "current_priority": "manual_review_of_phase_6c_backup_clinic_link_split_and_phase_7b_builder_or_real_world_installed_app_qa",
+    "current_priority": "manual_qa_of_recent_record_entry_date_time_defaults_print_next_workflow_builder_temporal_defaults_and_real_world_installed_app_qa",
     "must_not_reopen_without_evidence": [
       "schema-driven builder architecture",
       "builder-driven print configuration",
       "local-first FastAPI desktop launcher architecture",
-      "LAN-on-by-default desktop setting for no-hassle same-network access"
+      "LAN-on-by-default desktop setting for no-hassle same-network access",
+      "native browser date/time inputs plus safe workflow helpers instead of custom date picker"
     ],
     "human_or_client_input_still_needed": [
       "manual QA of the installed app",
@@ -196,7 +197,11 @@
       "the first records API surface now exists at /api/records/bootstrap, /api/records, /api/records/{id}, and /api/records/{id}/complete",
       "record status lifecycle now includes draft, completed, deleted for soft-deleted drafts, and voided for completed records that are invalidated with an audit reason",
       "image answer fields now support a first real upload, replace, preview, serve, and remove flow during record entry",
-      "/records/{id}/print now exists as the first browser-printable record/result surface and now reads form-version print_config for accent color, density, visibility toggles, and summary rows"
+      "/records/{id}/print now exists as the first browser-printable record/result surface and now reads form-version print_config for accent color, density, visibility toggles, and summary rows",
+      "record date/time entry now keeps native browser date, time, and datetime-local controls as the safety base while adding quick chips and readable previews",
+      "blank temporal fields can be auto-filled through smart defaults: ordinary date/time fields get sensible values, but labels that look like birthdate, DOB, age, expiry, expiration, or expires are skipped unless the builder explicitly configures a default",
+      "date fields expose Today, Yesterday, and Clear; time fields expose Now and Clear; datetime fields expose Now, Yesterday, and Clear",
+      "record print workflow is faster for high-volume use: /records/{id}/print keeps Print / Save PDF primary, adds Next same form, adds Choose form, and keeps Back to record as a secondary action"
     ],
     "auth_settings_foundation": [
       "/setup now exists as the first-run admin setup screen",
@@ -322,6 +327,8 @@
       "field input wording is calmer too: the picker now says Input, with simpler choices like Text, Choices, and Date & time",
       "field reference handling is more print-ready too: the live builder now uses Reference in the active field UI, numeric fields now use a Normal range with From / To, and choice options can be marked Counts as normal for future abnormal highlighting",
       "the builder can now model Image as a real answer type too: the active schema can save image fields cleanly, while the preview stays honest that actual file upload belongs to the future fill-up runtime",
+      "the builder now exposes field-level Default answer for Date, Time, and Date & time fields, stored as props.default_value_mode and normalized by the backend",
+      "supported temporal default modes are smart, blank, today, now, and current_datetime; the UI only shows compatible modes for each input type",
       "legacy compatibility is preserved too: builder storage now keeps reference_text as the active block prop while still projecting it back into legacy normal_value where older storage expects it",
       "the visible field UX stays calm too: the duplicate top Reference heading is gone, a tiny hint stays above the inputs, Normal range gets one small line for meaning, and choice options stay simple without extra tooltip clutter",
       "active organizer rows are quieter too: the old Editing pills are gone from the outline and nested organizers, so focus now reads through the active highlight instead of extra status chips",

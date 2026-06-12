@@ -4,7 +4,7 @@
 This document explains the core product concept for the NDHI Laboratory Records app so another AI can continue implementation without re-discovering the domain context.
 
 ## Handoff Readiness Snapshot
-As of June 6, 2026, the codebase is continuation-ready for another AI if it starts from this document and the focused handoff docs listed below.
+As of June 12, 2026, the codebase is continuation-ready for another AI if it starts from this document and the focused handoff docs listed below.
 
 Current repo state:
 - core records/forms/builder/settings/auth foundations are implemented
@@ -15,6 +15,16 @@ Current repo state:
 - same-network LAN access defaults on for fresh desktop installs; signed-in users can open `Clinic link` for the reliable same-network URL, full QR page, and downloadable QR code
 - the admin-only `Backup` page now exposes local/external verified backups, automatic daily backup status, latest-backup verification, and protected restore with an emergency pre-restore backup; `Settings > App preferences` controls browser preference, LAN mode, external backup folder, and retention count
 - root UI/UX redesign planning is now active as of June 7, 2026; read `docs/handoff/UI_UX_ROOT_REDESIGN_PLAN.md` before making UI changes
+
+Latest June 12, 2026 checkpoint:
+- Record date/time entry was improved without replacing native browser controls. Keep the native `date`, `time`, and `datetime-local` inputs as the compatibility/safety base unless real device QA proves a blocker.
+- Date/time fields in record entry now support safe auto-fill for blank fields, quick action chips, and readable previews. Date fields show `Today`, `Yesterday`, and `Clear`; time fields show `Now` and `Clear`; datetime fields show `Now`, `Yesterday`, and `Clear`.
+- The builder now exposes a field-level `Default answer` control for Date, Time, and Date & time fields. It stores `props.default_value_mode` in the block schema and the backend preserves/normalizes it.
+- Supported temporal default modes are `smart`, `blank`, `today`, `now`, and `current_datetime`. The UI only shows compatible choices per input type.
+- `smart` remains the default. It auto-fills ordinary blank date/time fields but skips labels that look like birthdate, DOB, age, expiry, expiration, or expires. Explicit builder defaults override the smart skip rule.
+- The print page workflow is faster for high-volume clinic use. `/records/{id}/print` keeps `Print / Save PDF` primary, adds `Next same form` to create the next draft with the same form, adds `Choose form`, and keeps `Back to record` as a secondary action.
+- Do not turn the date/time controls into a custom calendar/time picker yet. The accepted approach is native input plus workflow helpers, because safety across browsers/devices is more important than visual novelty.
+- Do not auto-create the next draft after printing. The current explicit `Next same form` button is intentional to avoid junk drafts when print is cancelled or a record is being reviewed.
 
 Still not clinic-release-complete:
 - manual installed-app QA on a clean Windows machine

@@ -47,6 +47,8 @@ Implemented:
 - Actual `/records/{id}/print` smoke now passes for all 16 current forms by creating temporary completed records and checking the real route; the QA script snapshots/restores the runtime DB by default so the smoke run does not leave QA rows behind.
 - Browser PDF QA generates A4 PDFs from real `/records/{id}/print` pages through Playwright, checks the resulting PDF page counts, and restores the runtime DB by default. Rerun it on Windows for the current 16 forms; the WSL run is currently blocked by missing Playwright/Chromium Linux shared-library dependencies.
 - Signatories now support a generic `stamp_image` input type for a full uploaded stamp image that already contains signature, name, and license. This is not pathologist-specific; any signatory slot can use it.
+- The completed-record print page now supports a faster high-volume workflow: `Print / Save PDF` remains primary, `Next same form` creates a new draft using the same form slug, `Choose form` opens the new-record picker path, and `Back to record` remains as a secondary recovery/review action.
+- The app intentionally does not auto-create the next draft after printing. The explicit `Next same form` action prevents junk drafts when print is cancelled, the user only needs to review/reprint, or the wrong record was opened.
 
 Code paths:
 - `app/naic_builder/static/app.js`
@@ -83,6 +85,7 @@ Code paths:
   - shows the same estimated fit badge used by builder preview
   - renders configurable summary items
   - supports show/hide clinic logo, clinic info, status, and signatures
+  - provides print-flow shortcuts for `Next same form`, `Choose form`, and secondary `Back to record`
 - `app/naic_builder/templates/forms/print_preview.html`
   - builder iframe document using sample data and the shared print-page macro
 - `app/naic_builder/static/print.css`
@@ -91,6 +94,7 @@ Code paths:
   - print density handling
   - no-logo clinic header handling
   - builder-preview fit badge styling
+  - screen-only print toolbar action styling; print media still hides toolbar controls
 - `tools/scripts/print_record_qa.py`
   - repeatable smoke for actual `/records/{id}/print`
   - creates temporary completed records with stress values
@@ -273,6 +277,7 @@ Use those patterns as reference only. The new app should produce a better, clean
 - Existing records point to frozen form versions. New print config applies naturally to records created from newer saved form versions unless old versions are intentionally migrated.
 - Clinic data and logo come from Settings > Clinic profile.
 - This is not yet a full PDF generation engine. The current implementation is browser-print based.
+- The print-toolbar workflow is screen-only. Do not change the print engine just to optimize the post-print navigation flow.
 
 ## Recommended Next Work
 Phase 2B is now landed:
