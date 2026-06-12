@@ -111,6 +111,18 @@
 
         <div class="settings-utility-actions">
           <a class="ghost-button" href="/clinic-link">Open Clinic link</a>
+          <form
+            method="post"
+            action="/settings/desktop/repair-lan"
+            class="inline-action-form"
+            data-confirm="Windows may ask for administrator permission. Approve the prompt to repair same-network access without reinstalling the app."
+            data-confirm-eyebrow="Same-network access"
+            data-confirm-title="Repair LAN access?"
+            data-confirm-cancel-label="Cancel"
+            data-confirm-confirm-label="Repair access"
+          >
+            <button class="primary-button" type="submit">Repair LAN access</button>
+          </form>
           <a class="ghost-button" href="/backup">Open Backup</a>
         </div>
 

@@ -12,7 +12,7 @@ Current repo state:
 - patient-facing browser-print output is implemented through the builder-driven print model
 - automated print smoke passes across the current 16 seeded forms; browser PDF page-count QA remains a Windows-side validation task when Playwright dependencies are available
 - local-first Windows desktop installer foundation exists and has a current `0.1.4-dev` QR/LAN reliability build
-- same-network LAN access defaults on for fresh desktop installs; signed-in users can open `Clinic link` for the reliable same-network URL, full QR page, and downloadable QR code
+- same-network LAN access defaults on for fresh desktop installs; signed-in users can open `Clinic link` for the reliable same-network URL, full QR page, and downloadable QR code; admins can repair Windows Firewall LAN access from `Settings > App preferences` without reinstalling
 - the admin-only `Backup` page now exposes local/external verified backups, automatic daily backup status, latest-backup verification, and protected restore with an emergency pre-restore backup; `Settings > App preferences` controls browser preference, LAN mode, external backup folder, and retention count
 - root UI/UX redesign planning is now active as of June 7, 2026; read `docs/handoff/UI_UX_ROOT_REDESIGN_PLAN.md` before making UI changes
 
@@ -70,6 +70,7 @@ Current status snapshot:
 - a local-first Windows desktop-installer foundation now exists under `tools/desktop/`; continue from `docs/handoff/DESKTOP_INSTALLER_ARCHITECTURE.md`
 - the desktop layer intentionally keeps FastAPI as the product core: a launcher starts the local server and opens a browser-powered app window
 - fresh desktop installs default to LAN mode so same-network clinic devices can connect with the URL/QR shown in `Clinic link`
+- installer and repair flow create the `NDHI Laboratory Records LAN` firewall rule for TCP `8114`, scoped to `localsubnet` across Private/Domain/Public Windows network profiles
 - the verified backup foundation now includes local/external backup UI, daily automatic backup while the app is open, admin-only restore with a pre-restore emergency backup, and a source installer pre-update hook, but clean-PC restore drills and Windows upgrade-flow validation are still required before clinic release
 
 ## Historical Phase 1 Priority

@@ -25,7 +25,7 @@ $rule = @{
     Action = "Allow"
     Protocol = "TCP"
     LocalPort = $Port
-    Profile = "Private", "Domain"
+    Profile = "Private", "Domain", "Public"
     RemoteAddress = "LocalSubnet"
     Description = "Allows trusted clinic LAN devices to open NDHI Laboratory Records on TCP port $Port."
 }
@@ -35,4 +35,4 @@ if (Test-Path -LiteralPath $ProgramPath -PathType Leaf) {
 
 New-NetFirewallRule @rule | Out-Null
 
-Write-Host "Created LAN firewall rule: $RuleName on TCP port $Port for Private/Domain local subnet networks."
+Write-Host "Created LAN firewall rule: $RuleName on TCP port $Port for Private/Domain/Public local subnet networks."

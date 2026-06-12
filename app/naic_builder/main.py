@@ -40,6 +40,7 @@ from .desktop_settings import (
     desktop_runtime_status,
     lan_access_details,
     read_desktop_settings,
+    repair_lan_firewall_rule,
     save_desktop_settings,
 )
 from .qr import qr_svg_bytes
@@ -523,6 +524,8 @@ def desktop_success_message(request: Request) -> str:
         return "Verified the latest local backup."
     if request.query_params.get("backup") == "external_verified":
         return "Verified the latest external backup."
+    if request.query_params.get("lan_repair") == "ready":
+        return "Same-network access is repaired. If status still says restart needed, close and reopen the desktop app."
     return ""
 
 
@@ -2119,6 +2122,25 @@ async def save_settings_desktop_page(request: Request):
         backup_retention_count=str(form.get("backup_retention_count") or ""),
     )
     return RedirectResponse(url=f"{desktop_operation_base_path(request)}?saved=1", status_code=303)
+
+
+@app.post("/settings/desktop/repair-lan")
+def repair_settings_desktop_lan_page(request: Request) -> Response:
+    desktop_settings = read_desktop_settings()
+    save_desktop_settings(
+        browser_preference=str(desktop_settings.get("browser_preference") or ""),
+        network_mode="lan",
+        external_backup_dir=str(desktop_settings.get("external_backup_dir") or ""),
+        backup_retention_count=str(desktop_settings.get("backup_retention_count") or ""),
+    )
+    repair_result = repair_lan_firewall_rule()
+    if repair_result.get("status") == "ready":
+        return RedirectResponse(url="/settings/desktop?lan_repair=ready", status_code=303)
+    return render_settings_desktop_page(
+        request,
+        error_message=str(repair_result.get("detail") or "Same-network access repair did not finish."),
+        status_code=409 if repair_result.get("status") == "warning" else 500,
+    )
 
 
 @app.get("/safety/lan-qr.svg")

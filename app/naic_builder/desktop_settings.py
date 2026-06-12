@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import base64
 import json
 import os
 import shutil
 import socket
 import subprocess
+import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +21,7 @@ DEFAULT_BACKUP_RETENTION_COUNT = 30
 MIN_BACKUP_RETENTION_COUNT = 5
 MAX_BACKUP_RETENTION_COUNT = 365
 FIREWALL_RULE_NAME = "NDHI Laboratory Records LAN"
+FIREWALL_PROFILES = ("Private", "Domain", "Public")
 SUPPORTED_BROWSER_PREFERENCES = ("auto", "edge", "chrome", "default")
 SUPPORTED_NETWORK_MODES = ("local", "lan")
 BROWSER_PREFERENCE_OPTIONS = [
@@ -171,6 +175,262 @@ def detect_desktop_browsers() -> dict[str, dict[str, str | bool]]:
     }
 
 
+def _powershell_command() -> str:
+    return shutil.which("powershell.exe") or shutil.which("powershell") or "powershell.exe"
+
+
+def _powershell_single_quote(value: Any) -> str:
+    return "'" + str(value or "").replace("'", "''") + "'"
+
+
+def _command_line_quote(value: Any) -> str:
+    return '"' + str(value or "").replace('"', '\\"') + '"'
+
+
+def _encoded_powershell(script: str) -> str:
+    return base64.b64encode(script.encode("utf-16le")).decode("ascii")
+
+
+def _run_powershell_json(script: str, *, timeout: int = 5) -> Any:
+    try:
+        result = subprocess.run(
+            [
+                _powershell_command(),
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-EncodedCommand",
+                _encoded_powershell(script),
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=timeout,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    output = str(result.stdout or "").strip()
+    if not output:
+        return None
+    try:
+        return json.loads(output)
+    except json.JSONDecodeError:
+        return None
+
+
+def _ensure_list(value: Any) -> list[Any]:
+    if value is None:
+        return []
+    return value if isinstance(value, list) else [value]
+
+
+def _clean_powershell_error(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    if text.startswith("#< CLIXML") or "<Objs " in text or "Preparing modules for first use" in text:
+        return ""
+    return text[-600:]
+
+
+def _firewall_profiles_ready(profile_text: Any) -> bool:
+    profiles = str(profile_text or "").lower()
+    if "any" in profiles:
+        return True
+    return all(profile.lower() in profiles for profile in FIREWALL_PROFILES)
+
+
+def _netsh_rule_blocks(output: str) -> list[str]:
+    blocks: list[list[str]] = []
+    current: list[str] = []
+    for line in str(output or "").splitlines():
+        if line.strip().lower().startswith("rule name:") and current:
+            blocks.append(current)
+            current = []
+        current.append(line)
+    if current:
+        blocks.append(current)
+    return ["\n".join(block) for block in blocks if any(line.strip() for line in block)]
+
+
+def _netsh_value(output: str, label: str) -> str:
+    prefix = f"{label}:".lower()
+    for line in str(output or "").splitlines():
+        stripped = line.strip()
+        if stripped.lower().startswith(prefix):
+            return stripped.split(":", 1)[1].strip()
+    return ""
+
+
+def _netsh_firewall_rule_status(output: str) -> dict[str, str]:
+    if "No rules match" in output:
+        return {
+            "status": "warning",
+            "label": "Needs check",
+            "detail": "The installer firewall rule was not detected.",
+        }
+
+    fallback_warning = {
+        "status": "warning",
+        "label": "Needs check",
+        "detail": "The firewall rule exists, but Windows profile/local-subnet details could not be fully verified.",
+    }
+
+    for block in _netsh_rule_blocks(output):
+        enabled = _netsh_value(block, "Enabled").lower()
+        direction = _netsh_value(block, "Direction").lower()
+        profiles = _netsh_value(block, "Profiles")
+        remote_ip = _netsh_value(block, "RemoteIP").lower()
+        protocol = _netsh_value(block, "Protocol").lower()
+        local_port = _netsh_value(block, "LocalPort").lower()
+        action = _netsh_value(block, "Action").lower()
+
+        if enabled and enabled != "yes":
+            fallback_warning = {
+                "status": "warning",
+                "label": "Disabled",
+                "detail": "The firewall rule exists but is disabled.",
+            }
+            continue
+        if direction and direction not in {"in", "inbound"}:
+            continue
+        if action and action != "allow":
+            continue
+        if protocol and protocol != "tcp":
+            fallback_warning = {
+                "status": "warning",
+                "label": "Needs repair",
+                "detail": "The firewall rule exists, but it is not configured for TCP.",
+            }
+            continue
+        if local_port and local_port not in {str(DEFAULT_DESKTOP_PORT), "any"}:
+            fallback_warning = {
+                "status": "warning",
+                "label": "Needs repair",
+                "detail": "The firewall rule exists, but it does not match the app port.",
+            }
+            continue
+        if remote_ip and "localsubnet" not in remote_ip:
+            fallback_warning = {
+                "status": "warning",
+                "label": "Needs repair",
+                "detail": "The firewall rule is not limited to the local clinic network.",
+            }
+            continue
+        if profiles and not _firewall_profiles_ready(profiles):
+            fallback_warning = {
+                "status": "warning",
+                "label": "Limited",
+                "detail": "The firewall rule does not cover every Windows network profile. Repair it if sharing fails.",
+            }
+            continue
+        if enabled == "yes" and remote_ip and protocol == "tcp" and local_port == str(DEFAULT_DESKTOP_PORT):
+            return {
+                "status": "ready",
+                "label": "Ready",
+                "detail": "Firewall rule is installed for same-network access.",
+            }
+
+    return fallback_warning
+
+
+def _current_program_path() -> str:
+    candidate = Path(sys.executable or "")
+    return str(candidate) if candidate.is_file() else ""
+
+
+def _lan_firewall_repair_script_path() -> Path:
+    return CONFIG_DIR / "repair-lan-firewall.ps1"
+
+
+def _lan_firewall_repair_result_path() -> Path:
+    return CONFIG_DIR / "repair-lan-firewall-result.json"
+
+
+def write_lan_firewall_repair_script() -> Path:
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    script_path = _lan_firewall_repair_script_path()
+    script_path.write_text(
+        """[CmdletBinding()]
+param(
+    [int]$Port = 8114,
+    [string]$RuleName = "NDHI Laboratory Records LAN",
+    [string]$ProgramPath = "",
+    [string]$ResultPath = ""
+)
+
+$ErrorActionPreference = "Stop"
+$ProgressPreference = "SilentlyContinue"
+
+function Write-RepairResult {
+    param(
+        [string]$Status,
+        [string]$Message
+    )
+
+    if (-not $ResultPath) {
+        return
+    }
+
+    $payload = [ordered]@{
+        status = $Status
+        label = if ($Status -eq "ready") { "Ready" } else { "Needs attention" }
+        detail = $Message
+        rule_name = $RuleName
+        port = $Port
+        profiles = "Private, Domain, Public"
+        remote_address = "LocalSubnet"
+        timestamp = (Get-Date).ToString("o")
+    }
+
+    $parent = Split-Path -Parent $ResultPath
+    if ($parent) {
+        New-Item -ItemType Directory -Force -Path $parent | Out-Null
+    }
+    $payload | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath $ResultPath -Encoding UTF8
+}
+
+try {
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = [Security.Principal.WindowsPrincipal]::new($identity)
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        throw "Windows did not grant administrator permission."
+    }
+
+    $existingRule = Get-NetFirewallRule -DisplayName $RuleName -ErrorAction SilentlyContinue
+    if ($existingRule) {
+        $existingRule | Remove-NetFirewallRule
+    }
+
+    $rule = @{
+        DisplayName = $RuleName
+        Direction = "Inbound"
+        Action = "Allow"
+        Protocol = "TCP"
+        LocalPort = $Port
+        Profile = "Private", "Domain", "Public"
+        RemoteAddress = "LocalSubnet"
+        Description = "Allows trusted clinic LAN devices to open NDHI Laboratory Records on TCP port $Port."
+    }
+    if ($ProgramPath -and (Test-Path -LiteralPath $ProgramPath -PathType Leaf)) {
+        $rule.Program = $ProgramPath
+    }
+
+    New-NetFirewallRule @rule | Out-Null
+    Write-RepairResult -Status "ready" -Message "Same-network Windows Firewall access is repaired for this PC."
+    exit 0
+} catch {
+    Write-RepairResult -Status "error" -Message $_.Exception.Message
+    exit 1
+}
+""",
+        encoding="utf-8",
+    )
+    return script_path
+
+
 def detect_firewall_rule() -> dict[str, str]:
     if os.name != "nt":
         return {
@@ -178,6 +438,73 @@ def detect_firewall_rule() -> dict[str, str]:
             "label": "Not checked",
             "detail": "Firewall status is only checked on Windows.",
         }
+
+    rule_name = _powershell_single_quote(FIREWALL_RULE_NAME)
+    firewall_data = _run_powershell_json(
+        f"""
+$rules = @(Get-NetFirewallRule -DisplayName {rule_name} -ErrorAction SilentlyContinue)
+$items = @()
+foreach ($rule in $rules) {{
+    $portFilter = Get-NetFirewallPortFilter -AssociatedNetFirewallRule $rule -ErrorAction SilentlyContinue
+    $addressFilter = Get-NetFirewallAddressFilter -AssociatedNetFirewallRule $rule -ErrorAction SilentlyContinue
+    $protocol = if ($portFilter) {{ ($portFilter.Protocol | Select-Object -First 1).ToString() }} else {{ "" }}
+    $localPort = if ($portFilter) {{ ($portFilter.LocalPort | Select-Object -First 1).ToString() }} else {{ "" }}
+    $remoteAddress = if ($addressFilter) {{ ($addressFilter.RemoteAddress | Select-Object -First 1).ToString() }} else {{ "" }}
+    $items += [pscustomobject]@{{
+        Enabled = $rule.Enabled.ToString()
+        Direction = $rule.Direction.ToString()
+        Action = $rule.Action.ToString()
+        Profile = $rule.Profile.ToString()
+        Protocol = $protocol
+        LocalPort = $localPort
+        RemoteAddress = $remoteAddress
+    }}
+}}
+$items | ConvertTo-Json -Compress -Depth 4
+""",
+        timeout=10,
+    )
+    firewall_rules = [item for item in _ensure_list(firewall_data) if isinstance(item, dict)]
+    if firewall_rules:
+        matching_rules = [
+            item
+            for item in firewall_rules
+            if str(item.get("Direction", "")).lower() == "inbound"
+            and str(item.get("Action", "")).lower() == "allow"
+            and str(item.get("Protocol", "")).lower() == "tcp"
+            and str(item.get("LocalPort", "")) in {str(DEFAULT_DESKTOP_PORT), "Any"}
+        ]
+        if not matching_rules:
+            return {
+                "status": "warning",
+                "label": "Needs repair",
+                "detail": "The firewall rule exists, but it does not match the app port.",
+            }
+        rule = matching_rules[0]
+        if str(rule.get("Enabled", "")).lower() != "true":
+            return {
+                "status": "warning",
+                "label": "Disabled",
+                "detail": "The firewall rule exists but is disabled.",
+            }
+        if "localsubnet" not in str(rule.get("RemoteAddress", "")).lower():
+            return {
+                "status": "warning",
+                "label": "Needs repair",
+                "detail": "The firewall rule is not limited to the local clinic network.",
+            }
+        if not _firewall_profiles_ready(rule.get("Profile")):
+            return {
+                "status": "warning",
+                "label": "Limited",
+                "detail": "The firewall rule does not cover every Windows network profile. Repair it if sharing fails.",
+            }
+        return {
+            "status": "ready",
+            "label": "Ready",
+            "detail": "Firewall rule is installed for same-network access.",
+        }
+
     try:
         result = subprocess.run(
             [
@@ -201,22 +528,117 @@ def detect_firewall_rule() -> dict[str, str]:
         }
 
     output = f"{result.stdout}\n{result.stderr}"
-    if result.returncode != 0 or "No rules match" in output:
+    if result.returncode != 0:
         return {
             "status": "warning",
             "label": "Needs check",
             "detail": "The installer firewall rule was not detected.",
         }
-    if "Enabled:" in output and "Yes" not in output:
+    return _netsh_firewall_rule_status(output)
+
+
+def repair_lan_firewall_rule(*, port: int = DEFAULT_DESKTOP_PORT, program_path: str = "") -> dict[str, str]:
+    if os.name != "nt":
+        return {
+            "status": "unknown",
+            "label": "Not available",
+            "detail": "LAN firewall repair is only available on Windows.",
+        }
+
+    script_path = write_lan_firewall_repair_script()
+    result_path = _lan_firewall_repair_result_path()
+    if result_path.exists():
+        try:
+            result_path.unlink()
+        except OSError:
+            pass
+
+    resolved_program_path = str(program_path or _current_program_path())
+    arguments = [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        str(script_path),
+        "-Port",
+        str(port),
+        "-RuleName",
+        FIREWALL_RULE_NAME,
+        "-ProgramPath",
+        resolved_program_path,
+        "-ResultPath",
+        str(result_path),
+    ]
+    argument_line = " ".join(_command_line_quote(argument) for argument in arguments)
+    start_process_script = (
+        "$ProgressPreference = 'SilentlyContinue'; "
+        f"$argumentLine = {_powershell_single_quote(argument_line)}; "
+        "Start-Process -FilePath 'powershell.exe' -ArgumentList $argumentLine -Verb RunAs -Wait -WindowStyle Hidden"
+    )
+
+    try:
+        result = subprocess.run(
+            [
+                _powershell_command(),
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-EncodedCommand",
+                _encoded_powershell(start_process_script),
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=180,
+        )
+    except subprocess.TimeoutExpired:
         return {
             "status": "warning",
-            "label": "Disabled",
-            "detail": "The firewall rule exists but may be disabled.",
+            "label": "Still waiting",
+            "detail": "Windows permission did not finish. Try Repair again and approve the prompt.",
         }
+    except OSError:
+        return {
+            "status": "error",
+            "label": "Repair failed",
+            "detail": "Windows could not open the LAN repair prompt.",
+        }
+
+    time.sleep(0.25)
+    if result_path.exists():
+        try:
+            payload = json.loads(result_path.read_text(encoding="utf-8-sig"))
+        except (OSError, json.JSONDecodeError):
+            payload = {}
+        if isinstance(payload, dict):
+            status = str(payload.get("status") or "").lower()
+            detail = str(payload.get("detail") or "")
+            if status == "ready":
+                return {
+                    "status": "ready",
+                    "label": "Ready",
+                    "detail": detail or "Same-network access was repaired.",
+                }
+            return {
+                "status": "error",
+                "label": "Repair failed",
+                "detail": detail or "Windows did not complete the firewall repair.",
+            }
+
+    firewall_status = detect_firewall_rule()
+    if firewall_status.get("status") == "ready":
+        return {
+            "status": "ready",
+            "label": "Ready",
+            "detail": "Same-network access is ready on this PC.",
+        }
+
+    stderr = _clean_powershell_error(result.stderr)
     return {
-        "status": "ready",
-        "label": "Ready",
-        "detail": "Firewall rule is installed for same-network access.",
+        "status": "warning",
+        "label": "Permission needed",
+        "detail": stderr or str(firewall_status.get("detail") or "")
+        or "Windows permission was not completed. Try Repair again and approve the prompt.",
     }
 
 

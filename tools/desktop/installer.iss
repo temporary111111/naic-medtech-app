@@ -133,7 +133,7 @@ begin
   );
   Exec(
     ExpandConstant('{sys}\netsh.exe'),
-    'advfirewall firewall add rule name="{#FirewallRuleName}" dir=in action=allow protocol=TCP localport={#AppPort} profile=private,domain remoteip=localsubnet program="' + AppPath + '" enable=yes',
+    'advfirewall firewall add rule name="{#FirewallRuleName}" dir=in action=allow protocol=TCP localport={#AppPort} profile=private,domain,public remoteip=localsubnet program="' + AppPath + '" enable=yes',
     '',
     SW_HIDE,
     ewWaitUntilTerminated,

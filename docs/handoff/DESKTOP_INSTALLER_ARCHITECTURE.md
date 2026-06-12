@@ -56,7 +56,7 @@ The same Settings page now includes LAN access. Fresh installs default to `netwo
 
 The host PC is the only machine that should own the SQLite database and backup folder. Other LAN devices should connect through the host URL in a normal browser. Never place the SQLite database on a network share and never run multiple installed desktop servers against the same database.
 
-The installer automatically creates a Windows Firewall allow rule named `NDHI Laboratory Records LAN` for TCP `8114`, limited to Private/Domain profiles and `localsubnet`. The support helper remains available if the rule is removed or damaged:
+The installer automatically creates a Windows Firewall allow rule named `NDHI Laboratory Records LAN` for TCP `8114`, limited to `localsubnet` and covering Private/Domain/Public profiles. Public is included intentionally because non-technical clinic users often leave Windows network profile detection on Public; `remoteip=localsubnet` keeps the rule scoped to the local clinic network. The admin-only Settings -> App preferences page also has `Repair LAN access`, which re-runs the firewall setup through a Windows UAC prompt and avoids reinstalling if the installer prompt was skipped or antivirus/firewall settings removed the rule. The support helper remains available if the web repair path is unavailable:
 
 ```powershell
 .\tools\desktop\enable-lan-access.ps1
