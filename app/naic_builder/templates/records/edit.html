@@ -5,7 +5,7 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
-  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20260612-temporal-polish">
+  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20260612-temporal-compact">
 {% endblock %}
 
 {% block shell_eyebrow %}Records{% endblock %}
@@ -75,10 +75,25 @@
         {% if props.required %}data-required-field{% endif %}
       >
         <div class="entry-field-head">
-          <span>{{ block.name }}</span>
+          <span>{{ block.name }}{% if props.required %}<span class="entry-required-mark" aria-label="Required">*</span>{% endif %}</span>
           <div class="entry-field-meta">
-          {% if props.required %}
-          <small class="entry-chip entry-chip-required">Required</small>
+          {% if props.data_type == "date" %}
+          <div class="entry-temporal-actions entry-temporal-actions--inline" aria-label="{{ block.name }} quick date actions">
+            <button class="entry-quick-fill" type="button" data-temporal-action="today">Today</button>
+            <button class="entry-quick-fill" type="button" data-temporal-action="yesterday">Yesterday</button>
+            <button class="entry-quick-fill" type="button" data-temporal-action="clear">Clear</button>
+          </div>
+          {% elif props.data_type == "time" %}
+          <div class="entry-temporal-actions entry-temporal-actions--inline" aria-label="{{ block.name }} quick time actions">
+            <button class="entry-quick-fill" type="button" data-temporal-action="now">Now</button>
+            <button class="entry-quick-fill" type="button" data-temporal-action="clear">Clear</button>
+          </div>
+          {% elif props.data_type == "datetime" %}
+          <div class="entry-temporal-actions entry-temporal-actions--inline" aria-label="{{ block.name }} quick date and time actions">
+            <button class="entry-quick-fill" type="button" data-temporal-action="now">Now</button>
+            <button class="entry-quick-fill" type="button" data-temporal-action="yesterday">Yesterday</button>
+            <button class="entry-quick-fill" type="button" data-temporal-action="clear">Clear</button>
+          </div>
           {% endif %}
           {% if props.unit_hint %}
           <small class="entry-chip">{{ props.unit_hint }}</small>
@@ -147,12 +162,6 @@
             data-temporal-label="{{ block.name }}"
             data-temporal-default="{{ props.default_value_mode or 'smart' }}"
           >
-          <div class="entry-temporal-actions" aria-label="{{ block.name }} quick date actions">
-            <button class="entry-quick-fill" type="button" data-temporal-action="today">Today</button>
-            <button class="entry-quick-fill" type="button" data-temporal-action="yesterday">Yesterday</button>
-            <button class="entry-quick-fill" type="button" data-temporal-action="clear">Clear</button>
-          </div>
-          <small class="entry-temporal-preview" data-temporal-preview></small>
         </div>
         {% elif props.data_type == "time" %}
         <div class="entry-temporal-field" data-temporal-field>
@@ -165,11 +174,6 @@
             data-temporal-label="{{ block.name }}"
             data-temporal-default="{{ props.default_value_mode or 'smart' }}"
           >
-          <div class="entry-temporal-actions" aria-label="{{ block.name }} quick time actions">
-            <button class="entry-quick-fill" type="button" data-temporal-action="now">Now</button>
-            <button class="entry-quick-fill" type="button" data-temporal-action="clear">Clear</button>
-          </div>
-          <small class="entry-temporal-preview" data-temporal-preview></small>
         </div>
         {% elif props.data_type == "datetime" %}
         <div class="entry-temporal-field" data-temporal-field>
@@ -182,12 +186,6 @@
             data-temporal-label="{{ block.name }}"
             data-temporal-default="{{ props.default_value_mode or 'smart' }}"
           >
-          <div class="entry-temporal-actions" aria-label="{{ block.name }} quick date and time actions">
-            <button class="entry-quick-fill" type="button" data-temporal-action="now">Now</button>
-            <button class="entry-quick-fill" type="button" data-temporal-action="yesterday">Yesterday</button>
-            <button class="entry-quick-fill" type="button" data-temporal-action="clear">Clear</button>
-          </div>
-          <small class="entry-temporal-preview" data-temporal-preview></small>
         </div>
         {% elif props.data_type == "number" %}
         <input type="number" step="any" name="value__{{ block.id }}" value="{{ block_value }}">
@@ -412,5 +410,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', path='records.js') }}?v=20260612-temporal-polish" defer></script>
+  <script src="{{ url_for('static', path='records.js') }}?v=20260612-temporal-compact" defer></script>
 {% endblock %}
