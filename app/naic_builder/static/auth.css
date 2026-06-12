@@ -84,6 +84,11 @@ html[data-theme="dark"] .auth-login-atmosphere {
   align-items: center;
 }
 
+.auth-login-stage--form {
+  width: min(1120px, 100%);
+  grid-template-columns: minmax(0, 0.92fr) minmax(430px, 560px);
+}
+
 .auth-login-hero {
   display: grid;
   gap: 24px;
@@ -174,6 +179,10 @@ html[data-theme="dark"] .auth-login-atmosphere {
   backdrop-filter: blur(18px);
 }
 
+.auth-login-card--wide {
+  padding: 24px;
+}
+
 .auth-login-card-head {
   display: grid;
   gap: 5px;
@@ -202,9 +211,22 @@ html[data-theme="dark"] .auth-login-atmosphere {
   gap: 14px;
 }
 
+.auth-login-fields--grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .auth-login-actions {
   display: grid;
   gap: 12px;
+}
+
+.auth-login-actions--split {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.auth-login-actions--split a {
+  justify-self: end;
 }
 
 .auth-login-actions .primary-button {
@@ -1952,6 +1974,10 @@ html[data-theme="dark"] .role-chip {
     gap: 18px;
   }
 
+  .auth-login-stage--form {
+    grid-template-columns: 1fr;
+  }
+
   .auth-login-hero {
     padding: 8px 8px 0;
   }
@@ -2040,6 +2066,15 @@ html[data-theme="dark"] .role-chip {
     gap: 16px;
     padding: 20px;
     border-radius: 24px;
+  }
+
+  .auth-login-fields--grid,
+  .auth-login-actions--split {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-login-actions--split a {
+    justify-self: center;
   }
 
   .auth-login-card-head h2 {

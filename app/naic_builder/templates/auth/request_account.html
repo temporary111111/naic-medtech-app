@@ -9,25 +9,37 @@
   <link rel="manifest" href="{{ url_for('static', path='manifest.webmanifest') }}?v=20260606-app-icon-source">
   <script src="{{ url_for('static', path='theme.js') }}?v=20260606-icon-system"></script>
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
-  <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20260607-ui-root-phase2">
+  <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20260612-public-auth">
   <link rel="stylesheet" href="{{ url_for('static', path='theme.css') }}?v=20260607-select-option-contrast">
 </head>
 <body>
-  <main class="auth-shell">
-    <header class="library-topbar panel">
-      <div class="brand-copy">
-        <p class="eyebrow">Request account</p>
-        <h1>{{ app_title }}</h1>
-        <p class="panel-copy">Ask for access once, then wait for the clinic admin to approve your account.</p>
-      </div>
-      <div class="settings-topbar-actions">
-        <button class="shell-theme-toggle shell-theme-toggle--inline" type="button" data-theme-toggle></button>
-        <a class="ghost-button" href="/login">Back to login</a>
-      </div>
-    </header>
+  <main class="auth-login-shell">
+    <div class="auth-login-atmosphere" aria-hidden="true">
+      <span class="auth-orb auth-orb--a"></span>
+      <span class="auth-orb auth-orb--b"></span>
+      <span class="auth-orb auth-orb--c"></span>
+    </div>
 
-    <section class="settings-utility-grid auth-utility-grid">
-      <div class="settings-utility-main">
+    <section class="auth-login-stage auth-login-stage--form">
+      <div class="auth-login-hero">
+        <div class="auth-login-brand">
+          <span class="auth-login-mark">
+            <img src="{{ url_for('static', path='ndhi-labrecords-icon-192.png') }}?v=20260606-app-icon-source" alt="">
+          </span>
+          <div>
+            <p class="eyebrow">Staff access</p>
+            <h1>Request account</h1>
+          </div>
+        </div>
+        <p class="auth-login-lede">Ask for access once. The clinic admin reviews and approves staff accounts.</p>
+        <div class="auth-login-trust" aria-label="Account request steps">
+          <span>Submit details</span>
+          <span>Admin approval</span>
+          <span>Sign in after approval</span>
+        </div>
+      </div>
+
+      <div class="auth-login-panel">
         {% if error_message %}
         <div class="banner error">{{ error_message }}</div>
         {% endif %}
@@ -35,16 +47,14 @@
         <div class="banner success">{{ success_message }}</div>
         {% endif %}
 
-        <form method="post" action="/request-account" class="panel settings-utility-card auth-utility-card">
-          <div class="section-head settings-utility-head">
-            <div>
-              <p class="eyebrow">Staff access</p>
-              <h2>Request account</h2>
-            </div>
-            <span class="settings-utility-pill">Admin approval</span>
+        <form method="post" action="/request-account" class="auth-login-card auth-login-card--wide">
+          <div class="auth-login-card-head">
+            <p class="eyebrow">Admin approval</p>
+            <h2>Staff account request</h2>
+            <p>Use a name and email the clinic admin can recognize.</p>
           </div>
 
-          <div class="settings-utility-section settings-utility-field-grid">
+          <div class="auth-login-fields auth-login-fields--grid">
             <label class="field-stack">
               <span>Full name</span>
               <input type="text" name="full_name" value="{{ full_name }}" placeholder="Example: Maria Santos" autocomplete="name" required>
@@ -66,37 +76,17 @@
             </label>
           </div>
 
-          <div class="settings-utility-actions">
+          <div class="auth-login-actions auth-login-actions--split">
             <button class="primary-button" type="submit">Send request</button>
+            <a href="/login">Back to login</a>
           </div>
         </form>
+
+        <div class="auth-login-footnote">
+          <span>Preferred login ID is optional; the app can generate one.</span>
+          <button class="shell-theme-toggle shell-theme-toggle--inline" type="button" data-theme-toggle></button>
+        </div>
       </div>
-
-      <aside class="panel settings-utility-card settings-utility-card--aside auth-utility-side">
-        <div class="section-head settings-utility-head">
-          <div>
-            <p class="eyebrow">What happens next</p>
-            <h2>Admin approval</h2>
-          </div>
-        </div>
-
-        <div class="settings-utility-section">
-          <dl class="account-detail-list">
-            <div>
-              <dt>Email</dt>
-              <dd>Use the email the clinic recognizes</dd>
-            </div>
-            <div>
-              <dt>Login ID</dt>
-              <dd>Optional; generated if blank</dd>
-            </div>
-            <div>
-              <dt>After approval</dt>
-              <dd>Sign in with email or login ID</dd>
-            </div>
-          </dl>
-        </div>
-      </aside>
     </section>
   </main>
   <script src="{{ url_for('static', path='password-toggle.js') }}?v=20260606-password-toggle" defer></script>
