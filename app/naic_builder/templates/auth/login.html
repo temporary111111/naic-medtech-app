@@ -9,25 +9,37 @@
   <link rel="manifest" href="{{ url_for('static', path='manifest.webmanifest') }}?v=20260606-app-icon-source">
   <script src="{{ url_for('static', path='theme.js') }}?v=20260606-icon-system"></script>
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
-  <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20260607-ui-root-phase2">
+  <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20260612-login-wow">
   <link rel="stylesheet" href="{{ url_for('static', path='theme.css') }}?v=20260607-select-option-contrast">
 </head>
 <body>
-  <main class="auth-shell">
-    <header class="library-topbar panel">
-      <div class="brand-copy">
-        <p class="eyebrow">Login</p>
-        <h1>{{ app_title }}</h1>
-        <p class="panel-copy">Sign in with your email or login ID to continue to records and forms.</p>
-      </div>
-      <div class="settings-topbar-actions">
-        <button class="shell-theme-toggle shell-theme-toggle--inline" type="button" data-theme-toggle></button>
-        <a class="ghost-button" href="/request-account">Request account</a>
-      </div>
-    </header>
+  <main class="auth-login-shell">
+    <div class="auth-login-atmosphere" aria-hidden="true">
+      <span class="auth-orb auth-orb--a"></span>
+      <span class="auth-orb auth-orb--b"></span>
+      <span class="auth-orb auth-orb--c"></span>
+    </div>
 
-    <section class="settings-utility-grid auth-utility-grid">
-      <div class="settings-utility-main">
+    <section class="auth-login-stage">
+      <div class="auth-login-hero">
+        <div class="auth-login-brand">
+          <span class="auth-login-mark">
+            <img src="{{ url_for('static', path='ndhi-labrecords-icon-192.png') }}?v=20260606-app-icon-source" alt="">
+          </span>
+          <div>
+            <p class="eyebrow">Clinic workspace</p>
+            <h1>{{ app_title }}</h1>
+          </div>
+        </div>
+        <p class="auth-login-lede">A focused records and laboratory results workspace for daily clinic work.</p>
+        <div class="auth-login-trust" aria-label="System highlights">
+          <span>Local-first</span>
+          <span>Records protected</span>
+          <span>LAN-ready</span>
+        </div>
+      </div>
+
+      <div class="auth-login-panel">
         {% if error_message %}
         <div class="banner error">{{ error_message }}</div>
         {% endif %}
@@ -35,16 +47,14 @@
         <div class="banner success">{{ success_message }}</div>
         {% endif %}
 
-        <form method="post" action="/login" class="panel settings-utility-card auth-utility-card">
-          <div class="section-head settings-utility-head">
-            <div>
-              <p class="eyebrow">Access</p>
-              <h2>Sign in</h2>
-            </div>
-            <span class="settings-utility-pill">Email or login ID</span>
+        <form method="post" action="/login" class="auth-login-card">
+          <div class="auth-login-card-head">
+            <p class="eyebrow">Secure access</p>
+            <h2>Sign in</h2>
+            <p>Use your email or login ID to continue.</p>
           </div>
 
-          <div class="settings-utility-section auth-utility-stack">
+          <div class="auth-login-fields">
             <label class="field-stack">
               <span>Email or login ID</span>
               <input type="text" name="identifier" value="{{ identifier }}" placeholder="example@clinic.com or medtech01" autocomplete="username" required>
@@ -56,37 +66,17 @@
             </label>
           </div>
 
-          <div class="settings-utility-actions">
+          <div class="auth-login-actions">
             <button class="primary-button" type="submit">Sign in</button>
+            <a href="/request-account">Request access</a>
           </div>
         </form>
+
+        <div class="auth-login-footnote">
+          <span>Pending accounts wait for admin approval.</span>
+          <button class="shell-theme-toggle shell-theme-toggle--inline" type="button" data-theme-toggle></button>
+        </div>
       </div>
-
-      <aside class="panel settings-utility-card settings-utility-card--aside auth-utility-side">
-        <div class="section-head settings-utility-head">
-          <div>
-            <p class="eyebrow">Clinic access</p>
-            <h2>One sign-in path</h2>
-          </div>
-        </div>
-
-        <div class="settings-utility-section">
-          <dl class="account-detail-list">
-            <div>
-              <dt>Identifier</dt>
-              <dd>Email or login ID</dd>
-            </div>
-            <div>
-              <dt>Approval</dt>
-              <dd>Pending accounts wait for admin</dd>
-            </div>
-            <div>
-              <dt>Admin-created</dt>
-              <dd>Password change on first login</dd>
-            </div>
-          </dl>
-        </div>
-      </aside>
     </section>
   </main>
   <script src="{{ url_for('static', path='password-toggle.js') }}?v=20260606-password-toggle" defer></script>
