@@ -30,7 +30,13 @@ from .backup import (
     verify_latest_backup_archive,
     verify_latest_external_backup_archive,
 )
-from .backup_schedule import backup_schedule_summary, scheduled_backup_loop
+from .backup_schedule import (
+    backup_schedule_summary,
+    request_change_backup,
+    scheduled_backup_loop,
+    start_change_backup_worker,
+    stop_change_backup_worker,
+)
 from .config import APP_TITLE, PRODUCT_ID, SESSION_SECRET, SIGNATORY_UPLOADS_DIR, STATIC_DIR, TEMPLATES_DIR
 from .database import SessionLocal, ensure_runtime_schema, get_session
 from .desktop_settings import (
@@ -125,12 +131,14 @@ async def lifespan(_: FastAPI):
         ensure_library_tree(session)
     backup_stop_event = asyncio.Event()
     backup_task = asyncio.create_task(scheduled_backup_loop(backup_stop_event))
+    start_change_backup_worker()
     try:
         yield
     finally:
         backup_stop_event.set()
         with suppress(asyncio.CancelledError):
             await backup_task
+        stop_change_backup_worker()
 
 
 app = FastAPI(title=APP_TITLE, lifespan=lifespan)
@@ -2121,6 +2129,7 @@ async def save_settings_desktop_page(request: Request):
         external_backup_dir=str(form.get("external_backup_dir") or ""),
         backup_retention_count=str(form.get("backup_retention_count") or ""),
     )
+    request_change_backup(reason="desktop-settings")
     return RedirectResponse(url=f"{desktop_operation_base_path(request)}?saved=1", status_code=303)
 
 
@@ -2133,6 +2142,7 @@ def repair_settings_desktop_lan_page(request: Request) -> Response:
         external_backup_dir=str(desktop_settings.get("external_backup_dir") or ""),
         backup_retention_count=str(desktop_settings.get("backup_retention_count") or ""),
     )
+    request_change_backup(reason="desktop-settings")
     repair_result = repair_lan_firewall_rule()
     if repair_result.get("status") == "ready":
         return RedirectResponse(url="/settings/desktop?lan_repair=ready", status_code=303)
@@ -2734,11 +2744,13 @@ def form_print_preview(
 @app.post("/api/forms/signatory-stamp")
 async def upload_signatory_stamp_endpoint(stamp_file: UploadFile = File(...)) -> dict[str, Any]:
     try:
-        return save_signatory_stamp_image(
+        saved_stamp = save_signatory_stamp_image(
             stamp_filename=stamp_file.filename or "",
             stamp_content_type=stamp_file.content_type,
             stamp_bytes=await stamp_file.read(),
         )
+        request_change_backup(reason="signatory-stamp")
+        return saved_stamp
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 

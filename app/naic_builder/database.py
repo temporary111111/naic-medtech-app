@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from .config import DB_PATH, ensure_runtime_directories
@@ -17,6 +17,33 @@ class Base(DeclarativeBase):
 
 engine = create_engine(f"sqlite:///{DB_PATH}", future=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+_CHANGE_BACKUP_AFTER_COMMIT_KEY = "ndhi_change_backup_after_commit"
+SKIP_CHANGE_BACKUP_SESSION_KEY = "skip_change_backup"
+
+
+@event.listens_for(Session, "before_commit")
+def mark_session_for_change_backup(session: Session) -> None:
+    if session.info.get(SKIP_CHANGE_BACKUP_SESSION_KEY):
+        return
+    if session.new or session.dirty or session.deleted:
+        session.info[_CHANGE_BACKUP_AFTER_COMMIT_KEY] = True
+
+
+@event.listens_for(Session, "after_commit")
+def request_change_backup_after_commit(session: Session) -> None:
+    if not session.info.pop(_CHANGE_BACKUP_AFTER_COMMIT_KEY, False):
+        return
+    try:
+        from .backup_schedule import request_change_backup
+
+        request_change_backup()
+    except Exception:
+        pass
+
+
+@event.listens_for(Session, "after_rollback")
+def clear_change_backup_after_rollback(session: Session) -> None:
+    session.info.pop(_CHANGE_BACKUP_AFTER_COMMIT_KEY, None)
 
 
 def migrate_form_definitions_tree_first_shape(connection) -> None:

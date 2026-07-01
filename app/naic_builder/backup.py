@@ -236,6 +236,17 @@ def backup_health_summary(
             "detail": "Create a backup now to write and verify the first external copy.",
         }
 
+    local_latest_name = str(local_latest.get("name") or "")
+    external_latest_name = str(external_latest.get("name") or "")
+    if local_latest_name and external_latest_name and local_latest_name != external_latest_name:
+        return {
+            "status": "warning",
+            "chip_status": "pending",
+            "label": "External stale",
+            "title": "External backup needs sync",
+            "detail": "A newer local backup exists, but the latest external copy does not match it yet.",
+        }
+
     return {
         "status": "ready",
         "chip_status": "active",

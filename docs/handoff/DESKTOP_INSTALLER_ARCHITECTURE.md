@@ -138,9 +138,9 @@ NDHI-LabRecords.exe --verify-backup <archive.zip>
 NDHI-LabRecords.exe --restore-backup <archive.zip>
 ```
 
-`Settings -> Desktop app` now exposes local backup status, external backup folder configuration, a daily automatic backup status, a manual verified-backup action, latest-backup verification actions, a retention count for local/external archives, and an admin-only restore form. In-app restore requires uploading a backup ZIP and typing `RESTORE`. The app blocks normal requests during the replacement step, verifies the selected archive before touching current data, creates an emergency `pre-restore` backup, restores the database and uploads, preserves machine-local desktop settings/session secrets by default, clears the current login session, redirects to login, and tells the admin to sign in using an account from the restored backup.
+`Settings -> Desktop app` now exposes local backup status, external backup folder configuration, automatic backup sync status, a manual verified-backup action, latest-backup verification actions, a retention count for local/external archives, and an admin-only restore form. In-app restore requires uploading a backup ZIP and typing `RESTORE`. The app blocks normal requests during the replacement step, verifies the selected archive before touching current data, creates an emergency `pre-restore` backup, restores the database and uploads, preserves machine-local desktop settings/session secrets by default, clears the current login session, redirects to login, and tells the admin to sign in using an account from the restored backup.
 
-`app/naic_builder/backup_schedule.py` runs from the FastAPI lifespan. It checks shortly after app startup and then every 30 minutes while the app is open. If no verified backup exists for the current local day, it creates a `daily-auto` backup, applies the configured retention count, and copies/verifies to the configured external folder when available. Local backup success is preserved even if the external copy fails; Settings shows the warning from `%ProgramData%\NDHI\LabRecords\config\backup-schedule.json`. Manual backup, latest verification, restore, and the daily scheduler share an in-process operation lock so admin actions and scheduled backup do not overlap inside the running server.
+`app/naic_builder/backup_schedule.py` runs from the FastAPI lifespan. It now has two automatic paths: a debounced after-change worker that creates an `after-change-sync` backup after successful saved changes, and a periodic daily safety check shortly after startup and every 30 minutes while the app is open. Both paths apply the configured retention count and copy/verify to the configured external folder when available. Local backup success is preserved even if the external copy fails; Settings shows the warning from `%ProgramData%\NDHI\LabRecords\config\backup-schedule.json`. Manual backup, latest verification, restore, after-change sync, and the daily scheduler share an in-process operation lock so admin actions and automatic backup do not overlap inside the running server.
 
 Command-line restore is for support/development use. The desktop launcher refuses `--restore-backup` when the normal app server is already healthy on the configured port; the admin UI uses a short maintenance guard instead.
 
@@ -154,8 +154,7 @@ Fresh installs without a runtime database skip this step. If patient data exists
 
 ### Backup work still required before clinic release
 
-- automatic debounced after-change backups, if the clinic needs tighter recovery points than once per day;
-- installed-app daily backup QA on Windows with the real `%ProgramData%` runtime;
+- installed-app automatic backup sync QA on Windows with the real `%ProgramData%` runtime;
 - restore drill on a clean PC;
 - failure notification when external backup becomes stale.
 

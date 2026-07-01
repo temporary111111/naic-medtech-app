@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -23,8 +24,18 @@ from .desktop_settings import read_desktop_settings
 
 BACKUP_SCHEDULE_STATE_FILENAME = "backup-schedule.json"
 DAILY_BACKUP_REASON = "daily-auto"
+CHANGE_BACKUP_REASON = "after-change-sync"
 DEFAULT_STARTUP_DELAY_SECONDS = 12
 DEFAULT_CHECK_INTERVAL_SECONDS = 30 * 60
+DEFAULT_CHANGE_BACKUP_DEBOUNCE_SECONDS = 2
+DEFAULT_CHANGE_BACKUP_RETRY_SECONDS = 30
+CHANGE_BACKUP_DISABLED_ENV = "NDHI_AFTER_CHANGE_BACKUP_DISABLED"
+_CHANGE_BACKUP_PENDING_EVENT = threading.Event()
+_CHANGE_BACKUP_STOP_EVENT = threading.Event()
+_CHANGE_BACKUP_THREAD_LOCK = threading.Lock()
+_CHANGE_BACKUP_STATE_LOCK = threading.Lock()
+_CHANGE_BACKUP_THREAD: threading.Thread | None = None
+_CHANGE_BACKUP_HAS_PENDING_WORK = False
 
 
 def backup_schedule_state_path() -> Path:
@@ -35,6 +46,9 @@ def default_backup_schedule_state() -> dict[str, Any]:
     return {
         "enabled": True,
         "status": "pending",
+        "last_backup_reason": "",
+        "last_requested_at_utc": "",
+        "last_started_at_utc": "",
         "last_checked_at_utc": "",
         "last_success_at_utc": "",
         "last_backup_archive": "",
@@ -116,30 +130,37 @@ def daily_backup_due(
     return latest.astimezone().date() != current.astimezone().date()
 
 
-def run_daily_backup_if_due() -> dict[str, Any]:
-    checked_at = utc_timestamp()
-    state = read_backup_schedule_state()
+def _run_configured_backup(
+    *,
+    state: dict[str, Any],
+    reason: str,
+    checked_at: str,
+) -> dict[str, Any]:
+    backup_reason = str(reason or DAILY_BACKUP_REASON).strip() or DAILY_BACKUP_REASON
     state["last_checked_at_utc"] = checked_at
 
     if not state.get("enabled", True):
         state["status"] = "disabled"
         return write_backup_schedule_state(state)
 
-    if not daily_backup_due():
-        state["status"] = "current"
-        return write_backup_schedule_state(state)
-
     try:
         with backup_operation_lock(blocking=False):
+            started_at = utc_timestamp()
             running_state = dict(state)
-            running_state["status"] = "running"
+            running_state.update(
+                {
+                    "status": "running",
+                    "last_backup_reason": backup_reason,
+                    "last_started_at_utc": started_at,
+                }
+            )
             write_backup_schedule_state(running_state)
 
             desktop_settings = read_desktop_settings()
             external_backup_dir = str(desktop_settings.get("external_backup_dir") or "")
             backup_retention_count = int(desktop_settings.get("backup_retention_count") or 30)
 
-            backup_path = create_verified_backup(reason=DAILY_BACKUP_REASON)
+            backup_path = create_verified_backup(reason=backup_reason)
             deleted_local = prune_backup_archives(keep_count=backup_retention_count)
 
             external_backup_path: Path | None = None
@@ -160,6 +181,8 @@ def run_daily_backup_if_due() -> dict[str, Any]:
             state.update(
                 {
                     "status": "warning" if external_error else "success",
+                    "last_backup_reason": backup_reason,
+                    "last_started_at_utc": started_at,
                     "last_success_at_utc": success_at,
                     "last_backup_archive": str(backup_path),
                     "last_external_archive": str(external_backup_path) if external_backup_path else "",
@@ -176,6 +199,7 @@ def run_daily_backup_if_due() -> dict[str, Any]:
         state.update(
             {
                 "status": "skipped",
+                "last_backup_reason": backup_reason,
                 "last_skip_at_utc": utc_timestamp(),
                 "last_skip_reason": str(exc),
             }
@@ -184,11 +208,42 @@ def run_daily_backup_if_due() -> dict[str, Any]:
         state.update(
             {
                 "status": "error",
+                "last_backup_reason": backup_reason,
                 "last_error_at_utc": utc_timestamp(),
                 "last_error": str(exc),
             }
         )
     return write_backup_schedule_state(state)
+
+
+def run_daily_backup_if_due() -> dict[str, Any]:
+    checked_at = utc_timestamp()
+    state = read_backup_schedule_state()
+    state["last_checked_at_utc"] = checked_at
+
+    if not state.get("enabled", True):
+        state["status"] = "disabled"
+        return write_backup_schedule_state(state)
+
+    if not daily_backup_due():
+        state["status"] = "current"
+        return write_backup_schedule_state(state)
+
+    return _run_configured_backup(
+        state=state,
+        reason=DAILY_BACKUP_REASON,
+        checked_at=checked_at,
+    )
+
+
+def run_after_change_backup() -> dict[str, Any]:
+    checked_at = utc_timestamp()
+    state = read_backup_schedule_state()
+    return _run_configured_backup(
+        state=state,
+        reason=CHANGE_BACKUP_REASON,
+        checked_at=checked_at,
+    )
 
 
 def backup_schedule_summary(
@@ -202,10 +257,10 @@ def backup_schedule_summary(
     due = daily_backup_due(local_status=backup_status)
     status = str(current_state.get("status") or "")
 
-    title = "Automatic daily backup"
+    title = "Automatic backup sync"
     label = "Active"
     chip_status = "active"
-    detail = "A verified backup has already been created today."
+    detail = "Saved changes are backed up automatically while the app is open."
     summary_status = "ready"
 
     if isinstance(latest, dict):
@@ -221,11 +276,13 @@ def backup_schedule_summary(
         chip_status = "disabled"
         summary_status = "error"
         detail = f"Automatic backup failed: {current_state.get('last_error') or 'Unknown error'}"
+    elif status == "success":
+        label = "Synced"
     elif status == "warning":
         label = "Local saved"
         chip_status = "pending"
         summary_status = "warning"
-        detail = "Automatic local backup succeeded, but the external copy needs attention."
+        detail = "Automatic local backup sync succeeded, but the external copy needs attention."
     elif status == "skipped":
         label = "Waiting"
         chip_status = "pending"
@@ -240,7 +297,7 @@ def backup_schedule_summary(
         label = "Due"
         chip_status = "pending"
         summary_status = "warning"
-        detail = "No verified backup has been created today. The app will create one while it is open."
+        detail = "No verified backup has been created today. The app will sync after the next saved change and still checks periodically while open."
 
     return {
         "status": summary_status,
@@ -263,6 +320,122 @@ def positive_env_int(name: str, default: int) -> int:
     except ValueError:
         return default
     return value if value > 0 else default
+
+
+def after_change_backups_enabled() -> bool:
+    disabled = str(os.environ.get(CHANGE_BACKUP_DISABLED_ENV) or "").strip().lower()
+    return disabled not in {"1", "true", "yes", "on"}
+
+
+def request_change_backup(*, reason: str = CHANGE_BACKUP_REASON) -> bool:
+    if not after_change_backups_enabled():
+        return False
+
+    global _CHANGE_BACKUP_HAS_PENDING_WORK
+    with _CHANGE_BACKUP_STATE_LOCK:
+        _CHANGE_BACKUP_HAS_PENDING_WORK = True
+
+    try:
+        state = read_backup_schedule_state()
+        state.update(
+            {
+                "last_requested_at_utc": utc_timestamp(),
+                "last_backup_reason": str(reason or CHANGE_BACKUP_REASON).strip() or CHANGE_BACKUP_REASON,
+            }
+        )
+        write_backup_schedule_state(state)
+    except Exception:
+        pass
+
+    try:
+        start_change_backup_worker()
+        _CHANGE_BACKUP_PENDING_EVENT.set()
+    except Exception:
+        return False
+    return True
+
+
+def start_change_backup_worker() -> None:
+    if not after_change_backups_enabled():
+        return
+
+    global _CHANGE_BACKUP_THREAD
+    with _CHANGE_BACKUP_THREAD_LOCK:
+        if _CHANGE_BACKUP_THREAD is not None and _CHANGE_BACKUP_THREAD.is_alive():
+            return
+        _CHANGE_BACKUP_STOP_EVENT.clear()
+        _CHANGE_BACKUP_THREAD = threading.Thread(
+            target=_change_backup_worker,
+            name="ndhi-after-change-backup",
+            daemon=True,
+        )
+        _CHANGE_BACKUP_THREAD.start()
+
+
+def stop_change_backup_worker(*, timeout_seconds: float = 5.0, flush_pending: bool = True) -> None:
+    _CHANGE_BACKUP_STOP_EVENT.set()
+    _CHANGE_BACKUP_PENDING_EVENT.set()
+    with _CHANGE_BACKUP_THREAD_LOCK:
+        thread = _CHANGE_BACKUP_THREAD
+    if thread is not None and thread.is_alive():
+        thread.join(timeout=timeout_seconds)
+    if flush_pending and _consume_pending_change_backup():
+        try:
+            run_after_change_backup()
+        except Exception:
+            pass
+
+
+def _consume_pending_change_backup() -> bool:
+    global _CHANGE_BACKUP_HAS_PENDING_WORK
+    with _CHANGE_BACKUP_STATE_LOCK:
+        has_pending_work = _CHANGE_BACKUP_HAS_PENDING_WORK
+        _CHANGE_BACKUP_HAS_PENDING_WORK = False
+    return has_pending_work
+
+
+def _wait_for_quiet_change_window() -> bool:
+    debounce_seconds = positive_env_int(
+        "NDHI_AFTER_CHANGE_BACKUP_DEBOUNCE_SECONDS",
+        DEFAULT_CHANGE_BACKUP_DEBOUNCE_SECONDS,
+    )
+    while not _CHANGE_BACKUP_STOP_EVENT.is_set():
+        _CHANGE_BACKUP_PENDING_EVENT.clear()
+        if _CHANGE_BACKUP_STOP_EVENT.wait(debounce_seconds):
+            return False
+        if not _CHANGE_BACKUP_PENDING_EVENT.is_set():
+            return True
+    return False
+
+
+def _change_backup_worker() -> None:
+    global _CHANGE_BACKUP_HAS_PENDING_WORK
+
+    retry_seconds = positive_env_int(
+        "NDHI_AFTER_CHANGE_BACKUP_RETRY_SECONDS",
+        DEFAULT_CHANGE_BACKUP_RETRY_SECONDS,
+    )
+
+    while not _CHANGE_BACKUP_STOP_EVENT.is_set():
+        _CHANGE_BACKUP_PENDING_EVENT.wait()
+        if _CHANGE_BACKUP_STOP_EVENT.is_set():
+            return
+        if not _wait_for_quiet_change_window():
+            return
+
+        if not _consume_pending_change_backup():
+            continue
+
+        try:
+            state = run_after_change_backup()
+        except Exception:
+            state = {"status": "error"}
+        if state.get("status") == "skipped" and not _CHANGE_BACKUP_STOP_EVENT.is_set():
+            with _CHANGE_BACKUP_STATE_LOCK:
+                _CHANGE_BACKUP_HAS_PENDING_WORK = True
+            if _CHANGE_BACKUP_STOP_EVENT.wait(retry_seconds):
+                return
+            _CHANGE_BACKUP_PENDING_EVENT.set()
 
 
 async def wait_for_stop(stop_event: asyncio.Event, timeout_seconds: int) -> bool:
