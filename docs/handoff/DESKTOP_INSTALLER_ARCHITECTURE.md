@@ -83,7 +83,7 @@ Persistent machine-level clinic data:
   config\
 ```
 
-The installer grants the built-in Windows Users group modify access to this runtime data folder and repairs the same ACL on upgrade. This is intentional: the desktop server should run as a normal interactive user, while records, uploads, backups, restore, logs, and local config must remain writable without launching the app with `Run as administrator`. The admin-only `Settings -> App preferences` page also exposes `Repair data access`, which invokes UAC only to repair the runtime folder ACL when Windows permissions are damaged. Keep OS-level elevation scoped to repair/install tasks, not daily app execution.
+The installer grants the built-in Windows Users group modify access to this runtime data folder and repairs the same ACL on upgrade. This is intentional: the desktop server should run as a normal interactive user, while records, uploads, backups, restore, logs, and local config must remain writable without launching the app with `Run as administrator`. The admin-only `Settings -> App preferences` page also exposes `Repair data access`, which invokes UAC only to repair the runtime folder ACL when Windows permissions are damaged. Keep OS-level elevation scoped to repair/install tasks, not daily app execution. Normal page loads such as App preferences and Clinic link must not spawn visible PowerShell windows; passive readiness checks should use hidden processes or in-process checks only, while UAC is reserved for explicit repair button clicks.
 
 The installer must never package or overwrite the tracked development DB under `data/runtime`. A fresh installed runtime creates its own DB and seeds forms from the bundled reference schema.
 

@@ -25,6 +25,7 @@ FIREWALL_RULE_NAME = "NDHI Laboratory Records LAN"
 FIREWALL_PROFILES = ("Private", "Domain", "Public")
 SUPPORTED_BROWSER_PREFERENCES = ("auto", "edge", "chrome", "default")
 SUPPORTED_NETWORK_MODES = ("local", "lan")
+CREATE_NO_WINDOW = 0x08000000
 BROWSER_PREFERENCE_OPTIONS = [
     {
         "value": "auto",
@@ -180,6 +181,10 @@ def _powershell_command() -> str:
     return shutil.which("powershell.exe") or shutil.which("powershell") or "powershell.exe"
 
 
+def _hidden_subprocess_creationflags() -> int:
+    return CREATE_NO_WINDOW if os.name == "nt" else 0
+
+
 def _powershell_single_quote(value: Any) -> str:
     return "'" + str(value or "").replace("'", "''") + "'"
 
@@ -190,41 +195,6 @@ def _command_line_quote(value: Any) -> str:
 
 def _encoded_powershell(script: str) -> str:
     return base64.b64encode(script.encode("utf-16le")).decode("ascii")
-
-
-def _run_powershell_json(script: str, *, timeout: int = 5) -> Any:
-    try:
-        result = subprocess.run(
-            [
-                _powershell_command(),
-                "-NoProfile",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-EncodedCommand",
-                _encoded_powershell(script),
-            ],
-            capture_output=True,
-            check=False,
-            text=True,
-            timeout=timeout,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return None
-    if result.returncode != 0:
-        return None
-    output = str(result.stdout or "").strip()
-    if not output:
-        return None
-    try:
-        return json.loads(output)
-    except json.JSONDecodeError:
-        return None
-
-
-def _ensure_list(value: Any) -> list[Any]:
-    if value is None:
-        return []
-    return value if isinstance(value, list) else [value]
 
 
 def _clean_powershell_error(value: Any) -> str:
@@ -518,72 +488,6 @@ def detect_firewall_rule() -> dict[str, str]:
             "detail": "Firewall status is only checked on Windows.",
         }
 
-    rule_name = _powershell_single_quote(FIREWALL_RULE_NAME)
-    firewall_data = _run_powershell_json(
-        f"""
-$rules = @(Get-NetFirewallRule -DisplayName {rule_name} -ErrorAction SilentlyContinue)
-$items = @()
-foreach ($rule in $rules) {{
-    $portFilter = Get-NetFirewallPortFilter -AssociatedNetFirewallRule $rule -ErrorAction SilentlyContinue
-    $addressFilter = Get-NetFirewallAddressFilter -AssociatedNetFirewallRule $rule -ErrorAction SilentlyContinue
-    $protocol = if ($portFilter) {{ ($portFilter.Protocol | Select-Object -First 1).ToString() }} else {{ "" }}
-    $localPort = if ($portFilter) {{ ($portFilter.LocalPort | Select-Object -First 1).ToString() }} else {{ "" }}
-    $remoteAddress = if ($addressFilter) {{ ($addressFilter.RemoteAddress | Select-Object -First 1).ToString() }} else {{ "" }}
-    $items += [pscustomobject]@{{
-        Enabled = $rule.Enabled.ToString()
-        Direction = $rule.Direction.ToString()
-        Action = $rule.Action.ToString()
-        Profile = $rule.Profile.ToString()
-        Protocol = $protocol
-        LocalPort = $localPort
-        RemoteAddress = $remoteAddress
-    }}
-}}
-$items | ConvertTo-Json -Compress -Depth 4
-""",
-        timeout=10,
-    )
-    firewall_rules = [item for item in _ensure_list(firewall_data) if isinstance(item, dict)]
-    if firewall_rules:
-        matching_rules = [
-            item
-            for item in firewall_rules
-            if str(item.get("Direction", "")).lower() == "inbound"
-            and str(item.get("Action", "")).lower() == "allow"
-            and str(item.get("Protocol", "")).lower() == "tcp"
-            and str(item.get("LocalPort", "")) in {str(DEFAULT_DESKTOP_PORT), "Any"}
-        ]
-        if not matching_rules:
-            return {
-                "status": "warning",
-                "label": "Needs repair",
-                "detail": "The firewall rule exists, but it does not match the app port.",
-            }
-        rule = matching_rules[0]
-        if str(rule.get("Enabled", "")).lower() != "true":
-            return {
-                "status": "warning",
-                "label": "Disabled",
-                "detail": "The firewall rule exists but is disabled.",
-            }
-        if "localsubnet" not in str(rule.get("RemoteAddress", "")).lower():
-            return {
-                "status": "warning",
-                "label": "Needs repair",
-                "detail": "The firewall rule is not limited to the local clinic network.",
-            }
-        if not _firewall_profiles_ready(rule.get("Profile")):
-            return {
-                "status": "warning",
-                "label": "Limited",
-                "detail": "The firewall rule does not cover every Windows network profile. Repair it if sharing fails.",
-            }
-        return {
-            "status": "ready",
-            "label": "Ready",
-            "detail": "Firewall rule is installed for same-network access.",
-        }
-
     try:
         result = subprocess.run(
             [
@@ -598,6 +502,7 @@ $items | ConvertTo-Json -Compress -Depth 4
             check=False,
             text=True,
             timeout=2,
+            creationflags=_hidden_subprocess_creationflags(),
         )
     except (OSError, subprocess.TimeoutExpired):
         return {
@@ -705,6 +610,7 @@ def repair_lan_firewall_rule(*, port: int = DEFAULT_DESKTOP_PORT, program_path: 
             check=False,
             text=True,
             timeout=180,
+            creationflags=_hidden_subprocess_creationflags(),
         )
     except subprocess.TimeoutExpired:
         return {
@@ -806,6 +712,7 @@ def repair_runtime_data_permissions() -> dict[str, str]:
             check=False,
             text=True,
             timeout=180,
+            creationflags=_hidden_subprocess_creationflags(),
         )
     except subprocess.TimeoutExpired:
         return {
