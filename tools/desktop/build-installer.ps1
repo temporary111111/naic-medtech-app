@@ -21,8 +21,33 @@ $IconFile = Join-Path $DesktopDir "assets\ndhi-labrecords.ico"
 $VersionPath = Join-Path $DesktopDir "VERSION"
 
 if (-not $PythonCommand) {
-    $VenvPython = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
-    $PythonCommand = if (Test-Path -LiteralPath $VenvPython -PathType Leaf) { $VenvPython } else { "python" }
+    $PythonCandidates = @(
+        (Join-Path $ProjectRoot "env\Scripts\python.exe"),
+        (Join-Path $ProjectRoot ".venv\Scripts\python.exe"),
+        "py -3.11",
+        "python"
+    )
+    foreach ($candidate in $PythonCandidates) {
+        try {
+            if ($candidate -like "*\python.exe" -and -not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+                continue
+            }
+            if ($candidate -eq "py -3.11") {
+                & py -3.11 --version *> $null
+            } else {
+                & $candidate --version *> $null
+            }
+            if ($LASTEXITCODE -eq 0) {
+                $PythonCommand = $candidate
+                break
+            }
+        } catch {
+            continue
+        }
+    }
+    if (-not $PythonCommand) {
+        throw "No working Python interpreter was found. Create env with Python 3.11 first."
+    }
 }
 
 if (-not $Version) {
@@ -37,7 +62,11 @@ if ($Version -notmatch "^[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.-]+)?$") {
 
 function Invoke-Python {
     param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
-    & $PythonCommand @Arguments
+    if ($PythonCommand -eq "py -3.11") {
+        & py -3.11 @Arguments
+    } else {
+        & $PythonCommand @Arguments
+    }
     if ($LASTEXITCODE -ne 0) {
         throw "Python command failed: $PythonCommand $($Arguments -join ' ')"
     }
@@ -114,11 +143,19 @@ function Test-HealthEndpoint {
 
 Write-Host "Checking Python and PyInstaller..."
 Invoke-Python -Arguments @("-c", "import struct, sys; print(sys.version); print('x64' if struct.calcsize('P') == 8 else 'x86')")
-$PythonArchitecture = (& $PythonCommand -c "import struct; print('x64' if struct.calcsize('P') == 8 else 'x86')").Trim()
+$PythonArchitecture = if ($PythonCommand -eq "py -3.11") {
+    (& py -3.11 -c "import struct; print('x64' if struct.calcsize('P') == 8 else 'x86')").Trim()
+} else {
+    (& $PythonCommand -c "import struct; print('x64' if struct.calcsize('P') == 8 else 'x86')").Trim()
+}
 if ($PythonArchitecture -ne $Architecture) {
     throw "Requested $Architecture build, but $PythonCommand is $PythonArchitecture. Use a matching Python interpreter."
 }
-& $PythonCommand -c "import PyInstaller; print('PyInstaller', PyInstaller.__version__)"
+if ($PythonCommand -eq "py -3.11") {
+    & py -3.11 -c "import PyInstaller; print('PyInstaller', PyInstaller.__version__)"
+} else {
+    & $PythonCommand -c "import PyInstaller; print('PyInstaller', PyInstaller.__version__)"
+}
 if ($LASTEXITCODE -ne 0) {
     throw "PyInstaller is not installed for $PythonCommand. Install tools\desktop\requirements-build.txt in the build environment before generating a package."
 }
