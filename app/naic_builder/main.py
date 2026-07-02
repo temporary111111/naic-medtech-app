@@ -47,6 +47,7 @@ from .desktop_settings import (
     lan_access_details,
     read_desktop_settings,
     repair_lan_firewall_rule,
+    repair_runtime_data_permissions,
     save_desktop_settings,
 )
 from .qr import qr_svg_bytes
@@ -534,6 +535,8 @@ def desktop_success_message(request: Request) -> str:
         return "Verified the latest external backup."
     if request.query_params.get("lan_repair") == "ready":
         return "Same-network access is repaired. If status still says restart needed, close and reopen the desktop app."
+    if request.query_params.get("data_repair") == "ready":
+        return "Data folder access is repaired. Backup, restore, uploads, and settings can run without launching the app as administrator."
     return ""
 
 
@@ -2153,6 +2156,18 @@ def repair_settings_desktop_lan_page(request: Request) -> Response:
     )
 
 
+@app.post("/settings/desktop/repair-data-folder")
+def repair_settings_desktop_data_folder_page(request: Request) -> Response:
+    repair_result = repair_runtime_data_permissions()
+    if repair_result.get("status") == "ready":
+        return RedirectResponse(url="/settings/desktop?data_repair=ready", status_code=303)
+    return render_settings_desktop_page(
+        request,
+        error_message=str(repair_result.get("detail") or "Data folder access repair did not finish."),
+        status_code=409 if repair_result.get("status") == "warning" else 500,
+    )
+
+
 @app.get("/safety/lan-qr.svg")
 @app.get("/settings/desktop/lan-qr.svg")
 @app.get("/clinic-link/lan-qr.svg")
@@ -2305,7 +2320,20 @@ async def settings_desktop_restore_backup_page(
             )
         try:
             with backup_operation_lock(blocking=False):
-                restore_verified_backup(uploaded_path)
+                try:
+                    restore_verified_backup(uploaded_path)
+                except PermissionError:
+                    repair_result = repair_runtime_data_permissions()
+                    if repair_result.get("status") != "ready":
+                        return render_backup_page(
+                            request,
+                            error_message=(
+                                "Backup restore needs Windows data-folder permission. "
+                                f"{repair_result.get('detail') or 'Approve the Windows permission prompt, then try again.'}"
+                            ),
+                            status_code=409,
+                        )
+                    restore_verified_backup(uploaded_path)
         except BackupOperationBusyError as exc:
             return render_backup_page(
                 request,

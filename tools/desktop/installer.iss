@@ -47,12 +47,12 @@ ArchitecturesInstallIn64BitMode=x64compatible
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Dirs]
-Name: "{commonappdata}\NDHI\LabRecords"; Flags: uninsneveruninstall
-Name: "{commonappdata}\NDHI\LabRecords\database"; Flags: uninsneveruninstall
-Name: "{commonappdata}\NDHI\LabRecords\uploads"; Flags: uninsneveruninstall
-Name: "{commonappdata}\NDHI\LabRecords\backups"; Flags: uninsneveruninstall
-Name: "{commonappdata}\NDHI\LabRecords\logs"; Flags: uninsneveruninstall
-Name: "{commonappdata}\NDHI\LabRecords\config"; Flags: uninsneveruninstall
+Name: "{commonappdata}\NDHI\LabRecords"; Flags: uninsneveruninstall; Permissions: users-modify
+Name: "{commonappdata}\NDHI\LabRecords\database"; Flags: uninsneveruninstall; Permissions: users-modify
+Name: "{commonappdata}\NDHI\LabRecords\uploads"; Flags: uninsneveruninstall; Permissions: users-modify
+Name: "{commonappdata}\NDHI\LabRecords\backups"; Flags: uninsneveruninstall; Permissions: users-modify
+Name: "{commonappdata}\NDHI\LabRecords\logs"; Flags: uninsneveruninstall; Permissions: users-modify
+Name: "{commonappdata}\NDHI\LabRecords\config"; Flags: uninsneveruninstall; Permissions: users-modify
 
 [Icons]
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app}\{#AppExeName}"
@@ -141,6 +141,24 @@ begin
   );
 end;
 
+procedure ConfigureRuntimePermissions();
+var
+  ResultCode: Integer;
+  RuntimeDataPath: String;
+begin
+  RuntimeDataPath := ExpandConstant('{commonappdata}\{#RuntimeDataDir}');
+  Exec(
+    ExpandConstant('{sys}\icacls.exe'),
+    '"' + RuntimeDataPath + '" /grant *S-1-5-32-545:(OI)(CI)M /T /C',
+    '',
+    SW_HIDE,
+    ewWaitUntilTerminated,
+    ResultCode
+  );
+  if ResultCode <> 0 then
+    Log('Runtime data folder permission repair returned exit code ' + IntToStr(ResultCode) + '.');
+end;
+
 procedure RemoveFirewallRule();
 var
   ResultCode: Integer;
@@ -158,7 +176,10 @@ end;
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then
+  begin
+    ConfigureRuntimePermissions();
     ConfigureFirewallRule();
+  end;
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);

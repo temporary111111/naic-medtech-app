@@ -48,6 +48,8 @@ The installer automatically creates a Windows Firewall rule named `NDHI Laborato
 
 Do not expose the port to the internet or configure router port forwarding.
 
+The installer also grants normal Windows users modify access to the persistent app data folder under `%ProgramData%\NDHI\LabRecords`. That folder contains the database, uploads, backups, logs, and local config, so the app should not need to be launched with `Run as administrator` for normal records work, backup, restore, uploads, or settings. If Windows permissions are damaged after install, Settings -> App preferences exposes `Repair data access`, which asks for UAC once and repairs the runtime folder ACL.
+
 The site also ships a web app manifest so the browser-installable PWA path remains available. The launcher does not depend on browser PWA registration because browser profile state is not a reliable startup contract.
 
 ## Developer commands
@@ -84,7 +86,7 @@ NDHI-LabRecords.exe --verify-backup <archive.zip>
 NDHI-LabRecords.exe --restore-backup <archive.zip>
 ```
 
-Normal clinic backup/restore is exposed to admins in `Settings -> Desktop app`. The app also checks for an automatic daily backup shortly after startup and every 30 minutes while it is open; if no verified backup exists for the current day, it creates a `daily-auto` archive and copies it to the configured external folder when available. Restore requires a backup ZIP upload and `RESTORE` confirmation, creates an emergency `pre-restore` backup first, clears the current login, and sends the admin back to login using an account from the restored backup.
+Normal clinic backup/restore is exposed to admins in `Backup`. The app creates debounced `after-change-sync` backups after saved changes and still keeps a periodic daily safety check while it is open. Restore requires a backup ZIP upload and `RESTORE` confirmation, creates an emergency `pre-restore` backup first, clears the current login, and sends the admin back to login using an account from the restored backup.
 
 Build the packaged app and final Inno Setup installer:
 

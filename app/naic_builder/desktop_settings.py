@@ -7,11 +7,12 @@ import shutil
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Any
 
-from .config import CONFIG_DIR
+from .config import CONFIG_DIR, DATA_RUNTIME_DIR
 
 
 DESKTOP_CONFIG_FILENAME = "desktop.json"
@@ -349,6 +350,14 @@ def _lan_firewall_repair_result_path() -> Path:
     return CONFIG_DIR / "repair-lan-firewall-result.json"
 
 
+def _runtime_permissions_repair_script_path() -> Path:
+    return Path(tempfile.gettempdir()) / "ndhi-repair-runtime-permissions.ps1"
+
+
+def _runtime_permissions_repair_result_path() -> Path:
+    return Path(tempfile.gettempdir()) / "ndhi-repair-runtime-permissions-result.json"
+
+
 def write_lan_firewall_repair_script() -> Path:
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     script_path = _lan_firewall_repair_script_path()
@@ -420,6 +429,76 @@ try {
 
     New-NetFirewallRule @rule | Out-Null
     Write-RepairResult -Status "ready" -Message "Same-network Windows Firewall access is repaired for this PC."
+    exit 0
+} catch {
+    Write-RepairResult -Status "error" -Message $_.Exception.Message
+    exit 1
+}
+""",
+        encoding="utf-8",
+    )
+    return script_path
+
+
+def write_runtime_permissions_repair_script() -> Path:
+    script_path = _runtime_permissions_repair_script_path()
+    script_path.write_text(
+        """[CmdletBinding()]
+param(
+    [string]$RuntimePath = "",
+    [string]$ResultPath = ""
+)
+
+$ErrorActionPreference = "Stop"
+$ProgressPreference = "SilentlyContinue"
+
+function Write-RepairResult {
+    param(
+        [string]$Status,
+        [string]$Message
+    )
+
+    if (-not $ResultPath) {
+        return
+    }
+
+    $payload = [ordered]@{
+        status = $Status
+        label = if ($Status -eq "ready") { "Ready" } else { "Needs attention" }
+        detail = $Message
+        runtime_path = $RuntimePath
+        timestamp = (Get-Date).ToString("o")
+    }
+
+    $parent = Split-Path -Parent $ResultPath
+    if ($parent) {
+        New-Item -ItemType Directory -Force -Path $parent | Out-Null
+    }
+    $payload | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath $ResultPath -Encoding UTF8
+}
+
+try {
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = [Security.Principal.WindowsPrincipal]::new($identity)
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        throw "Windows did not grant administrator permission."
+    }
+    if (-not $RuntimePath) {
+        throw "Runtime data folder path is missing."
+    }
+
+    New-Item -ItemType Directory -Force -Path $RuntimePath | Out-Null
+    foreach ($child in @("database", "uploads", "uploads\\clinic", "uploads\\records", "uploads\\signatories", "uploads\\users", "backups", "logs", "config")) {
+        New-Item -ItemType Directory -Force -Path (Join-Path $RuntimePath $child) | Out-Null
+    }
+
+    $grant = "*S-1-5-32-545:(OI)(CI)M"
+    & icacls.exe $RuntimePath /grant $grant /T /C | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Windows could not repair the data folder permissions."
+    }
+
+    Write-RepairResult -Status "ready" -Message "Data folder access is repaired for normal app use."
     exit 0
 } catch {
     Write-RepairResult -Status "error" -Message $_.Exception.Message
@@ -537,6 +616,42 @@ $items | ConvertTo-Json -Compress -Depth 4
     return _netsh_firewall_rule_status(output)
 
 
+def detect_runtime_permissions() -> dict[str, str]:
+    runtime_path = DATA_RUNTIME_DIR.expanduser()
+    probe_dir: Path | None = None
+    try:
+        runtime_path.mkdir(parents=True, exist_ok=True)
+        probe_dir = runtime_path / f".permission-check-{os.getpid()}-{time.time_ns()}"
+        probe_file = probe_dir / "write-delete-check.txt"
+        probe_dir.mkdir(parents=True, exist_ok=False)
+        probe_file.write_text("ok", encoding="utf-8")
+        probe_file.unlink()
+        probe_dir.rmdir()
+    except PermissionError:
+        return {
+            "status": "warning",
+            "label": "Repair needed",
+            "detail": "Windows is blocking normal write/delete access to the app data folder.",
+        }
+    except OSError as exc:
+        return {
+            "status": "warning",
+            "label": "Needs check",
+            "detail": f"Data folder access could not be fully checked: {exc}",
+        }
+    finally:
+        if probe_dir is not None and probe_dir.exists():
+            try:
+                shutil.rmtree(probe_dir)
+            except OSError:
+                pass
+    return {
+        "status": "ready",
+        "label": "Ready",
+        "detail": "Normal app data, backup, and restore access is available.",
+    }
+
+
 def repair_lan_firewall_rule(*, port: int = DEFAULT_DESKTOP_PORT, program_path: str = "") -> dict[str, str]:
     if os.name != "nt":
         return {
@@ -642,6 +757,107 @@ def repair_lan_firewall_rule(*, port: int = DEFAULT_DESKTOP_PORT, program_path: 
     }
 
 
+def repair_runtime_data_permissions() -> dict[str, str]:
+    if os.name != "nt":
+        return {
+            "status": "unknown",
+            "label": "Not available",
+            "detail": "Data folder permission repair is only available on Windows.",
+        }
+
+    script_path = write_runtime_permissions_repair_script()
+    result_path = _runtime_permissions_repair_result_path()
+    if result_path.exists():
+        try:
+            result_path.unlink()
+        except OSError:
+            pass
+
+    runtime_path = str(DATA_RUNTIME_DIR.expanduser())
+    arguments = [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        str(script_path),
+        "-RuntimePath",
+        runtime_path,
+        "-ResultPath",
+        str(result_path),
+    ]
+    argument_line = " ".join(_command_line_quote(argument) for argument in arguments)
+    start_process_script = (
+        "$ProgressPreference = 'SilentlyContinue'; "
+        f"$argumentLine = {_powershell_single_quote(argument_line)}; "
+        "Start-Process -FilePath 'powershell.exe' -ArgumentList $argumentLine -Verb RunAs -Wait -WindowStyle Hidden"
+    )
+
+    try:
+        result = subprocess.run(
+            [
+                _powershell_command(),
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-EncodedCommand",
+                _encoded_powershell(start_process_script),
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=180,
+        )
+    except subprocess.TimeoutExpired:
+        return {
+            "status": "warning",
+            "label": "Still waiting",
+            "detail": "Windows permission did not finish. Try Repair again and approve the prompt.",
+        }
+    except OSError:
+        return {
+            "status": "error",
+            "label": "Repair failed",
+            "detail": "Windows could not open the data folder repair prompt.",
+        }
+
+    time.sleep(0.25)
+    if result_path.exists():
+        try:
+            payload = json.loads(result_path.read_text(encoding="utf-8-sig"))
+        except (OSError, json.JSONDecodeError):
+            payload = {}
+        if isinstance(payload, dict):
+            status = str(payload.get("status") or "").lower()
+            detail = str(payload.get("detail") or "")
+            if status == "ready":
+                return {
+                    "status": "ready",
+                    "label": "Ready",
+                    "detail": detail or "Data folder access was repaired.",
+                }
+            return {
+                "status": "error",
+                "label": "Repair failed",
+                "detail": detail or "Windows did not complete the data folder repair.",
+            }
+
+    permission_status = detect_runtime_permissions()
+    if permission_status.get("status") == "ready":
+        return {
+            "status": "ready",
+            "label": "Ready",
+            "detail": "Data folder access is ready for normal app use.",
+        }
+
+    stderr = _clean_powershell_error(result.stderr)
+    return {
+        "status": "warning",
+        "label": "Permission needed",
+        "detail": stderr or str(permission_status.get("detail") or "")
+        or "Windows permission was not completed. Try Repair again and approve the prompt.",
+    }
+
+
 def desktop_runtime_status(settings: dict[str, str] | None = None) -> dict[str, dict[str, str]]:
     resolved_settings = settings or read_desktop_settings()
     network_mode = normalize_network_mode(resolved_settings.get("network_mode"))
@@ -668,6 +884,7 @@ def desktop_runtime_status(settings: dict[str, str] | None = None) -> dict[str, 
         }
 
     return {
+        "data_folder": detect_runtime_permissions(),
         "network": network_status,
         "firewall": detect_firewall_rule(),
         "host": {

@@ -113,6 +113,18 @@
           <a class="ghost-button" href="/clinic-link">Open Clinic link</a>
           <form
             method="post"
+            action="/settings/desktop/repair-data-folder"
+            class="inline-action-form"
+            data-confirm="Windows may ask for administrator permission. Approve the prompt to repair backup, restore, upload, and settings access without launching the app as administrator."
+            data-confirm-eyebrow="Data folder access"
+            data-confirm-title="Repair app data access?"
+            data-confirm-cancel-label="Cancel"
+            data-confirm-confirm-label="Repair access"
+          >
+            <button class="ghost-button" type="submit">Repair data access</button>
+          </form>
+          <form
+            method="post"
             action="/settings/desktop/repair-lan"
             class="inline-action-form"
             data-confirm="Windows may ask for administrator permission. Approve the prompt to repair same-network access without reinstalling the app."
