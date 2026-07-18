@@ -75,6 +75,7 @@ from .services import (
     create_container,
     delete_container,
     delete_draft_record,
+    ensure_default_pathologist_stamp,
     get_clinic_profile,
     delete_record_asset,
     create_form,
@@ -126,6 +127,7 @@ from .services import (
 async def lifespan(_: FastAPI):
     ensure_runtime_schema()
     with SessionLocal() as session:
+        ensure_default_pathologist_stamp()
         ensure_reference_seed(session)
         ensure_form_version_storage_documents(session)
         ensure_default_patient_info_fields(session)

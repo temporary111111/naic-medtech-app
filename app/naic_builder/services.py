@@ -4,8 +4,10 @@ import base64
 import hashlib
 import hmac
 import json
+import os
 import re
 import secrets
+import shutil
 from pathlib import Path
 from datetime import timezone
 from typing import Any
@@ -17,6 +19,8 @@ from sqlalchemy.orm import Session, selectinload
 
 from .config import (
     CLINIC_UPLOADS_DIR,
+    DEFAULT_PATHOLOGIST_STAMP_RESOURCE_PATH,
+    DEFAULT_PATHOLOGIST_STAMP_RUNTIME_PATH,
     ORGANIZATION_SHORT_NAME,
     RECORD_UPLOADS_DIR,
     REFERENCE_SCHEMA_PATH,
@@ -2223,6 +2227,24 @@ def save_signatory_stamp_image(
         "mime_type": mime_type,
         "size_bytes": len(stamp_bytes),
     }
+
+
+def ensure_default_pathologist_stamp(
+    *,
+    source_path: Path | None = None,
+    destination_path: Path | None = None,
+) -> Path:
+    source = source_path or DEFAULT_PATHOLOGIST_STAMP_RESOURCE_PATH
+    destination = destination_path or DEFAULT_PATHOLOGIST_STAMP_RUNTIME_PATH
+    if destination.is_file():
+        return destination
+    if not source.is_file():
+        raise FileNotFoundError(f"Default Pathologist stamp was not bundled: {source}")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    partial = destination.with_suffix(destination.suffix + ".partial")
+    shutil.copyfile(source, partial)
+    os.replace(partial, destination)
+    return destination
 
 
 def remove_clinic_logo(session: Session) -> dict[str, Any]:

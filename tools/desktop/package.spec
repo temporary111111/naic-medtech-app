@@ -10,6 +10,7 @@ PROJECT_ROOT = DESKTOP_DIR.parents[1]
 APP_DIR = PROJECT_ROOT / "app"
 APP_PACKAGE_DIR = APP_DIR / "naic_builder"
 SCHEMA_DIR = PROJECT_ROOT / "artifacts" / "schema"
+SEED_SIGNATORY_DIR = PROJECT_ROOT / "artifacts" / "seed" / "signatories"
 
 hiddenimports = collect_submodules("uvicorn") + collect_submodules("naic_builder")
 debug_console = os.environ.get("NDHI_PACKAGE_CONSOLE") == "1"
@@ -22,6 +23,7 @@ a = Analysis(
         (str(APP_PACKAGE_DIR / "static"), "naic_builder/static"),
         (str(APP_PACKAGE_DIR / "templates"), "naic_builder/templates"),
         (str(SCHEMA_DIR / "naic_medtech_app_schema.json"), "artifacts/schema"),
+        (str(SEED_SIGNATORY_DIR), "artifacts/seed/signatories"),
     ],
     hiddenimports=hiddenimports,
     hookspath=[],
