@@ -9,7 +9,7 @@ import re
 import secrets
 import shutil
 from pathlib import Path
-from datetime import timezone
+from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
@@ -154,6 +154,21 @@ def slugify(value: str) -> str:
 
 def compact_text(value: Any) -> str:
     return re.sub(r"\s+", " ", str(value or "")).strip()
+
+
+def format_print_temporal_value(data_type: Any, value: Any) -> str:
+    text = compact_text(value)
+    kind = compact_text(data_type).lower()
+    if not text or kind not in {"date", "datetime"}:
+        return text
+    try:
+        if kind == "date":
+            parsed_date = datetime.fromisoformat(text).date()
+            return parsed_date.strftime("%m/%d/%Y")
+        parsed_datetime = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        return parsed_datetime.strftime("%m/%d/%Y %I:%M %p")
+    except ValueError:
+        return text
 
 
 def normalize_email(value: Any) -> str:
@@ -2797,7 +2812,7 @@ def build_print_display_value(
             "is_empty": False,
         }
 
-    text_value = compact_text(value)
+    text_value = format_print_temporal_value(data_type, value)
     return {
         "kind": "text",
         "text": text_value,
@@ -3046,7 +3061,13 @@ def build_print_summary_items(
             field = fields.get(field_id)
             if not compact_text(item.get("label")) and field:
                 label = compact_text(field.get("name")) or "Field"
-            value = record_value_display_text(values.get(field_id))
+            field_block = field.get("block") if isinstance(field, dict) and isinstance(field.get("block"), dict) else {}
+            field_props = field_block.get("props") if isinstance(field_block.get("props"), dict) else {}
+            field_data_type = compact_text(field_props.get("data_type"))
+            if field_data_type in {"date", "datetime"}:
+                value = format_print_temporal_value(field_data_type, values.get(field_id))
+            else:
+                value = record_value_display_text(values.get(field_id))
         elif source == "primary_identity":
             label = compact_text(item.get("label")) or compact_text(identity.get("primary_label")) or "Record"
             value = compact_text(identity.get("primary_value"))

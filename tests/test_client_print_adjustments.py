@@ -20,10 +20,13 @@ from naic_builder.models import FormDefinition, FormVersion, Record
 from naic_builder.schemas import ClinicProfilePayload
 from naic_builder.services import (
     build_print_clinic_profile,
+    build_print_display_value,
+    build_print_summary_items,
     build_signatory_snapshot,
     default_signatory_slots,
     ensure_client_signatory_defaults,
     ensure_default_pathologist_stamp,
+    format_print_temporal_value,
     list_record_completion_issues,
     normalize_signatory_slot,
     save_clinic_profile,
@@ -32,6 +35,49 @@ from naic_builder.services import (
 
 
 class ClientPrintAdjustmentTests(unittest.TestCase):
+    def test_print_temporal_values_are_nontechnical(self) -> None:
+        self.assertEqual(format_print_temporal_value("date", "2026-07-16"), "07/16/2026")
+        self.assertEqual(
+            format_print_temporal_value("datetime", "2026-07-16T10:15"),
+            "07/16/2026 10:15 AM",
+        )
+        self.assertEqual(
+            format_print_temporal_value("datetime", "2026-07-16T22:05"),
+            "07/16/2026 10:05 PM",
+        )
+        self.assertEqual(format_print_temporal_value("time", "22:05"), "22:05")
+        self.assertEqual(format_print_temporal_value("datetime", "legacy value"), "legacy value")
+        self.assertEqual(
+            build_print_display_value(
+                {"data_type": "date"},
+                "2026-07-16",
+                None,
+                record_id=1,
+            )["text"],
+            "07/16/2026",
+        )
+        summary = build_print_summary_items(
+            {
+                "show_summary": True,
+                "summary_items": [{"source": "field", "field_id": "collected_at"}],
+            },
+            {
+                "entry_schema": {
+                    "blocks": [{
+                        "id": "collected_at",
+                        "kind": "field",
+                        "name": "Collected at",
+                        "props": {"data_type": "datetime"},
+                    }],
+                },
+                "record_identity": {},
+                "record_key": "TEST-1",
+            },
+            {"collected_at": "2026-07-16T22:05"},
+            issued_at_label="",
+        )
+        self.assertEqual(summary[0]["value"], "07/16/2026 10:05 PM")
+
     def test_doh_license_persists_prints_and_clears(self) -> None:
         engine = create_engine("sqlite://")
         Base.metadata.create_all(engine)
