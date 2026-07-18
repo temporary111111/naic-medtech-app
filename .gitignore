@@ -1,6 +1,7 @@
 .venv/
 env/
 env-py314*/
+.worktrees/
 .npm-cache/
 **/__pycache__/
 *.pyc
