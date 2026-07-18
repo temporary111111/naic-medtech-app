@@ -19,8 +19,10 @@ from sqlalchemy.orm import Session, selectinload
 
 from .config import (
     CLINIC_UPLOADS_DIR,
+    DEFAULT_PATHOLOGIST_STAMP_FILENAME,
     DEFAULT_PATHOLOGIST_STAMP_RESOURCE_PATH,
     DEFAULT_PATHOLOGIST_STAMP_RUNTIME_PATH,
+    DEFAULT_PATHOLOGIST_STAMP_URL,
     ORGANIZATION_SHORT_NAME,
     RECORD_UPLOADS_DIR,
     REFERENCE_SCHEMA_PATH,
@@ -872,12 +874,11 @@ def default_signatory_options(slot_id: str, people: list[dict[str, str]]) -> lis
 def default_signatory_slots() -> list[dict[str, Any]]:
     medtech_1_options = default_signatory_options("medical_technologist_1", DEFAULT_MEDTECH_SIGNATORY_PEOPLE)
     medtech_2_options = default_signatory_options("medical_technologist_2", DEFAULT_MEDTECH_SIGNATORY_PEOPLE)
-    pathologist_options = default_signatory_options("pathologist", DEFAULT_PATHOLOGIST_SIGNATORY_PEOPLE)
-    pathologist_default = compact_text(pathologist_options[0]["id"]) if pathologist_options else ""
     return [
         {
             "id": "medical_technologist_1",
-            "label": "Medical Technologist",
+            "label": "Analyzed by:",
+            "designation": "Medical Technologist (RMT)",
             "input_type": "person_dropdown",
             "required": True,
             "show_on_print": True,
@@ -888,9 +889,10 @@ def default_signatory_slots() -> list[dict[str, Any]]:
         },
         {
             "id": "medical_technologist_2",
-            "label": "Medical Technologist",
+            "label": "Verified by:",
+            "designation": "Medical Technologist (RMT)",
             "input_type": "person_dropdown",
-            "required": False,
+            "required": True,
             "show_on_print": True,
             "show_license": True,
             "signature_line": True,
@@ -899,14 +901,18 @@ def default_signatory_slots() -> list[dict[str, Any]]:
         },
         {
             "id": "pathologist",
-            "label": "Pathologist",
-            "input_type": "fixed",
+            "label": "Noted by:",
+            "designation": "Pathologist",
+            "input_type": "stamp_image",
             "required": False,
             "show_on_print": True,
-            "show_license": True,
+            "show_license": False,
             "signature_line": True,
-            "default_option_id": pathologist_default,
-            "options": pathologist_options,
+            "default_option_id": "",
+            "stamp_image_url": DEFAULT_PATHOLOGIST_STAMP_URL,
+            "stamp_image_filename": DEFAULT_PATHOLOGIST_STAMP_FILENAME,
+            "stamp_image_mime_type": "image/png",
+            "options": [],
         },
     ]
 
@@ -934,6 +940,7 @@ def normalize_signatory_slot(raw_slot: Any, index: int) -> dict[str, Any] | None
     return {
         "id": slot_id,
         "label": label,
+        "designation": compact_text(slot.get("designation") or slot.get("title")),
         "input_type": input_type,
         "required": normalize_boolean_setting(slot.get("required"), default=False),
         "show_on_print": normalize_boolean_setting(slot.get("show_on_print"), default=True),
@@ -996,6 +1003,7 @@ def build_signatory_snapshot(slot: dict[str, Any], raw_value: Any = None) -> dic
     return {
         "slot_id": compact_text(slot.get("id")),
         "label": compact_text(slot.get("label")) or "Signatory",
+        "designation": compact_text(slot.get("designation")) or compact_text(slot.get("title")),
         "input_type": input_type if input_type in SIGNATORY_INPUT_TYPES else "person_dropdown",
         "option_id": option_id,
         "name": name,
@@ -1031,8 +1039,8 @@ def normalize_record_signatory_snapshots(raw_signatories: Any, slots: list[dict[
     return snapshots
 
 
-def signatory_snapshots_for_print(snapshots: list[dict[str, Any]]) -> list[dict[str, str]]:
-    printable: list[dict[str, str]] = []
+def signatory_snapshots_for_print(snapshots: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    printable: list[dict[str, Any]] = []
     for snapshot in snapshots:
         if not isinstance(snapshot, dict):
             continue
@@ -1040,6 +1048,7 @@ def signatory_snapshots_for_print(snapshots: list[dict[str, Any]]) -> list[dict[
             continue
         input_type = compact_text(snapshot.get("input_type")).lower()
         required = normalize_boolean_setting(snapshot.get("required"), default=False)
+        designation = compact_text(snapshot.get("designation")) or compact_text(snapshot.get("title"))
         name = compact_text(snapshot.get("name"))
         license_text = compact_text(snapshot.get("license"))
         stamp_image_url = compact_text(snapshot.get("stamp_image_url"))
@@ -1049,9 +1058,11 @@ def signatory_snapshots_for_print(snapshots: list[dict[str, Any]]) -> list[dict[
             printable.append(
                 {
                     "label": compact_text(snapshot.get("label")) or "Signatory",
+                    "designation": designation,
                     "name": "",
                     "title": "",
                     "license": "",
+                    "signature_line": normalize_boolean_setting(snapshot.get("signature_line"), default=True),
                     "image_url": stamp_image_url,
                     "image_alt": compact_text(snapshot.get("stamp_image_filename"))
                     or compact_text(snapshot.get("label"))
@@ -1066,9 +1077,11 @@ def signatory_snapshots_for_print(snapshots: list[dict[str, Any]]) -> list[dict[
         printable.append(
             {
                 "label": compact_text(snapshot.get("label")) or "Signatory",
+                "designation": designation,
                 "name": name,
                 "title": compact_text(snapshot.get("title")),
                 "license": license_text if normalize_boolean_setting(snapshot.get("show_license"), default=True) else "",
+                "signature_line": normalize_boolean_setting(snapshot.get("signature_line"), default=True),
                 "image_url": "",
                 "image_alt": "",
             }
@@ -2631,7 +2644,8 @@ def list_record_completion_issues(
             continue
         slot_input_type = compact_text(slot.get("input_type")).lower()
         if slot_input_type in {"person_dropdown", "manual"} and not compact_text(snapshot.get("name")):
-            issues.append(f"Choose required signatory: {compact_text(slot.get('label')) or 'Signatory'}.")
+            label = compact_text(slot.get("label")).rstrip(":") or "Signatory"
+            issues.append(f"Choose required signatory: {label}.")
     return issues
 
 
@@ -3043,13 +3057,13 @@ def build_print_signature_items(
     *,
     prepared_by_name: str,
     signatories: list[dict[str, Any]] | None = None,
-) -> list[dict[str, str]]:
+) -> list[dict[str, Any]]:
     if signatories is not None:
         signature_items = signatory_snapshots_for_print(signatories)
         if signature_items:
             return signature_items
 
-    signatures: list[dict[str, str]] = []
+    signatures: list[dict[str, Any]] = []
     for side, fallback_label in (("left", "Medical Technologist"), ("right", "Pathologist")):
         label = compact_text(print_config.get(f"signature_{side}_label")) or fallback_label
         source = normalize_print_signature_source(print_config.get(f"signature_{side}_source"))
@@ -3067,6 +3081,7 @@ def build_print_signature_items(
                 ),
                 "source": source,
                 "field_id": field_id if source == "field" else "",
+                "signature_line": True,
             }
         )
     return signatures

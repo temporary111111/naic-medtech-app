@@ -381,11 +381,11 @@ function makeDefaultSignatoryOptions(slotId, options) {
 function defaultSignatorySlots() {
   const medtech1Options = makeDefaultSignatoryOptions("medical_technologist_1", DEFAULT_MEDTECH_SIGNATORY_OPTIONS);
   const medtech2Options = makeDefaultSignatoryOptions("medical_technologist_2", DEFAULT_MEDTECH_SIGNATORY_OPTIONS);
-  const pathologistOptions = makeDefaultSignatoryOptions("pathologist", DEFAULT_PATHOLOGIST_SIGNATORY_OPTIONS);
   return [
     {
       id: "medical_technologist_1",
-      label: "Medical Technologist",
+      label: "Analyzed by:",
+      designation: "Medical Technologist (RMT)",
       input_type: "person_dropdown",
       required: true,
       show_on_print: true,
@@ -396,9 +396,10 @@ function defaultSignatorySlots() {
     },
     {
       id: "medical_technologist_2",
-      label: "Medical Technologist",
+      label: "Verified by:",
+      designation: "Medical Technologist (RMT)",
       input_type: "person_dropdown",
-      required: false,
+      required: true,
       show_on_print: true,
       show_license: true,
       signature_line: true,
@@ -407,14 +408,18 @@ function defaultSignatorySlots() {
     },
     {
       id: "pathologist",
-      label: "Pathologist",
-      input_type: "fixed",
+      label: "Noted by:",
+      designation: "Pathologist",
+      input_type: "stamp_image",
       required: false,
       show_on_print: true,
-      show_license: true,
+      show_license: false,
       signature_line: true,
-      default_option_id: pathologistOptions[0]?.id || "",
-      options: pathologistOptions,
+      default_option_id: "",
+      stamp_image_url: "/signatory-stamps/default-pathologist-stamp.png",
+      stamp_image_filename: "default-pathologist-stamp.png",
+      stamp_image_mime_type: "image/png",
+      options: [],
     },
   ];
 }
@@ -438,6 +443,7 @@ function normalizeSignatorySlot(rawSlot, index) {
   return {
     id: slotId,
     label,
+    designation: compactText(slot.designation || slot.title),
     input_type: inputType,
     required: normalizePrintBoolean(slot.required, false),
     show_on_print: normalizePrintBoolean(slot.show_on_print, true),
@@ -479,6 +485,7 @@ function makeBlankSignatorySlot() {
     {
       id: slotId,
       label: "Signatory",
+      designation: "",
       input_type: "person_dropdown",
       required: false,
       show_on_print: true,
@@ -544,8 +551,8 @@ function updateDraftSignatorySlot(slotId, key, value) {
   if (!slot) {
     return;
   }
-  if (key === "label") {
-    slot.label = compactText(value) || "Signatory";
+  if (key === "label" || key === "designation") {
+    slot[key] = key === "label" ? (compactText(value) || "Signatory") : compactText(value);
     return;
   }
   if (key === "input_type") {
@@ -3244,6 +3251,10 @@ function renderSignatoryCard(slot, index, totalCount) {
             <input data-action="signatory-field" data-id="${escapeHtml(slot.id)}" data-key="label" value="${escapeHtml(slot.label)}" placeholder="Example: Medical Technologist">
           </label>
           <label>
+            <span>Designation</span>
+            <input data-action="signatory-field" data-id="${escapeHtml(slot.id)}" data-key="designation" value="${escapeHtml(slot.designation)}" placeholder="Example: Medical Technologist (RMT)">
+          </label>
+          <label>
             <span>Type</span>
             <select data-action="signatory-field" data-id="${escapeHtml(slot.id)}" data-key="input_type">
               ${renderSignatoryTypeOptions(slot.input_type)}
@@ -3281,6 +3292,9 @@ function renderSignatoryCard(slot, index, totalCount) {
                 ? `<img class="signatory-stamp-preview" src="${escapeHtml(slot.stamp_image_url)}" alt="${escapeHtml(slot.stamp_image_filename || slot.label || "Signatory stamp")}">`
                 : `<span>No stamp image uploaded</span>`}
             </div>
+            ${slot.show_on_print && !slot.stamp_image_url
+              ? `<p class="field-error">Stamp image required for print.</p>`
+              : ""}
             <label class="stacked-input">
               <span>Stamp image</span>
               <input type="file" accept="image/png,image/jpeg,image/webp" data-action="signatory-stamp-upload" data-id="${escapeHtml(slot.id)}">

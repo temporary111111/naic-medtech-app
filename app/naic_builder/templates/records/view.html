@@ -148,6 +148,9 @@
             {% elif item.stamp_image_url %}
             <span>Printed from form setup</span>
             {% endif %}
+            {% if item.designation %}
+            <span>{{ item.designation }}</span>
+            {% endif %}
           </article>
           {% endif %}
         {% endfor %}

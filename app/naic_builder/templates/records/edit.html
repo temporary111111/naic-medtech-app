@@ -272,6 +272,9 @@
                 {% endif %}
               </div>
             </div>
+            {% if slot.designation %}
+            <small class="entry-inline-hint">{{ slot.designation }}</small>
+            {% endif %}
 
             {% if slot.input_type in ["person_dropdown", "fixed"] %}
               <select name="signatory__{{ slot.id }}__option_id" {% if slot.input_type == "fixed" %}disabled{% endif %}>

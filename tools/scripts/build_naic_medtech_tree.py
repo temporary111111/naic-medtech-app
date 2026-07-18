@@ -340,7 +340,8 @@ COMMON_FIELD_SET = {
 DEFAULT_SIGNATORIES = [
     {
         "id": "medical_technologist_1",
-        "label": "Medical Technologist",
+        "label": "Analyzed by:",
+        "designation": "Medical Technologist (RMT)",
         "input_type": "person_dropdown",
         "required": True,
         "show_on_print": True,
@@ -358,9 +359,10 @@ DEFAULT_SIGNATORIES = [
     },
     {
         "id": "medical_technologist_2",
-        "label": "Medical Technologist",
+        "label": "Verified by:",
+        "designation": "Medical Technologist (RMT)",
         "input_type": "person_dropdown",
-        "required": False,
+        "required": True,
         "show_on_print": True,
         "show_license": True,
         "signature_line": True,
@@ -376,21 +378,18 @@ DEFAULT_SIGNATORIES = [
     },
     {
         "id": "pathologist",
-        "label": "Pathologist",
-        "input_type": "fixed",
+        "label": "Noted by:",
+        "designation": "Pathologist",
+        "input_type": "stamp_image",
         "required": False,
         "show_on_print": True,
-        "show_license": True,
+        "show_license": False,
         "signature_line": True,
-        "default_option_id": "bernardita_mojica_figueroa",
-        "options": [
-            {
-                "id": "bernardita_mojica_figueroa",
-                "name": "Bernardita Mojica Figueroa, MD, DPSP",
-                "license": "068053",
-                "order": 1,
-            },
-        ],
+        "default_option_id": "",
+        "stamp_image_url": "/signatory-stamps/default-pathologist-stamp.png",
+        "stamp_image_filename": "default-pathologist-stamp.png",
+        "stamp_image_mime_type": "image/png",
+        "options": [],
     },
 ]
 
