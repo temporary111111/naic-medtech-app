@@ -82,6 +82,7 @@ from .services import (
     create_record,
     create_user_account,
     current_record_values,
+    ensure_client_signatory_defaults,
     ensure_default_patient_info_fields,
     ensure_form_version_storage_documents,
     ensure_library_tree,
@@ -129,6 +130,7 @@ async def lifespan(_: FastAPI):
     with SessionLocal() as session:
         ensure_default_pathologist_stamp()
         ensure_reference_seed(session)
+        ensure_client_signatory_defaults(session)
         ensure_form_version_storage_documents(session)
         ensure_default_patient_info_fields(session)
         ensure_library_tree(session)

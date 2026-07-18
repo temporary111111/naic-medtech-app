@@ -64,6 +64,7 @@ RECORD_STATUS_LABELS = {
 }
 DEFAULT_PRINT_ACCENT_COLOR = "#1e5d52"
 DEFAULT_PRINT_ACCENT_MIGRATED_META_KEY = "print_accent_default_migrated"
+CLIENT_SIGNATORY_DEFAULTS_META_KEY = "client_signatory_defaults_2026_07"
 DEFAULT_PRINT_ACCENT_COLORS_BY_FORM_KEY = {
     "abg": "#8064a2",
     "blood_bank": "#cc3399",
@@ -971,6 +972,29 @@ def normalize_signatory_slots(raw_slots: Any, *, use_defaults: bool = False) -> 
     return slots
 
 
+def merge_client_signatory_defaults(raw_slots: Any) -> list[dict[str, Any]]:
+    defaults = default_signatory_slots()
+    existing = normalize_signatory_slots(raw_slots, use_defaults=False)
+    by_id = {compact_text(slot.get("id")): slot for slot in existing}
+    merged: list[dict[str, Any]] = []
+    for default in defaults:
+        current = by_id.pop(default["id"], None)
+        if current is None:
+            merged.append(default)
+            continue
+        preserved_stamp = {
+            key: current.get(key)
+            for key in ("stamp_image_url", "stamp_image_filename", "stamp_image_mime_type")
+            if compact_text(current.get(key))
+        }
+        next_slot = {**current, **default}
+        if default["id"] == "pathologist" and preserved_stamp:
+            next_slot.update(preserved_stamp)
+        merged.append(normalize_signatory_slot(next_slot, len(merged) + 1))
+    merged.extend(by_id.values())
+    return merged
+
+
 def signatory_option_by_id(slot: dict[str, Any], option_id: str) -> dict[str, Any] | None:
     target_id = compact_text(option_id)
     for option in normalize_items(slot.get("options")):
@@ -1720,6 +1744,7 @@ def normalize_active_block_storage_schema(block_schema: dict[str, Any]) -> bool:
         changed = True
 
     meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    had_signatories = "signatories" in meta
     normalized_identity = normalize_record_identity_config(meta.get("record_identity"))
     if any(
         [
@@ -1748,10 +1773,14 @@ def normalize_active_block_storage_schema(block_schema: dict[str, Any]) -> bool:
 
     normalized_signatories = normalize_signatory_slots(
         meta.get("signatories"),
-        use_defaults="signatories" not in meta,
+        use_defaults=not had_signatories,
     )
     if meta.get("signatories") != normalized_signatories:
         meta["signatories"] = normalized_signatories
+        block_schema["meta"] = meta
+        changed = True
+    if not had_signatories and meta.get(CLIENT_SIGNATORY_DEFAULTS_META_KEY) is not True:
+        meta[CLIENT_SIGNATORY_DEFAULTS_META_KEY] = True
         block_schema["meta"] = meta
         changed = True
 
@@ -4781,6 +4810,72 @@ def ensure_default_patient_info_fields(session: Session) -> int:
 
     if migrated_count:
         session.commit()
+    return migrated_count
+
+
+def ensure_client_signatory_defaults(session: Session) -> int:
+    definitions = session.scalars(
+        select(FormDefinition)
+        .options(
+            selectinload(FormDefinition.versions),
+            selectinload(FormDefinition.library_node),
+        )
+    ).all()
+    migrated_count = 0
+
+    try:
+        for definition in definitions:
+            version = current_version(definition)
+            if version is None:
+                continue
+
+            block_schema, _ = load_block_storage_document(version)
+            meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+            if normalize_boolean_setting(meta.get(CLIENT_SIGNATORY_DEFAULTS_META_KEY), default=False):
+                continue
+
+            meta["signatories"] = merge_client_signatory_defaults(meta.get("signatories"))
+            meta[CLIENT_SIGNATORY_DEFAULTS_META_KEY] = True
+            block_schema["meta"] = meta
+
+            legacy_storage_schema = load_legacy_storage_document(version)
+            form_order = int(
+                legacy_storage_schema.get("order")
+                or (definition.library_node.node_order if definition.library_node is not None else 1)
+                or 1
+            )
+            legacy_storage_schema, stored_block_schema = build_form_version_storage_documents(
+                block_schema,
+                slug=definition.slug,
+                name=definition.name,
+                form_order=form_order,
+            )
+
+            for existing_version in definition.versions:
+                existing_version.is_current = False
+            next_version = max(
+                (existing_version.version_number for existing_version in definition.versions),
+                default=0,
+            ) + 1
+            session.add(
+                build_form_version_record(
+                    form_id=definition.id,
+                    version_number=next_version,
+                    summary="Applied approved client signatory defaults.",
+                    legacy_storage_schema=legacy_storage_schema,
+                    block_storage_schema=stored_block_schema,
+                    source="system",
+                    is_current=True,
+                )
+            )
+            definition.updated_at = utc_now()
+            migrated_count += 1
+
+        if migrated_count:
+            session.commit()
+    except Exception:
+        session.rollback()
+        raise
     return migrated_count
 
 

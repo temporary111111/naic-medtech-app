@@ -7,15 +7,20 @@ import sys
 import tempfile
 import unittest
 
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import sessionmaker
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "app"))
 TEST_RUNTIME = tempfile.TemporaryDirectory(prefix="ndhi-client-adjustments-")
 os.environ["NDHI_LABRECORDS_DATA_DIR"] = TEST_RUNTIME.name
 
-from naic_builder.models import FormVersion, Record
+from naic_builder.database import Base
+from naic_builder.models import FormDefinition, FormVersion, Record
 from naic_builder.services import (
     build_signatory_snapshot,
     default_signatory_slots,
+    ensure_client_signatory_defaults,
     ensure_default_pathologist_stamp,
     list_record_completion_issues,
     normalize_signatory_slot,
@@ -24,6 +29,79 @@ from naic_builder.services import (
 
 
 class ClientPrintAdjustmentTests(unittest.TestCase):
+    def test_existing_form_defaults_create_one_new_version(self) -> None:
+        engine = create_engine("sqlite://")
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine)
+        with Session() as session:
+            definition = FormDefinition(slug="blood_bank", name="Blood Bank")
+            session.add(definition)
+            session.flush()
+            schema = {
+                "schema_version": 1,
+                "source_kind": "builder_blocks_v1",
+                "meta": {
+                    "form_key": "blood_bank",
+                    "form_order": 1,
+                    "signatories": [
+                        {
+                            "id": "medical_technologist_1",
+                            "label": "Medical Technologist",
+                            "input_type": "person_dropdown",
+                            "options": [],
+                        },
+                        {
+                            "id": "pathologist",
+                            "label": "Custom pathologist",
+                            "input_type": "stamp_image",
+                            "stamp_image_url": "/signatory-stamps/custom.png",
+                            "stamp_image_filename": "custom.png",
+                            "stamp_image_mime_type": "image/png",
+                        },
+                        {
+                            "id": "custom_release",
+                            "label": "Released by",
+                            "input_type": "manual",
+                            "manual_name": "Staff",
+                        },
+                    ],
+                },
+                "blocks": [],
+            }
+            session.add(FormVersion(
+                form_id=definition.id,
+                version_number=1,
+                summary="Old defaults",
+                schema_json=json.dumps({
+                    "id": "form.blood_bank",
+                    "key": "blood_bank",
+                    "name": "Blood Bank",
+                    "order": 1,
+                    "fields": [],
+                    "sections": [],
+                }),
+                block_schema_json=json.dumps(schema),
+                source="builder",
+                is_current=True,
+            ))
+            session.commit()
+
+            self.assertEqual(ensure_client_signatory_defaults(session), 1)
+            self.assertEqual(ensure_client_signatory_defaults(session), 0)
+            versions = session.scalars(select(FormVersion).order_by(FormVersion.version_number)).all()
+            current = json.loads(versions[-1].block_schema_json)
+            slots = current["meta"]["signatories"]
+            self.assertEqual(len(versions), 2)
+            self.assertFalse(versions[0].is_current)
+            self.assertTrue(versions[1].is_current)
+            self.assertEqual(
+                [slot["id"] for slot in slots[:3]],
+                ["medical_technologist_1", "medical_technologist_2", "pathologist"],
+            )
+            self.assertTrue(current["meta"]["client_signatory_defaults_2026_07"])
+            self.assertEqual(slots[2]["stamp_image_url"], "/signatory-stamps/custom.png")
+            self.assertIn("custom_release", [slot["id"] for slot in slots])
+
     def test_default_stamp_copy_is_idempotent(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

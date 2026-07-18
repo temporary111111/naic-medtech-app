@@ -2531,6 +2531,7 @@ function makeBlankForm(config = {}) {
         form_order: 1,
         default_patient_info_materialized: true,
         signatories: defaultSignatorySlots(),
+        client_signatory_defaults_2026_07: true,
         record_identity: {
           primary_field_id: patientNameField?.id || "",
           secondary_field_id: caseNumberField?.id || "",
