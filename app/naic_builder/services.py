@@ -486,6 +486,7 @@ def serialize_clinic_profile(profile: ClinicProfile) -> dict[str, Any]:
         "address": compact_text(profile.address),
         "contact_number": compact_text(profile.contact_number),
         "contact_email": compact_text(profile.contact_email),
+        "doh_license_number": compact_text(profile.doh_license_number),
         "logo_path": profile.logo_path,
         "logo_original_filename": compact_text(profile.logo_original_filename),
         "logo_mime_type": compact_text(profile.logo_mime_type),
@@ -2194,6 +2195,7 @@ def save_clinic_profile(
     address = compact_text(payload.address)
     contact_number = compact_text(payload.contact_number)
     contact_email = normalize_email(payload.contact_email) if compact_text(payload.contact_email) else ""
+    doh_license_number = compact_text(payload.doh_license_number)
 
     if not clinic_name:
         raise ValueError("Enter the clinic name.")
@@ -2203,6 +2205,7 @@ def save_clinic_profile(
     old_logo_path = profile.logo_path
     old_logo_name = profile.logo_original_filename
     old_logo_type = profile.logo_mime_type
+    old_doh_license_number = profile.doh_license_number
     new_logo_path: Path | None = None
 
     if logo_bytes is not None:
@@ -2225,6 +2228,7 @@ def save_clinic_profile(
     profile.address = address or None
     profile.contact_number = contact_number or None
     profile.contact_email = contact_email or None
+    profile.doh_license_number = doh_license_number or None
 
     try:
         session.add(profile)
@@ -2236,6 +2240,7 @@ def save_clinic_profile(
         profile.logo_path = old_logo_path
         profile.logo_original_filename = old_logo_name
         profile.logo_mime_type = old_logo_type
+        profile.doh_license_number = old_doh_license_number
         raise
 
     if new_logo_path is not None and old_logo_path and old_logo_path != str(new_logo_path):
@@ -2833,6 +2838,7 @@ def build_print_clinic_profile(
     address = compact_text(profile.get("address"))
     contact_number = compact_text(profile.get("contact_number"))
     contact_email = compact_text(profile.get("contact_email"))
+    doh_license_number = compact_text(profile.get("doh_license_number"))
     contact_parts = [part for part in [contact_number, contact_email] if part]
 
     return {
@@ -2840,6 +2846,7 @@ def build_print_clinic_profile(
         "address": address,
         "contact_number": contact_number,
         "contact_email": contact_email,
+        "doh_license_number": doh_license_number,
         "contact_line": " | ".join(contact_parts),
         "logo_url": compact_text(logo_url) if bool(profile.get("has_logo")) else "",
     }

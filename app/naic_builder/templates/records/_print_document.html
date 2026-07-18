@@ -150,6 +150,9 @@
           {% if clinic.contact_line %}
           <span>{{ clinic.contact_line }}</span>
           {% endif %}
+          {% if clinic.doh_license_number %}
+          <span>DOH License No.: {{ clinic.doh_license_number }}</span>
+          {% endif %}
         </div>
         {% endif %}
       </div>

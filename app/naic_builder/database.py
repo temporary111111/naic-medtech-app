@@ -235,6 +235,14 @@ def ensure_runtime_schema() -> None:
         for column_name, column_type in avatar_columns.items():
             if column_name not in user_columns:
                 connection.exec_driver_sql(f"ALTER TABLE users ADD COLUMN {column_name} {column_type}")
+        clinic_profile_columns = {
+            str(row[1])
+            for row in connection.exec_driver_sql("PRAGMA table_info(clinic_profiles)").all()
+        }
+        if "doh_license_number" not in clinic_profile_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE clinic_profiles ADD COLUMN doh_license_number VARCHAR(120)"
+            )
 
 
 def get_session() -> Generator[Session, None, None]:

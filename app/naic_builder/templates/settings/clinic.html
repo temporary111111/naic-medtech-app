@@ -67,6 +67,13 @@
 
           <div class="settings-utility-section">
             <label class="field-stack">
+              <span>DOH License No.</span>
+              <input type="text" name="doh_license_number" value="{{ clinic_profile.doh_license_number }}" placeholder="Optional">
+            </label>
+          </div>
+
+          <div class="settings-utility-section">
+            <label class="field-stack">
               <span>Logo</span>
               <input type="file" name="logo_file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
               <p class="field-help">JPG, PNG, or WebP up to 5 MB.</p>
@@ -111,6 +118,9 @@
             {% endif %}
             {% if clinic_profile.contact_email %}
             <p>{{ clinic_profile.contact_email }}</p>
+            {% endif %}
+            {% if clinic_profile.doh_license_number %}
+            <p>DOH License No.: {{ clinic_profile.doh_license_number }}</p>
             {% endif %}
           </div>
         </div>

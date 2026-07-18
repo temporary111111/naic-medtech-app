@@ -2052,6 +2052,7 @@ async def save_settings_clinic_page(request: Request, session: Session = Depends
         address=str(form.get("address") or ""),
         contact_number=str(form.get("contact_number") or ""),
         contact_email=str(form.get("contact_email") or ""),
+        doh_license_number=str(form.get("doh_license_number") or ""),
     )
     logo_file = form.get("logo_file")
     logo_bytes: bytes | None = None
@@ -2080,6 +2081,7 @@ async def save_settings_clinic_page(request: Request, session: Session = Depends
                 "address": payload.address or "",
                 "contact_number": payload.contact_number or "",
                 "contact_email": payload.contact_email or "",
+                "doh_license_number": payload.doh_license_number or "",
             },
             error_message=str(exc),
             status_code=422,

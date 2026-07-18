@@ -135,6 +135,7 @@ class ClinicProfile(Base):
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
     contact_number: Mapped[str | None] = mapped_column(String(120), nullable=True)
     contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    doh_license_number: Mapped[str | None] = mapped_column(String(120), nullable=True)
     logo_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     logo_original_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
     logo_mime_type: Mapped[str | None] = mapped_column(String(120), nullable=True)

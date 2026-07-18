@@ -86,6 +86,7 @@ class ClinicProfilePayload(BaseModel):
     address: str | None = None
     contact_number: str | None = None
     contact_email: str | None = None
+    doh_license_number: str | None = None
 
 
 class LoginPayload(BaseModel):

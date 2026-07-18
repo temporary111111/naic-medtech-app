@@ -17,18 +17,40 @@ os.environ["NDHI_LABRECORDS_DATA_DIR"] = TEST_RUNTIME.name
 
 from naic_builder.database import Base
 from naic_builder.models import FormDefinition, FormVersion, Record
+from naic_builder.schemas import ClinicProfilePayload
 from naic_builder.services import (
+    build_print_clinic_profile,
     build_signatory_snapshot,
     default_signatory_slots,
     ensure_client_signatory_defaults,
     ensure_default_pathologist_stamp,
     list_record_completion_issues,
     normalize_signatory_slot,
+    save_clinic_profile,
     signatory_snapshots_for_print,
 )
 
 
 class ClientPrintAdjustmentTests(unittest.TestCase):
+    def test_doh_license_persists_prints_and_clears(self) -> None:
+        engine = create_engine("sqlite://")
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine)
+        with Session() as session:
+            saved = save_clinic_profile(session, ClinicProfilePayload(
+                clinic_name="Naic Doctors Hospital Inc.",
+                doh_license_number="03-123456-10",
+            ))
+            printed = build_print_clinic_profile(saved)
+            self.assertEqual(saved["doh_license_number"], "03-123456-10")
+            self.assertEqual(printed["doh_license_number"], "03-123456-10")
+
+            cleared = save_clinic_profile(session, ClinicProfilePayload(
+                clinic_name="Naic Doctors Hospital Inc.",
+                doh_license_number="",
+            ))
+            self.assertEqual(cleared["doh_license_number"], "")
+
     def test_existing_form_defaults_create_one_new_version(self) -> None:
         engine = create_engine("sqlite://")
         Base.metadata.create_all(engine)
