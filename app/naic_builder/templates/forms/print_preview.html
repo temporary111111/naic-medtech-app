@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Builder Print Preview | {{ document.form_name }}</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260718-client-print">
+  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260724-path-stack">
 </head>
 <body class="print-density-{{ document.print_config.density }} print-font-{{ (document.print_config.font_family or 'arial_narrow') | replace('_', '-') }} print-preview-embedded" style="--accent: {{ document.print_config.accent_color }}; --accent-ink: {{ document.print_accent_ink or '#ffffff' }}">
   {% from "records/_print_document.html" import render_print_page %}
