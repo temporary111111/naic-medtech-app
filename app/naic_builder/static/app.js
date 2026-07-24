@@ -443,7 +443,7 @@ function normalizeSignatorySlot(rawSlot, index) {
   return {
     id: slotId,
     label,
-    designation: compactText(slot.designation || slot.title),
+    designation: compactText(slot.designation) || compactText(slot.title),
     input_type: inputType,
     required: normalizePrintBoolean(slot.required, false),
     show_on_print: normalizePrintBoolean(slot.show_on_print, true),

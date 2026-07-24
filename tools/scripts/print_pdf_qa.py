@@ -210,6 +210,8 @@ def generate_pdf(
         command,
         cwd=ROOT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         capture_output=True,
         timeout=60,
     )

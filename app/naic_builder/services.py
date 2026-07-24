@@ -957,7 +957,7 @@ def normalize_signatory_slot(raw_slot: Any, index: int) -> dict[str, Any] | None
     return {
         "id": slot_id,
         "label": label,
-        "designation": compact_text(slot.get("designation") or slot.get("title")),
+        "designation": compact_text(slot.get("designation")) or compact_text(slot.get("title")),
         "input_type": input_type,
         "required": normalize_boolean_setting(slot.get("required"), default=False),
         "show_on_print": normalize_boolean_setting(slot.get("show_on_print"), default=True),

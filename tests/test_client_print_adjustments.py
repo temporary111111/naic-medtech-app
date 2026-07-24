@@ -279,6 +279,11 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(snapshot["designation"], "Laboratory Reviewer")
         self.assertEqual(printable[0]["designation"], "Laboratory Reviewer")
         self.assertFalse(printable[0]["signature_line"])
+        legacy_slot = normalize_signatory_slot(
+            {"id": "legacy", "label": "Approved by:", "designation": "   ", "title": "Legacy Title"},
+            2,
+        )
+        self.assertEqual(legacy_slot["designation"], "Legacy Title")
 
     def test_two_medtech_choices_are_required_but_stamp_needs_no_record_input(self) -> None:
         slots = default_signatory_slots()
