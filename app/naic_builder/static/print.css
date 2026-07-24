@@ -420,20 +420,7 @@ body {
 
 .print-section {
   display: grid;
-  gap: 8px;
-}
-
-.print-section-head {
-  display: grid;
-  gap: 3px;
-  align-items: start;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--rule);
-}
-
-.print-section-title {
-  font-size: 16px;
-  line-height: 1.2;
+  gap: 0;
 }
 
 .print-group {
@@ -441,17 +428,23 @@ body {
   gap: 0;
 }
 
+.print-section-head,
 .print-group-head {
-  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  min-height: 29px;
+  padding: 5px 8px 6px;
   border: 1px solid var(--line);
-  border-bottom: 0;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.38)),
-    var(--faint);
+  border-bottom: 1.5px solid var(--accent);
+  background: var(--paper);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 
+.print-section-title,
 .print-group-title {
-  font-size: 11.5px;
+  color: var(--accent);
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.045em;
   line-height: 1.25;
@@ -498,6 +491,11 @@ body {
 }
 
 .print-group .print-field-grid:first-child {
+  border-top: 0;
+}
+
+.print-section-head + .print-items > .print-row:first-child,
+.print-section-head + .print-items > .print-field-grid:first-child {
   border-top: 0;
 }
 
@@ -965,28 +963,14 @@ body {
     gap: 0;
   }
 
-  .print-section-head {
-    gap: 0;
-    padding: 4.5px 6px;
-    border: 1px solid var(--line);
-    border-bottom: 0;
-    background: var(--faint);
-  }
-
-  .print-section-head .print-eyebrow {
-    display: none;
-  }
-
-  .print-section-title {
-    font-size: 11px;
-    line-height: 1.2;
-    text-transform: uppercase;
-  }
-
+  .print-section-head,
   .print-group-head {
+    min-height: 24px;
     padding: 4.5px 6px;
+    border-bottom-width: 1px;
   }
 
+  .print-section-title,
   .print-group-title,
   .print-row-name strong,
   .print-note strong {
