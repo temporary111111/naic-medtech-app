@@ -173,7 +173,8 @@ Current shape:
 [
   {
     "id": "medical_technologist_1",
-    "label": "Medical Technologist",
+    "label": "Analyzed by:",
+    "designation": "Medical Technologist (RMT)",
     "input_type": "person_dropdown",
     "required": true,
     "show_on_print": true,
@@ -190,21 +191,22 @@ Current shape:
   },
   {
     "id": "pathologist",
-    "label": "Pathologist",
+    "label": "Noted by:",
+    "designation": "Pathologist",
     "input_type": "stamp_image",
     "required": false,
     "show_on_print": true,
     "show_license": true,
     "signature_line": true,
-    "stamp_image_url": "/signatory-stamps/stamp_example.png",
-    "stamp_image_filename": "pathologist-stamp.png",
+    "stamp_image_url": "/uploads/signatories/default-pathologist-stamp.png",
+    "stamp_image_filename": "default-pathologist-stamp.png",
     "stamp_image_mime_type": "image/png",
     "options": []
   }
 ]
 ```
 
-Existing seeded runtime forms may still use `input_type: "fixed"` for Pathologist until an admin switches that slot to `stamp_image` and uploads the fixed stamp.
+The defaults are editable per form in Builder > Signatories. A client may change labels, designations, people, stamp image, signature-line visibility, and required status without changing print code.
 
 Supported summary item sources:
 - `field`
@@ -255,6 +257,17 @@ The builder Print pane currently supports:
 - Signatories pane controls role label, input type, required state, print visibility, license visibility, signature line, selectable people, fixed default person, and fixed stamp image upload
 
 This is intentionally a constrained editor. It should stay easier than a design canvas.
+
+## Client Adjustment Baseline (July 2026)
+- Signatory slots remain fully builder-configurable. `label` is the printed role label and `designation` is a separate optional printed line; neither depends on a slot ID or a profession word.
+- New and migrated current form versions start with three slots: `Analyzed by:` and `Verified by:` are required person selections with the designation `Medical Technologist (RMT)`; `Noted by:` is an optional generic `stamp_image` slot with the designation `Pathologist`.
+- The default Pathologist stamp is packaged as `artifacts/seed/signatories/bernardita-mojica-figueroa-stamp.png` and copied to `uploads/signatories/default-pathologist-stamp.png` only when no runtime copy exists. A client-uploaded stamp is never overwritten.
+- Existing current versions are migrated once using `meta.client_signatory_defaults_2026_07`; old frozen versions and their records remain unchanged.
+- Printed `date` values use `MM/DD/YYYY` and printed `datetime` values use `MM/DD/YYYY hh:mm AM/PM`. Storage, record entry, and time-only fields are unchanged; invalid legacy values print unchanged.
+- Result units print beside their values in both row and compact-grid layouts. The colored report banner keeps its visual height after removing only the fixed `Examination` eyebrow; the configured report title fills that space.
+- Settings > Clinic Profile has an optional DOH License No. The line appears in the print clinic header only when configured.
+- Route smoke checks run all current forms with `python tools/scripts/print_record_qa.py --all`. They require the three approved role labels, the default Medical Technologist designation, inline-result markup, and absence of the retired header/three-column unit markup. On a fresh QA runtime, the script creates a temporary QA admin and restores the database snapshot afterward.
+- PDF page checks run with `python tools/scripts/print_pdf_qa.py --all --max-pages 1` when Playwright Chromium is available. Inspect Blood Bank, one compact-grid chemistry form, and one tight form after layout changes.
 
 ## Legacy Template Guidance
 Legacy templates showed these recurring patterns:

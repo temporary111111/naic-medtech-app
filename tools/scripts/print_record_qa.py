@@ -162,6 +162,8 @@ def build_required_signatory_meta(block_schema: dict[str, Any]) -> dict[str, Any
 def first_active_user_id() -> int | None:
     from naic_builder.database import SessionLocal
     from naic_builder.models import User
+    from naic_builder.schemas import SetupAdminPayload
+    from naic_builder.services import create_initial_admin
 
     with SessionLocal() as session:
         user = session.scalars(
@@ -169,6 +171,17 @@ def first_active_user_id() -> int | None:
             .where(User.status == "active")
             .order_by(User.id)
         ).first()
+        if user is None and not session.scalars(select(User.id).limit(1)).first():
+            created = create_initial_admin(
+                session,
+                SetupAdminPayload(
+                    full_name="Print QA Admin",
+                    email="print-qa@example.invalid",
+                    login_id="print_qa_admin",
+                    password="PrintQaAdmin!2026",
+                ),
+            )
+            return int(created["id"])
         return user.id if user else None
 
 
@@ -271,17 +284,20 @@ def qa_record_print(slug: str, *, actor_user_id: int | None, keep_records: bool)
     if response.status_code != 200:
         raise ValueError(f"Print route failed for {slug}: HTTP {response.status_code}")
     html_text = html.unescape(response.text)
-    missing = [
-        token
-        for token in [
-            "print-page",
-            "print-fit-badge",
-            compact_text(result.get("record_key")),
-            compact_text(result.get("form_name")),
-            "Medical Technologist",
-        ]
-        if token and token not in html_text
+    required_tokens = [
+        "print-page",
+        "print-fit-badge",
+        compact_text(result.get("record_key")),
+        compact_text(result.get("form_name")),
+        "Analyzed by:",
+        "Verified by:",
+        "Noted by:",
+        "Medical Technologist (RMT)",
+        "print-result-inline",
     ]
+    missing = [token for token in required_tokens if token and token not in html_text]
+    forbidden_tokens = ['class="print-eyebrow">Examination<', 'class="print-row-unit"']
+    forbidden = [token for token in forbidden_tokens if token in html_text]
 
     if not keep_records:
         delete_record(created_record_id)
@@ -289,6 +305,7 @@ def qa_record_print(slug: str, *, actor_user_id: int | None, keep_records: bool)
     return {
         **result,
         "missing": missing,
+        "forbidden": forbidden,
         "kept": keep_records,
     }
 
@@ -329,6 +346,7 @@ def main() -> int:
         for slug in slugs:
             result = qa_record_print(slug, actor_user_id=actor_user_id, keep_records=args.keep_records)
             missing = ", ".join(result["missing"]) if result["missing"] else "none"
+            forbidden = ", ".join(result["forbidden"]) if result["forbidden"] else "none"
             print(
                 "\t".join(
                     [
@@ -339,11 +357,12 @@ def main() -> int:
                         str(result["fit"]),
                         str(result["fit_label"]),
                         f"missing={missing}",
+                        f"forbidden={forbidden}",
                         f"kept={result['kept']}",
                     ]
                 )
             )
-            if result["missing"] or result["fit"] == "long":
+            if result["missing"] or result["forbidden"] or result["fit"] == "long":
                 failures.append(slug)
 
         if failures:
