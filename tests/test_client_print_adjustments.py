@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 
+from jinja2 import Environment, FileSystemLoader
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
@@ -35,6 +36,63 @@ from naic_builder.services import (
 
 
 class ClientPrintAdjustmentTests(unittest.TestCase):
+    def test_shared_print_template_places_units_and_labels_correctly(self) -> None:
+        environment = Environment(loader=FileSystemLoader(ROOT / "app" / "naic_builder" / "templates"))
+        macro = environment.get_template("records/_print_document.html").module.render_print_page
+        row_field = {
+            "kind": "field",
+            "name": "PULSE RATE",
+            "unit_hint": "bpm",
+            "reference_text": "",
+            "display": {"kind": "text", "text": "-2"},
+            "is_abnormal": False,
+        }
+        grid_field = {
+            **row_field,
+            "name": "TEMPERATURE",
+            "unit_hint": "deg C",
+            "display": {"kind": "text", "text": "4"},
+        }
+        html = macro({
+            "items": [row_field, {"kind": "field_grid", "items": [grid_field]}],
+            "clinic": {
+                "name": "NDH",
+                "address": "",
+                "contact_line": "",
+                "doh_license_number": "03-123456-10",
+            },
+            "print_config": {
+                "show_logo": False,
+                "show_clinic_info": True,
+                "show_status": False,
+                "show_summary": False,
+                "show_signatures": True,
+            },
+            "report_title": "Blood Bank",
+            "form_name": "Blood Bank",
+            "form_path_label": "Blood Bank",
+            "status": "completed",
+            "summary_items": [],
+            "signatures": [{
+                "label": "Analyzed by:",
+                "designation": "Medical Technologist (RMT)",
+                "name": "Crystel C. Tesoro, RMT",
+                "license": "0103760",
+                "image_url": "",
+            }],
+        })
+        self.assertEqual(html.count('class="print-result-inline"'), 2)
+        self.assertIn('class="print-result-unit">bpm', html)
+        self.assertIn('class="print-result-unit">deg C', html)
+        self.assertIn("DOH License No.: 03-123456-10", html)
+        label_at = html.index('class="print-signature-label">Analyzed by:')
+        name_at = html.index('class="print-signature-name">Crystel C. Tesoro, RMT')
+        designation_at = html.index('class="print-signature-designation">Medical Technologist (RMT)')
+        self.assertLess(label_at, name_at)
+        self.assertLess(name_at, designation_at)
+        self.assertNotIn(">Examination<", html)
+        self.assertNotIn('class="print-row-unit"', html)
+
     def test_print_temporal_values_are_nontechnical(self) -> None:
         self.assertEqual(format_print_temporal_value("date", "2026-07-16"), "07/16/2026")
         self.assertEqual(

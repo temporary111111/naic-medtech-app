@@ -16,6 +16,16 @@
   {% endif %}
 {% endmacro %}
 
+{% macro render_print_field_result(item) %}
+  {% set display = item["display"] or {} %}
+  <span class="print-result-inline">
+    {{ render_print_field_answer(item) }}
+    {% if display.kind != "image" and display.text and item.unit_hint %}
+    <span class="print-result-unit">{{ item.unit_hint }}</span>
+    {% endif %}
+  </span>
+{% endmacro %}
+
 {% macro render_print_items(items) %}
   {% for item in items %}
     {% if item.kind == "section" %}
@@ -50,12 +60,9 @@
       <article class="print-grid-cell">
         <div class="print-grid-cell-head">
           <strong>{{ field.name }}</strong>
-          {% if field.unit_hint %}
-          <span>{{ field.unit_hint }}</span>
-          {% endif %}
         </div>
         <div class="print-grid-cell-result">
-          {{ render_print_field_answer(field) }}
+          {{ render_print_field_result(field) }}
         </div>
         {% if field.reference_text %}
         <small class="{% if field.is_abnormal %}is-abnormal{% endif %}">Reference: {{ field.reference_text }}</small>
@@ -73,13 +80,7 @@
       </div>
 
       <div class="print-row-result">
-        {{ render_print_field_answer(item) }}
-      </div>
-
-      <div class="print-row-unit">
-        {% if item.unit_hint %}
-        <span>{{ item.unit_hint }}</span>
-        {% endif %}
+        {{ render_print_field_result(item) }}
       </div>
     </article>
     {% elif item.kind == "note" %}
@@ -161,7 +162,6 @@
 
     <section class="print-exam-head">
       <div class="print-exam-copy">
-        <p class="print-eyebrow">Examination</p>
         <h1 class="print-title">{{ document.report_title or document.form_name }}</h1>
         {% if document.form_path_label and document.form_path_label != (document.report_title or document.form_name) %}
         <p class="print-path">{{ document.form_path_label }}</p>
@@ -192,26 +192,28 @@
     <footer class="print-footer">
       {% for signature in signature_items %}
         <div class="print-signature{% if signature.image_url %} has-stamp-image{% endif %}">
+          <strong class="print-signature-label">{{ signature.label }}</strong>
           <span class="print-signature-mark">
             {% if signature.image_url %}
             <img class="print-signature-stamp" src="{{ signature.image_url }}" alt="{{ signature.image_alt or signature.label }}">
             {% endif %}
           </span>
-          {% if signature.name or signature.title or signature.license %}
+          {% if signature.name or signature.license %}
           <span class="print-signature-identity">
           {% if signature.name %}
             <span class="print-signature-name">{{ signature.name }}</span>
           {% endif %}
-            {% if signature.title %}
-            <em>{{ signature.title }}</em>
-            {% endif %}
             {% if signature.license %}
             <small>Lic. No. {{ signature.license }}</small>
             {% endif %}
           </span>
           {% endif %}
+          {% if signature.signature_line is not sameas false %}
           <span class="print-signature-rule" aria-hidden="true"></span>
-          <strong>{{ signature.label }}</strong>
+          {% endif %}
+          {% if signature.designation %}
+          <span class="print-signature-designation">{{ signature.designation }}</span>
+          {% endif %}
         </div>
       {% endfor %}
     </footer>

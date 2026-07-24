@@ -60,7 +60,7 @@ body {
 .print-font-times-new-roman .print-meta-grid span,
 .print-font-times-new-roman .print-grid-cell-head span,
 .print-font-times-new-roman .print-grid-cell small,
-.print-font-times-new-roman .print-signature strong,
+.print-font-times-new-roman .print-signature-label,
 .print-font-times-new-roman .print-group-title,
 .print-font-times-new-roman .print-table th {
   font-family: Arial, Helvetica, sans-serif;
@@ -291,6 +291,7 @@ body {
   justify-content: space-between;
   gap: 12px;
   align-items: center;
+  min-height: 46px;
   margin-top: 7px;
   padding: 6px 8px;
   border: 1px solid color-mix(in srgb, var(--accent) 86%, #000 14%);
@@ -303,7 +304,10 @@ body {
 }
 
 .print-exam-copy {
+  display: flex;
   min-width: 0;
+  min-height: 34px;
+  align-items: center;
 }
 
 .print-title,
@@ -313,11 +317,11 @@ body {
 }
 
 .print-title {
-  margin-top: 2px;
+  margin-top: 0;
   color: currentColor;
-  font-size: 21px;
+  font-size: 23px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   line-height: 1.05;
 }
 
@@ -461,7 +465,7 @@ body {
 
 .print-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(140px, 1fr) minmax(54px, 0.35fr);
+  grid-template-columns: minmax(0, 1.08fr) minmax(140px, 1fr);
   gap: 9px;
   align-items: start;
   padding: 7px 8px;
@@ -576,12 +580,21 @@ body {
   min-width: 0;
 }
 
-.print-row-unit {
+.print-result-inline {
+  display: inline-flex;
+  max-width: 100%;
+  min-width: 0;
+  gap: 4px;
+  align-items: baseline;
+  flex-wrap: nowrap;
+}
+
+.print-result-unit {
   color: var(--muted);
   font-size: 11px;
   font-weight: 700;
   line-height: 1.25;
-  text-align: right;
+  white-space: nowrap;
 }
 
 .print-answer {
@@ -747,18 +760,19 @@ body {
   border-bottom: 1px solid color-mix(in srgb, var(--ink) 74%, #fff);
 }
 
-.print-signature strong {
+.print-signature-label {
   color: var(--muted);
   font-size: 10px;
   letter-spacing: 0.08em;
+  font-weight: 800;
+  line-height: 1.15;
   text-transform: uppercase;
 }
 
-.print-signature em,
+.print-signature-designation,
 .print-signature small {
   color: var(--muted);
   font-size: 9.5px;
-  font-style: normal;
   line-height: 1.15;
 }
 
@@ -830,9 +844,6 @@ body {
     border-top: 1px solid var(--line);
   }
 
-  .print-row-unit {
-    text-align: left;
-  }
 }
 
 @media print {
@@ -907,13 +918,18 @@ body {
   .print-exam-head {
     gap: 7px;
     margin-top: 4.5px;
+    min-height: 38px;
     padding: 4.5px 6px;
     border-radius: 2.5px;
   }
 
+  .print-exam-copy {
+    min-height: 27px;
+  }
+
   .print-title {
-    margin-top: 1px;
-    font-size: 17px;
+    margin-top: 0;
+    font-size: 19px;
   }
 
   .print-path {
@@ -978,7 +994,7 @@ body {
   }
 
   .print-row {
-    grid-template-columns: minmax(0, 1.08fr) minmax(124px, 1fr) minmax(44px, 0.28fr);
+    grid-template-columns: minmax(0, 1.08fr) minmax(124px, 1fr);
     gap: 6px;
     padding: 4.5px 6px;
   }
@@ -1014,7 +1030,7 @@ body {
     line-height: 1.2;
   }
 
-  .print-row-unit {
+  .print-result-unit {
     font-size: 9.5px;
   }
 
@@ -1061,12 +1077,12 @@ body {
     line-height: 1.1;
   }
 
-  .print-signature strong {
+  .print-signature-label,
+  .print-signature-designation {
     font-size: 7.5px;
     line-height: 1.1;
   }
 
-  .print-signature em,
   .print-signature small {
     font-size: 7.2px;
     line-height: 1.1;
