@@ -42,29 +42,23 @@
 {% endblock %}
 
 {% block content %}
-  {% macro render_blocks(blocks, values, asset_by_field, record_id) %}
+  {% macro render_blocks(blocks, values, asset_by_field, record_id, depth=0) %}
     {% for block in blocks %}
       {% set kind = block.kind %}
       {% set props = block.props or {} %}
       {% set utility_content = (props.content or "") | trim %}
-      {% if kind == "section" %}
-      <section class="panel record-section" id="entry-block-{{ block.id }}">
+      {% if kind == "container" %}
+      <section class="{% if depth == 0 %}panel record-section{% else %}entry-group{% endif %}" id="entry-block-{{ block.id }}">
         <div class="entry-block-head">
-          <p class="eyebrow">Section</p>
+          <p class="eyebrow">Container</p>
+          {% if depth == 0 %}
           <h3>{{ block.name }}</h3>
-        </div>
-        <div class="entry-stack">
-          {{ render_blocks(block.children or [], values, asset_by_field, record_id) }}
-        </div>
-      </section>
-      {% elif kind == "field_group" %}
-      <section class="entry-group" id="entry-block-{{ block.id }}">
-        <div class="entry-block-head">
-          <p class="eyebrow">Group</p>
+          {% else %}
           <h4>{{ block.name }}</h4>
+          {% endif %}
         </div>
         <div class="entry-stack">
-          {{ render_blocks(block.children or [], values, asset_by_field, record_id) }}
+          {{ render_blocks(block.children or [], values, asset_by_field, record_id, depth + 1) }}
         </div>
       </section>
       {% elif kind == "field" %}
@@ -311,7 +305,7 @@
   {% set updated_by = record["updated_by"] or record["created_by"] %}
   {% set jump_nav = namespace(count=0) %}
   {% for block in entry_schema["blocks"] or [] %}
-    {% if block.kind in ["section", "field_group"] %}
+      {% if block.kind == "container" %}
       {% set jump_nav.count = jump_nav.count + 1 %}
     {% endif %}
   {% endfor %}
@@ -389,7 +383,7 @@
         {% if jump_nav.count > 1 %}
         <nav class="record-section-jumps" aria-label="Record sections">
           {% for block in entry_schema["blocks"] or [] %}
-            {% if block.kind in ["section", "field_group"] %}
+            {% if block.kind == "container" %}
             <a href="#entry-block-{{ block.id }}">{{ block.name }}</a>
             {% endif %}
           {% endfor %}

@@ -194,6 +194,14 @@ def ensure_runtime_schema() -> None:
         }
         if "block_schema_json" not in columns:
             connection.exec_driver_sql("ALTER TABLE form_versions ADD COLUMN block_schema_json TEXT")
+            columns.add("block_schema_json")
+        if "legacy_schema_json" not in columns:
+            if "schema_json" in columns:
+                connection.exec_driver_sql(
+                    "ALTER TABLE form_versions RENAME COLUMN schema_json TO legacy_schema_json"
+                )
+            else:
+                connection.exec_driver_sql("ALTER TABLE form_versions ADD COLUMN legacy_schema_json TEXT")
         form_definition_columns = {
             str(row[1])
             for row in connection.exec_driver_sql("PRAGMA table_info(form_definitions)").all()

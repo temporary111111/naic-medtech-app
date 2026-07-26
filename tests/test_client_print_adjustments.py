@@ -21,13 +21,16 @@ from naic_builder.models import FormDefinition, FormVersion, Record, User
 from naic_builder.schemas import ClinicProfilePayload
 from naic_builder.services import (
     apply_print_presentation,
+    build_block_storage_document_from_legacy_storage,
     build_print_clinic_profile,
     build_print_display_value,
+    build_print_items,
     build_print_summary_items,
     build_signatory_snapshot,
     default_signatory_slots,
     ensure_client_signatory_defaults,
     ensure_default_pathologist_stamp,
+    ensure_form_version_storage_documents,
     format_print_temporal_value,
     list_record_completion_issues,
     normalize_signatory_slot,
@@ -38,6 +41,129 @@ from naic_builder.services import (
 
 
 class ClientPrintAdjustmentTests(unittest.TestCase):
+    def test_legacy_forms_upgrade_to_named_canonical_containers(self) -> None:
+        schema = build_block_storage_document_from_legacy_storage({
+            "id": "form.blood_bank",
+            "key": "blood_bank",
+            "name": "Blood Bank",
+            "order": 1,
+            "fields": [{
+                "id": "blood_bank.examination",
+                "key": "examination",
+                "name": "Examination",
+                "kind": "field",
+                "order": 1,
+                "control": "input",
+                "data_type": "text",
+            }],
+            "sections": [{
+                "id": "blood_bank.crossmatching",
+                "key": "crossmatching",
+                "name": "Crossmatching",
+                "order": 1,
+                "fields": [{
+                    "id": "blood_bank.crossmatching.vital_signs",
+                    "key": "vital_signs",
+                    "name": "Vital Signs",
+                    "kind": "field_group",
+                    "order": 1,
+                    "fields": [{
+                        "id": "blood_bank.crossmatching.vital_signs.pulse",
+                        "key": "pulse",
+                        "name": "Pulse",
+                        "kind": "field",
+                        "order": 1,
+                        "control": "input",
+                        "data_type": "text",
+                    }],
+                }],
+            }],
+        })
+
+        self.assertEqual(schema["schema_version"], 2)
+        self.assertEqual(schema["source_kind"], "builder_blocks_v2")
+        self.assertEqual(
+            [block["name"] for block in schema["blocks"]],
+            ["Blood Bank Details", "Crossmatching"],
+        )
+        self.assertEqual([block["kind"] for block in schema["blocks"]], ["container", "container"])
+        self.assertEqual(schema["blocks"][1]["children"][0]["kind"], "container")
+
+        printed = build_print_items(
+            schema["blocks"],
+            values={},
+            asset_by_field={},
+            record_id=1,
+            print_config={
+                "show_top_level_container_titles": True,
+                "show_nested_container_titles": True,
+            },
+        )
+        self.assertEqual(printed[0]["kind"], "section")
+        self.assertEqual(printed[1]["kind"], "section")
+        self.assertEqual(printed[1]["items"][0]["kind"], "group")
+
+    def test_saved_v1_form_version_upgrades_without_losing_legacy_archive(self) -> None:
+        engine = create_engine("sqlite://")
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine)
+        with Session() as session:
+            definition = FormDefinition(slug="blood_bank", name="Blood Bank")
+            session.add(definition)
+            session.flush()
+            legacy_archive = {
+                "id": "form.blood_bank",
+                "key": "blood_bank",
+                "name": "Blood Bank",
+                "order": 1,
+                "fields": [],
+                "sections": [],
+            }
+            v1_schema = {
+                "schema_version": 1,
+                "source_kind": "builder_blocks_v1",
+                "meta": {"form_id": "form.blood_bank", "form_key": "blood_bank", "form_order": 1},
+                "blocks": [
+                    {
+                        "id": "blood_bank.examination",
+                        "kind": "field",
+                        "name": "Examination",
+                        "props": {"key": "examination", "data_type": "text"},
+                        "children": [],
+                    },
+                    {
+                        "id": "blood_bank.crossmatching",
+                        "kind": "section",
+                        "name": "Crossmatching",
+                        "props": {"key": "crossmatching"},
+                        "children": [],
+                    },
+                ],
+            }
+            version = FormVersion(
+                form_id=definition.id,
+                version_number=1,
+                summary="Legacy v1",
+                legacy_schema_json=json.dumps(legacy_archive),
+                block_schema_json=json.dumps(v1_schema),
+                source="builder",
+                is_current=True,
+            )
+            session.add(version)
+            session.commit()
+
+            ensure_form_version_storage_documents(session)
+            session.refresh(version)
+            upgraded = json.loads(version.block_schema_json)
+            self.assertEqual(upgraded["schema_version"], 2)
+            self.assertEqual(upgraded["source_kind"], "builder_blocks_v2")
+            self.assertEqual(
+                [block["name"] for block in upgraded["blocks"]],
+                ["Blood Bank Details", "Crossmatching"],
+            )
+            self.assertEqual([block["kind"] for block in upgraded["blocks"]], ["container", "container"])
+            self.assertEqual(json.loads(version.legacy_schema_json), legacy_archive)
+
     def test_print_presentation_uses_known_choices_and_user_defaults(self) -> None:
         presentation = apply_print_presentation(
             {"density": "compact"},
@@ -247,7 +373,7 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                 form_id=definition.id,
                 version_number=1,
                 summary="Old defaults",
-                schema_json=json.dumps({
+                legacy_schema_json=json.dumps({
                     "id": "form.blood_bank",
                     "key": "blood_bank",
                     "name": "Blood Bank",
@@ -339,7 +465,7 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         version = FormVersion(
             form_id=1,
             version_number=1,
-            schema_json="{}",
+            legacy_schema_json="{}",
             block_schema_json=json.dumps({"meta": {"signatories": slots}, "blocks": []}),
             source="builder",
             is_current=True,

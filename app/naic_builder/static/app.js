@@ -45,7 +45,8 @@ const TEMPORAL_DEFAULT_MODES = [
   { id: "now", label: "Now" },
   { id: "current_datetime", label: "Current date & time" },
 ];
-const ACTIVE_BLOCK_SCHEMA_SOURCE = "builder_blocks_v1";
+const BLOCK_SCHEMA_VERSION = 2;
+const ACTIVE_BLOCK_SCHEMA_SOURCE = "builder_blocks_v2";
 const DEFAULT_PRINT_ACCENT_COLOR = "#1e5d52";
 const PRINT_SUMMARY_SOURCES = [
   { id: "field", label: "Field" },
@@ -759,8 +760,8 @@ function getDraftPrintConfig(draft = state.draft) {
       show_summary: false,
       show_signatures: true,
       hide_empty_fields: false,
-      show_section_titles: true,
-      show_group_titles: true,
+      show_top_level_container_titles: true,
+      show_nested_container_titles: true,
       image_size: "medium",
       table_density: "compact",
       result_layout: "compact_grid",
@@ -790,8 +791,16 @@ function getDraftPrintConfig(draft = state.draft) {
   config.show_summary = normalizePrintBoolean(config.show_summary, false);
   config.show_signatures = normalizePrintBoolean(config.show_signatures, true);
   config.hide_empty_fields = normalizePrintBoolean(config.hide_empty_fields, false);
-  config.show_section_titles = normalizePrintBoolean(config.show_section_titles, true);
-  config.show_group_titles = normalizePrintBoolean(config.show_group_titles, true);
+  config.show_top_level_container_titles = normalizePrintBoolean(
+    config.show_top_level_container_titles ?? config.show_section_titles,
+    true
+  );
+  config.show_nested_container_titles = normalizePrintBoolean(
+    config.show_nested_container_titles ?? config.show_group_titles,
+    true
+  );
+  delete config.show_section_titles;
+  delete config.show_group_titles;
   config.image_size = normalizePrintImageSize(config.image_size);
   config.table_density = normalizePrintTableDensity(config.table_density);
   config.result_layout = normalizePrintResultLayout(config.result_layout);
@@ -846,8 +855,8 @@ function setDraftPrintConfigValue(key, value, draft = state.draft) {
     "show_summary",
     "show_signatures",
     "hide_empty_fields",
-    "show_section_titles",
-    "show_group_titles",
+    "show_top_level_container_titles",
+    "show_nested_container_titles",
   ].includes(key)) {
     config[key] = Boolean(value);
   }
@@ -1042,7 +1051,7 @@ function ensureDraftBlockState(draft) {
     draft.block_schema = existingBlockSchema;
   } else {
     draft.block_schema = {
-      schema_version: 1,
+      schema_version: BLOCK_SCHEMA_VERSION,
       source_kind: ACTIVE_BLOCK_SCHEMA_SOURCE,
       meta: {},
       blocks: [],
@@ -1065,7 +1074,7 @@ function ensureBlockSchemaMeta(draft) {
 
   if (!draft.block_schema || typeof draft.block_schema !== "object") {
     draft.block_schema = {
-      schema_version: 1,
+      schema_version: BLOCK_SCHEMA_VERSION,
       source_kind: ACTIVE_BLOCK_SCHEMA_SOURCE,
       meta: {},
       blocks: [],
@@ -1091,8 +1100,10 @@ function syncRootMetaToBlockSchema(draft = state.draft) {
   }
 
   draft.block_schema.source_kind = ACTIVE_BLOCK_SCHEMA_SOURCE;
+  draft.block_schema.schema_version = BLOCK_SCHEMA_VERSION;
   delete meta.legacy_form_id;
   meta.form_key = compactText(meta.form_key) || slugify(draft.name || "untitled_form") || "untitled_form";
+  meta.form_name = compactText(draft.name) || "Untitled Form";
   meta.form_order = parsePositiveInt(meta.form_order, 1);
   delete meta.legacy_form_key;
   delete meta.legacy_order;
@@ -1126,12 +1137,12 @@ function syncDraftBlockState() {
 
 function isBlockNode(node) {
   const kind = blockKind(node);
-  return kind === "field" || kind === "field_group" || kind === "section";
+  return kind === "field" || kind === "container";
 }
 
 function isStoredBlockNode(node) {
   const kind = blockKind(node);
-  return kind === "field" || kind === "field_group" || kind === "section" || kind === "note" || kind === "divider" || kind === "table";
+  return kind === "field" || kind === "container" || kind === "note" || kind === "divider" || kind === "table";
 }
 
 function isUtilityBlockNode(node) {
@@ -1299,6 +1310,9 @@ function normalizeInputOptions(field, { allowLegacyLabel = false } = {}) {
 }
 
 function normalizeLiveBlockNode(node) {
+  if (blockKind(node) === "section" || blockKind(node) === "field_group") {
+    node.kind = "container";
+  }
   if (!isStoredBlockNode(node)) {
     return;
   }
@@ -1369,7 +1383,7 @@ function collectIdentityFieldOptions(blocks = topLevelBlocks(), parentNames = []
     }
     const kind = blockKind(node);
     const nodeName = compactText(node.name);
-    if (kind === "section" || kind === "field_group") {
+    if (kind === "container") {
       options.push(...collectIdentityFieldOptions(
         getNodeChildren(node),
         nodeName ? [...parentNames, nodeName] : parentNames
@@ -1396,13 +1410,12 @@ function topLevelContentEntries() {
   }
   return entries.filter((entry) => {
     const kind = blockKind(entry.node);
-    return kind === "field" || kind === "field_group" || kind === "section";
+    return kind === "field" || kind === "container";
   });
 }
 
 function isContainerBlockNode(node) {
-  const kind = blockKind(node);
-  return kind === "section" || kind === "field_group";
+  return blockKind(node) === "container";
 }
 
 function topLevelBlockEntries() {
@@ -1485,7 +1498,7 @@ function collectItemPathKeysFromNode(node, basePath) {
   const keys = [];
   const kind = String(node?.kind || "").trim();
 
-  if (kind === "field" || kind === "field_group" || kind === "note" || kind === "divider" || kind === "table") {
+  if (kind === "field" || kind === "container" || kind === "note" || kind === "divider" || kind === "table") {
     keys.push(pathKey(basePath));
   }
 
@@ -1499,15 +1512,15 @@ function collectItemPathKeysFromNode(node, basePath) {
 function insertTopLevelItem(kind) {
   const blocks = topLevelBlocks();
   const nextNode = makeBlankBlock(kind);
-  const firstSectionIndex = blocks.findIndex((block) => String(block?.kind || "").trim() === "section");
+  const firstContainerIndex = blocks.findIndex((block) => String(block?.kind || "").trim() === "container");
 
-  if (firstSectionIndex === -1) {
+  if (firstContainerIndex === -1) {
     blocks.push(nextNode);
     return blocks.length - 1;
   }
 
-  blocks.splice(firstSectionIndex, 0, nextNode);
-  return firstSectionIndex;
+  blocks.splice(firstContainerIndex, 0, nextNode);
+  return firstContainerIndex;
 }
 
 function escapeHtml(value) {
@@ -1590,7 +1603,7 @@ function topLevelPreviewSegments() {
   };
 
   topLevelBlockEntries().forEach((entry, index) => {
-    if (entry.node?.kind === "section") {
+    if (entry.node?.kind === "container") {
       flushLooseItems();
       const sectionName = compactText(entry.node?.name);
       segments.push({
@@ -2320,10 +2333,10 @@ function setBoundValue(target, bind, rawValue) {
   cursor[key] = rawValue;
 }
 
-function makeBlankGroup() {
+function makeBlankContainer() {
   return {
-    id: freshBlockId("field_group", "new_container"),
-    kind: "field_group",
+    id: freshBlockId("container", "new_container"),
+    kind: "container",
     name: "New Container",
     props: {
       key: "new_container",
@@ -2350,20 +2363,6 @@ function makeBlankField() {
       normal_max: "",
       notes: [],
       options: [],
-    },
-    children: [],
-  };
-}
-
-function makeBlankSection() {
-  return {
-    id: freshBlockId("section", "new_container"),
-    kind: "section",
-    name: "New Container",
-    props: {
-      key: "new_container",
-      order: 1,
-      notes: [],
     },
     children: [],
   };
@@ -2453,8 +2452,8 @@ function makeDefaultPatientInfoBlock() {
   });
 
   return {
-    id: freshBlockId("field_group", "patient_information"),
-    kind: "field_group",
+    id: freshBlockId("container", "patient_information"),
+    kind: "container",
     name: "Patient Information",
     props: {
       key: "patient_information",
@@ -2466,8 +2465,8 @@ function makeDefaultPatientInfoBlock() {
 }
 
 function makeBlankBlock(kind) {
-  if (kind === "section") {
-    return makeBlankSection();
+  if (kind === "container") {
+    return makeBlankContainer();
   }
   if (kind === "note") {
     return makeBlankNote();
@@ -2477,9 +2476,6 @@ function makeBlankBlock(kind) {
   }
   if (kind === "table") {
     return makeBlankTable();
-  }
-  if (kind === "field_group") {
-    return makeBlankGroup();
   }
   return makeBlankField();
 }
@@ -2524,7 +2520,7 @@ function makeBlankForm(config = {}) {
     current_version_number: 0,
     summary: "",
     block_schema: {
-      schema_version: 1,
+      schema_version: BLOCK_SCHEMA_VERSION,
       source_kind: ACTIVE_BLOCK_SCHEMA_SOURCE,
       meta: {
         form_key: slugify(formName),
@@ -3463,11 +3459,11 @@ function renderPrintCard() {
                   <span>Hide empty fields</span>
                 </label>
                 <label class="identity-check">
-                  <input type="checkbox" data-action="print-config-toggle" data-key="show_section_titles" ${config.show_section_titles ? "checked" : ""}>
+                  <input type="checkbox" data-action="print-config-toggle" data-key="show_top_level_container_titles" ${config.show_top_level_container_titles ? "checked" : ""}>
                   <span>Top container headings</span>
                 </label>
                 <label class="identity-check">
-                  <input type="checkbox" data-action="print-config-toggle" data-key="show_group_titles" ${config.show_group_titles ? "checked" : ""}>
+                  <input type="checkbox" data-action="print-config-toggle" data-key="show_nested_container_titles" ${config.show_nested_container_titles ? "checked" : ""}>
                   <span>Nested container headings</span>
                 </label>
               </div>
@@ -3700,10 +3696,7 @@ function renderAddMenu(items, label = "Add", extraClass = "") {
 function organizerSecondaryLabel(node, title) {
     const kind = blockKind(node);
     const normalizedTitle = compactText(title).toLowerCase();
-    if (kind === "section") {
-      return compactText(node?.name || "") ? "" : "Container";
-    }
-    if (kind === "field_group") {
+    if (kind === "container") {
       return compactText(node?.name || "") ? "" : "Container";
     }
     const label = kind === "note"
@@ -3717,7 +3710,7 @@ function organizerSecondaryLabel(node, title) {
   }
 
 function itemOrganizerSecondaryLabel(item, title) {
-    if (item.kind === "field_group") {
+    if (item.kind === "container") {
       return compactText(item.name || "") ? "" : "Container";
     }
     if (isUtilityBlockNode(item)) {
@@ -3840,10 +3833,10 @@ function renderContentCard() {
 }
 
 function renderContentNode(node, path, depth = 0) {
-  if (blockKind(node) === "section") {
+  if (blockKind(node) === "container") {
     return renderSectionCard(node, path, { recursive: true, depth });
   }
-  if (blockKind(node) === "field_group" || blockKind(node) === "field") {
+  if (blockKind(node) === "field") {
     return renderItemCard(node, path, { recursive: true, depth });
   }
   return renderUtilityBlockCard(node, path, { recursive: true, depth });
@@ -4171,7 +4164,7 @@ function summarizeItem(item) {
   if (item.kind === "table") {
     return "Table";
   }
-  if (item.kind === "field_group") {
+  if (item.kind === "container") {
     return "Container";
   }
   const inputType = inferInputType(item);
@@ -4239,9 +4232,9 @@ function renderSignatoryCompactSummary(slot) {
 }
 
 function renderItemOrganizerItem(item, path, index, active) {
-    const isGroup = item.kind === "field_group";
+    const isContainer = item.kind === "container";
     const isUtility = isUtilityBlockNode(item);
-    const title = item.name || (isUtility ? summarizeItem(item) : isGroup ? `Container ${index + 1}` : `Field ${index + 1}`);
+    const title = item.name || (isUtility ? summarizeItem(item) : isContainer ? `Container ${index + 1}` : `Field ${index + 1}`);
     const secondaryLabel = itemOrganizerSecondaryLabel(item, title);
     return `
       <div class="item-organizer-item ${active ? "active" : ""}">
@@ -4259,7 +4252,7 @@ function renderItemOrganizerItem(item, path, index, active) {
   }
 
 function renderItemCard(item, path, options = {}) {
-    const isGroup = item.kind === "field_group";
+    const isContainer = item.kind === "container";
     const open = Boolean(options.forceOpen) || isItemOpen(path);
     const summary = summarizeItem(item);
     const inputType = inferInputType(item);
@@ -4532,7 +4525,7 @@ function renderItemCard(item, path, options = {}) {
             </section>
           `}
 
-        ${isGroup ? `
+        ${isContainer ? `
           <div class="nested-items">
             ${renderItemCollection(getNodeChildren(item), [...path, "children"], focusedCard ? { focused: true } : {})}
           </div>
@@ -4737,7 +4730,7 @@ function renderPreviewItem(item) {
     `;
   }
 
-  if (item.kind === "field_group") {
+  if (item.kind === "container") {
     return `
       <div class="preview-group">
         <div class="preview-group-head">
@@ -4813,7 +4806,7 @@ function countItems(container) {
     count += countItems(block);
   });
   getNodeChildren(container).forEach((item) => {
-    if (String(item?.kind || "").trim() === "field_group" || String(item?.kind || "").trim() === "section") {
+    if (String(item?.kind || "").trim() === "container") {
       count += countItems(item);
     } else {
       count += 1;
@@ -4900,7 +4893,7 @@ function addItemAt(path, kind) {
   const insertAt = insertChildNodeAtSelection(path, makeBlankBlock(kind));
   const insertedPath = [...path, insertAt];
   ensureAncestorContainersOpen(insertedPath);
-  if (kind === "field_group") {
+  if (kind === "container") {
     setContainerOpen(insertedPath, true);
     state.ui.activeItemPath = null;
   } else if (kind === "field") {
@@ -4953,8 +4946,8 @@ function insertChildNodeAtSelection(collectionPath, node) {
   return collection.length - 1;
 }
 
-function addSection() {
-  topLevelBlocks().push(makeBlankSection());
+function addContainer() {
+  topLevelBlocks().push(makeBlankContainer());
   setContainerOpen(["block_schema", "blocks", topLevelBlocks().length - 1], true);
   state.ui.activeItemPath = null;
   state.ui.focusPane = "content";
@@ -4965,16 +4958,16 @@ function insertTopLevelContentBlock(kind) {
   const blocks = topLevelBlocks();
   const nextNode = makeBlankBlock(kind);
 
-  if (kind === "section") {
-    addSection();
+  if (kind === "container") {
+    addContainer();
     return;
   }
 
-  if (kind === "field" || kind === "field_group") {
+  if (kind === "field" || kind === "container") {
     blocks.push(nextNode);
     const actualIndex = blocks.length - 1;
     const insertedPath = ["block_schema", "blocks", actualIndex];
-    if (kind === "field_group") {
+    if (kind === "container") {
       setContainerOpen(insertedPath, true);
       state.ui.activeItemPath = null;
     } else {
@@ -5281,7 +5274,7 @@ async function handleEditorClick(event) {
     return;
   }
   if (action === "add-section") {
-    addSection();
+    addContainer();
     return;
   }
   if (action === "add-content-container") {
@@ -5289,7 +5282,7 @@ async function handleEditorClick(event) {
     return;
   }
   if (action === "add-content-section") {
-    insertTopLevelContentBlock("section");
+    insertTopLevelContentBlock("container");
     return;
   }
   if (action === "add-content-field") {
@@ -5297,7 +5290,7 @@ async function handleEditorClick(event) {
     return;
   }
   if (action === "add-content-group") {
-    insertTopLevelContentBlock("field_group");
+    insertTopLevelContentBlock("container");
     return;
   }
   if (action === "add-content-note") {
@@ -5370,11 +5363,11 @@ async function handleEditorClick(event) {
     return;
   }
   if (action === "add-container" && path) {
-    addItemAt(path, "field_group");
+    addItemAt(path, "container");
     return;
   }
   if (action === "add-group" && path) {
-    addItemAt(path, "field_group");
+    addItemAt(path, "container");
     return;
   }
   if (action === "add-note" && path) {

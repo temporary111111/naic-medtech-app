@@ -43,8 +43,9 @@ from .schemas import (
     UserCreatePayload,
 )
 
-ACTIVE_BLOCK_SCHEMA_SOURCE = "builder_blocks_v1"
-LEGACY_BLOCK_SCHEMA_SOURCE = "compat_legacy_fields_sections"
+CANONICAL_BLOCK_SCHEMA_VERSION = 2
+ACTIVE_BLOCK_SCHEMA_SOURCE = "builder_blocks_v2"
+LEGACY_CONTAINER_KINDS = {"section", "field_group"}
 ALLOWED_IMAGE_CONTENT_TYPES = {
     "image/jpeg": ".jpg",
     "image/png": ".png",
@@ -397,8 +398,14 @@ def normalize_print_config(raw_config: Any) -> dict[str, Any]:
         "show_summary": normalize_boolean_setting(config.get("show_summary"), default=False),
         "show_signatures": normalize_boolean_setting(config.get("show_signatures"), default=True),
         "hide_empty_fields": normalize_boolean_setting(config.get("hide_empty_fields"), default=False),
-        "show_section_titles": normalize_boolean_setting(config.get("show_section_titles"), default=True),
-        "show_group_titles": normalize_boolean_setting(config.get("show_group_titles"), default=True),
+        "show_top_level_container_titles": normalize_boolean_setting(
+            config.get("show_top_level_container_titles", config.get("show_section_titles")),
+            default=True,
+        ),
+        "show_nested_container_titles": normalize_boolean_setting(
+            config.get("show_nested_container_titles", config.get("show_group_titles")),
+            default=True,
+        ),
         "image_size": normalize_print_image_size(config.get("image_size")),
         "table_density": normalize_print_table_density(config.get("table_density")),
         "result_layout": normalize_print_result_layout(config.get("result_layout")),
@@ -1299,7 +1306,7 @@ def materialize_default_patient_info_fields(raw_schema: dict[str, Any]) -> dict[
 
 def legacy_field_to_block(field: dict[str, Any]) -> dict[str, Any]:
     field_id = compact_text(field.get("id")) or f"blk_{slugify(field.get('name') or 'field')}"
-    kind = "field_group" if compact_text(field.get("kind")) == "field_group" else "field"
+    kind = "container" if compact_text(field.get("kind")) == "field_group" else "field"
     props: dict[str, Any] = {
         "key": compact_text(field.get("key")) or slugify(field.get("name") or field_id),
         "order": int(field.get("order") or 1),
@@ -1313,11 +1320,11 @@ def legacy_field_to_block(field: dict[str, Any]) -> dict[str, Any]:
     if isinstance(source, dict) and source:
         props["source"] = source
 
-    if kind == "field_group":
+    if kind == "container":
         return {
             "id": field_id,
-            "kind": "field_group",
-            "name": compact_text(field.get("name")) or "Untitled Group",
+            "kind": "container",
+            "name": compact_text(field.get("name")) or "Untitled Container",
             "props": props,
             "children": [
                 legacy_field_to_block(child)
@@ -1395,8 +1402,8 @@ def legacy_section_to_block(section: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "id": section_id,
-        "kind": "section",
-        "name": compact_text(section.get("name")) or "Untitled Section",
+        "kind": "container",
+        "name": compact_text(section.get("name")) or "Untitled Container",
         "props": props,
         "children": [
             legacy_field_to_block(field)
@@ -1436,8 +1443,8 @@ def build_block_schema_from_legacy_storage(raw_schema: dict[str, Any]) -> dict[s
     ]
 
     block_schema = {
-        "schema_version": 1,
-        "source_kind": LEGACY_BLOCK_SCHEMA_SOURCE,
+        "schema_version": CANONICAL_BLOCK_SCHEMA_VERSION,
+        "source_kind": ACTIVE_BLOCK_SCHEMA_SOURCE,
         "meta": meta,
         "blocks": blocks,
     }
@@ -1546,164 +1553,6 @@ def ensure_default_patient_info_block_schema(block_schema: dict[str, Any]) -> bo
     return changed
 
 
-def block_field_to_legacy_field(block: dict[str, Any], parent_id: str, order: int, used_keys: set[str]) -> dict[str, Any]:
-    kind = compact_text(block.get("kind"))
-    if kind not in {"field", "field_group"}:
-        raise ValueError(f"Unsupported block kind for legacy field bridge: {kind or 'unknown'}")
-
-    props = block.get("props") if isinstance(block.get("props"), dict) else {}
-    raw_field: dict[str, Any] = {
-        "id": compact_text(block.get("id")) or "",
-        "key": compact_text(props.get("key")) or compact_text(block.get("name")),
-        "name": compact_text(block.get("name")) or "Untitled Field",
-        "kind": "field_group" if kind == "field_group" else "field",
-        "order": int(props.get("order") or order),
-    }
-
-    notes = normalize_notes(props.get("notes"))
-    if notes:
-        raw_field["notes"] = notes
-
-    source = props.get("source")
-    if isinstance(source, dict) and source:
-        raw_field["source"] = source
-
-    if kind == "field_group":
-        child_used: set[str] = set()
-        raw_field["fields"] = [
-            block_field_to_legacy_field(child, raw_field.get("id") or parent_id, child_order, child_used)
-            for child_order, child in enumerate(normalize_items(block.get("children")), start=1)
-            if isinstance(child, dict) and compact_text(child.get("kind")) in {"field", "field_group"}
-        ]
-        return normalize_field(raw_field, parent_id, order, used_keys)
-
-    control = compact_text(props.get("control")) or "input"
-    data_type = compact_text(props.get("data_type")) or "text"
-    if control == "select" or data_type == "enum":
-        control = "select"
-        data_type = "enum"
-    else:
-        control = "input"
-        data_type = data_type or "text"
-
-    raw_field["control"] = control
-    raw_field["data_type"] = data_type
-    if bool(props.get("required")):
-        raw_field["required"] = True
-
-    default_value_mode = normalize_temporal_default_mode(props.get("default_value_mode"), data_type)
-    if default_value_mode:
-        raw_field["default_value_mode"] = default_value_mode
-
-    unit_hint = compact_text(props.get("unit_hint"))
-    if unit_hint:
-        raw_field["unit_hint"] = unit_hint
-
-    reference_text = compact_text(props.get("reference_text") or props.get("normal_value"))
-    if reference_text:
-        raw_field["reference_text"] = reference_text
-        raw_field["normal_value"] = reference_text
-
-    normal_min = compact_text(props.get("normal_min"))
-    if normal_min:
-        raw_field["normal_min"] = normal_min
-
-    normal_max = compact_text(props.get("normal_max"))
-    if normal_max:
-        raw_field["normal_max"] = normal_max
-
-    options = []
-    for option in normalize_items(props.get("options")):
-        if not isinstance(option, dict):
-            continue
-        name = compact_text(option.get("name"))
-        if not name:
-            continue
-        options.append(
-            {
-                "id": compact_text(option.get("id")) or "",
-                "key": compact_text(option.get("key")) or slugify(name),
-                "name": name,
-                "order": int(option.get("order") or len(options) + 1),
-                "is_normal": bool(option.get("is_normal")),
-            }
-        )
-    if options:
-        raw_field["options"] = options
-
-    return normalize_field(raw_field, parent_id, order, used_keys)
-
-
-def block_section_to_legacy_section(block: dict[str, Any], form_id: str, order: int, used_keys: set[str]) -> dict[str, Any]:
-    if compact_text(block.get("kind")) != "section":
-        raise ValueError("Only section blocks can be bridged into legacy sections.")
-
-    props = block.get("props") if isinstance(block.get("props"), dict) else {}
-    raw_section: dict[str, Any] = {
-        "id": compact_text(block.get("id")) or "",
-        "key": compact_text(props.get("key")) or compact_text(block.get("name")),
-        "name": compact_text(block.get("name")) or "Untitled Section",
-        "order": int(props.get("order") or order),
-        "fields": [],
-    }
-
-    notes = normalize_notes(props.get("notes"))
-    if notes:
-        raw_section["notes"] = notes
-
-    source = props.get("source")
-    if isinstance(source, dict) and source:
-        raw_section["source"] = source
-
-    field_used: set[str] = set()
-    raw_section["fields"] = [
-        block_field_to_legacy_field(child, compact_text(raw_section.get("id")) or form_id, child_order, field_used)
-        for child_order, child in enumerate(normalize_items(block.get("children")), start=1)
-        if isinstance(child, dict) and compact_text(child.get("kind")) in {"field", "field_group"}
-    ]
-
-    return normalize_section(raw_section, form_id, order, used_keys)
-
-
-def build_legacy_storage_schema_from_blocks(raw_schema: dict[str, Any]) -> dict[str, Any]:
-    blocks = normalize_items(raw_schema.get("blocks"))
-    meta = raw_schema.get("meta") if isinstance(raw_schema.get("meta"), dict) else {}
-    form_id = compact_text(meta.get("form_id")) or "form.compat"
-    used_field_keys: set[str] = set()
-    used_section_keys: set[str] = set()
-
-    fields: list[dict[str, Any]] = []
-    sections: list[dict[str, Any]] = []
-    for order, block in enumerate(blocks, start=1):
-        if not isinstance(block, dict):
-            continue
-        kind = compact_text(block.get("kind"))
-        if kind in {"field", "field_group"}:
-            fields.append(block_field_to_legacy_field(block, form_id, order, used_field_keys))
-            continue
-        if kind == "section":
-            sections.append(block_section_to_legacy_section(block, form_id, len(sections) + 1, used_section_keys))
-            continue
-        if kind in {"note", "divider", "table", "repeater", "columns"}:
-            continue
-        raise ValueError(f"Unsupported block kind for current compatibility bridge: {kind or 'unknown'}")
-
-    legacy: dict[str, Any] = {
-        "fields": fields,
-        "sections": sections,
-    }
-
-    notes = normalize_notes(meta.get("notes"))
-    if notes:
-        legacy["notes"] = notes
-
-    source = meta.get("source")
-    if isinstance(source, dict) and source:
-        legacy["source"] = source
-
-    return legacy
-
-
 def normalize_block_option_props(raw_options: Any) -> list[dict[str, Any]]:
     normalized: list[dict[str, Any]] = []
 
@@ -1762,6 +1611,9 @@ def normalize_active_block_storage_node(node: dict[str, Any]) -> bool:
         return False
 
     changed = False
+    if compact_text(node.get("kind")) in LEGACY_CONTAINER_KINDS:
+        node["kind"] = "container"
+        changed = True
     props = node.get("props") if isinstance(node.get("props"), dict) else None
     if isinstance(props, dict):
         if "field_type" in props:
@@ -1838,11 +1690,81 @@ def normalize_active_block_storage_node(node: dict[str, Any]) -> bool:
     return changed
 
 
+def organize_top_level_blocks(block_schema: dict[str, Any]) -> bool:
+    """Wrap loose root content in a named container without changing field IDs."""
+    blocks = normalize_items(block_schema.get("blocks"))
+    if not blocks or all(
+        isinstance(block, dict) and compact_text(block.get("kind")) == "container"
+        for block in blocks
+    ):
+        return False
+
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    form_name = compact_text(meta.get("form_name")) or "Form"
+    base_name = f"{form_name} Details"
+    form_id = compact_text(meta.get("form_id")) or slugify(form_name) or "form"
+    used_ids = {
+        compact_text(block.get("id"))
+        for block in blocks
+        if isinstance(block, dict) and compact_text(block.get("id"))
+    }
+
+    organized: list[dict[str, Any]] = []
+    loose_items: list[dict[str, Any]] = []
+    container_count = 0
+
+    def flush_loose_items() -> None:
+        nonlocal loose_items, container_count
+        if not loose_items:
+            return
+        container_count += 1
+        suffix = "" if container_count == 1 else f"_{container_count}"
+        container_id = f"{form_id}.details{suffix}"
+        while container_id in used_ids:
+            container_count += 1
+            suffix = f"_{container_count}"
+            container_id = f"{form_id}.details{suffix}"
+        used_ids.add(container_id)
+        title = base_name if container_count == 1 else f"Additional {form_name} Details"
+        organized.append(
+            {
+                "id": container_id,
+                "kind": "container",
+                "name": title,
+                "props": {"key": f"details{suffix}", "order": len(organized) + 1},
+                "children": loose_items,
+            }
+        )
+        loose_items = []
+
+    for block in blocks:
+        if not isinstance(block, dict):
+            continue
+        if compact_text(block.get("kind")) == "container":
+            flush_loose_items()
+            organized.append(block)
+        else:
+            loose_items.append(block)
+    flush_loose_items()
+
+    if organized == blocks:
+        return False
+    block_schema["blocks"] = organized
+    resequence_top_level_block_orders(organized)
+    return True
+
+
 def normalize_active_block_storage_schema(block_schema: dict[str, Any]) -> bool:
     if not isinstance(block_schema, dict):
         return False
 
     changed = False
+    if int(block_schema.get("schema_version") or 0) != CANONICAL_BLOCK_SCHEMA_VERSION:
+        block_schema["schema_version"] = CANONICAL_BLOCK_SCHEMA_VERSION
+        changed = True
+    if compact_text(block_schema.get("source_kind")) != ACTIVE_BLOCK_SCHEMA_SOURCE:
+        block_schema["source_kind"] = ACTIVE_BLOCK_SCHEMA_SOURCE
+        changed = True
     blocks = normalize_items(block_schema.get("blocks"))
     if block_schema.get("blocks") != blocks:
         block_schema["blocks"] = blocks
@@ -1892,6 +1814,8 @@ def normalize_active_block_storage_schema(block_schema: dict[str, Any]) -> bool:
     for block in blocks:
         if normalize_active_block_storage_node(block):
             changed = True
+    if organize_top_level_blocks(block_schema):
+        changed = True
 
     return changed
 
@@ -1899,43 +1823,45 @@ def normalize_active_block_storage_schema(block_schema: dict[str, Any]) -> bool:
 def build_block_storage_payload(
     raw_schema: dict[str, Any],
     *,
-    legacy_storage_schema: dict[str, Any],
+    slug: str,
+    name: str,
+    form_order: int,
 ) -> dict[str, Any]:
     if isinstance(raw_schema, dict) and "blocks" in raw_schema and "fields" not in raw_schema and "sections" not in raw_schema:
         block_schema = json.loads(json.dumps(raw_schema))
-        source_kind = ACTIVE_BLOCK_SCHEMA_SOURCE
     else:
-        block_schema = build_block_schema_from_legacy_storage(legacy_storage_schema)
-        source_kind = LEGACY_BLOCK_SCHEMA_SOURCE
+        block_schema = build_block_schema_from_legacy_storage(raw_schema)
 
-    block_schema["schema_version"] = int(block_schema.get("schema_version") or 1)
-    block_schema["source_kind"] = source_kind
+    block_schema["schema_version"] = CANONICAL_BLOCK_SCHEMA_VERSION
+    block_schema["source_kind"] = ACTIVE_BLOCK_SCHEMA_SOURCE
     block_schema["blocks"] = normalize_items(block_schema.get("blocks"))
-    normalize_active_block_storage_schema(block_schema)
 
     meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
     meta.pop("common_field_set_id", None)
-    meta["form_id"] = compact_text(legacy_storage_schema.get("id"))
-    meta["form_key"] = compact_text(legacy_storage_schema.get("key"))
-    meta["form_order"] = int(legacy_storage_schema.get("order") or 1)
+    meta["form_id"] = stable_form_schema_id(slug)
+    meta["form_key"] = compact_text(slug)
+    meta["form_name"] = compact_text(name) or "Untitled Form"
+    meta["form_order"] = int(form_order or 1)
     meta.pop("legacy_form_id", None)
     meta.pop("legacy_form_key", None)
     meta.pop("legacy_order", None)
 
-    notes = normalize_notes(legacy_storage_schema.get("notes"))
-    if notes:
-        meta["notes"] = notes
-    else:
-        meta.pop("notes", None)
+    if not (isinstance(raw_schema, dict) and "blocks" in raw_schema):
+        notes = normalize_notes(raw_schema.get("notes"))
+        if notes:
+            meta["notes"] = notes
+        else:
+            meta.pop("notes", None)
 
-    source = legacy_storage_schema.get("source")
-    if isinstance(source, dict) and source:
-        meta["source"] = source
-    else:
-        meta.pop("source", None)
+        source = raw_schema.get("source")
+        if isinstance(source, dict) and source:
+            meta["source"] = source
+        else:
+            meta.pop("source", None)
 
     ensure_form_default_print_accent(meta)
     block_schema["meta"] = meta
+    normalize_active_block_storage_schema(block_schema)
     return block_schema
 
 
@@ -1944,31 +1870,10 @@ def build_block_storage_document_from_legacy_storage(
 ) -> dict[str, Any]:
     return build_block_storage_payload(
         legacy_storage_schema,
-        legacy_storage_schema=legacy_storage_schema,
+        slug=compact_text(legacy_storage_schema.get("key")) or "compat",
+        name=compact_text(legacy_storage_schema.get("name")) or "Untitled Form",
+        form_order=int(legacy_storage_schema.get("order") or 1),
     )
-
-
-def build_form_version_storage_documents(
-    raw_block_schema: dict[str, Any],
-    *,
-    slug: str,
-    name: str,
-    form_order: int,
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    normalized_block_schema = json.loads(json.dumps(raw_block_schema))
-    normalize_active_block_storage_schema(normalized_block_schema)
-    legacy_storage_source = build_legacy_storage_schema_from_blocks(normalized_block_schema)
-    legacy_storage_schema = build_legacy_storage_payload(
-        legacy_storage_source,
-        slug=slug,
-        name=name,
-        form_order=form_order,
-    )
-    stored_block_schema = build_block_storage_payload(
-        normalized_block_schema,
-        legacy_storage_schema=legacy_storage_schema,
-    )
-    return legacy_storage_schema, stored_block_schema
 
 
 def block_payload_form_key(raw_block_schema: dict[str, Any]) -> str:
@@ -2027,7 +1932,6 @@ def build_form_version_record(
     form_id: int,
     version_number: int,
     summary: str,
-    legacy_storage_schema: dict[str, Any],
     block_storage_schema: dict[str, Any],
     source: str,
     is_current: bool,
@@ -2036,8 +1940,8 @@ def build_form_version_record(
         form_id=form_id,
         version_number=version_number,
         summary=summary,
-        schema_json=json.dumps(legacy_storage_schema, ensure_ascii=False),
         block_schema_json=json.dumps(block_storage_schema, ensure_ascii=False),
+        legacy_schema_json=None,
         source=source,
         is_current=is_current,
     )
@@ -2051,7 +1955,7 @@ def current_version(definition: FormDefinition) -> FormVersion | None:
 
 
 def load_legacy_storage_document(version: FormVersion) -> dict[str, Any]:
-    raw_schema = compact_text(version.schema_json)
+    raw_schema = compact_text(version.legacy_schema_json)
     if not raw_schema:
         return {}
     try:
@@ -2071,7 +1975,7 @@ def load_block_storage_document(
         try:
             parsed = json.loads(raw_block_storage)
             if isinstance(parsed, dict):
-                return parsed, False
+                return parsed, normalize_active_block_storage_schema(parsed)
         except json.JSONDecodeError:
             pass
     fallback_legacy_storage = legacy_storage_schema if isinstance(legacy_storage_schema, dict) else load_legacy_storage_document(version)
@@ -2466,7 +2370,7 @@ def iter_record_field_blocks(
             continue
         kind = compact_text(block.get("kind"))
         block_name = compact_text(block.get("name"))
-        if kind in {"section", "field_group"}:
+        if kind == "container":
             next_parent_names = [*parent_names, block_name] if block_name else parent_names
             yield from iter_record_field_blocks(
                 normalize_items(block.get("children")),
@@ -2736,7 +2640,7 @@ def collect_required_record_field_issues(
         if not isinstance(block, dict):
             continue
         kind = compact_text(block.get("kind"))
-        if kind in {"section", "field_group"}:
+        if kind == "container":
             issues.extend(
                 collect_required_record_field_issues(
                     normalize_items(block.get("children")),
@@ -3024,6 +2928,7 @@ def build_print_items(
     *,
     record_id: int,
     print_config: dict[str, Any] | None = None,
+    container_depth: int = 0,
 ) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     config = print_config if isinstance(print_config, dict) else normalize_print_config({})
@@ -3035,41 +2940,29 @@ def build_print_items(
         kind = compact_text(block.get("kind"))
         props = block.get("props") if isinstance(block.get("props"), dict) else {}
 
-        if kind == "section":
+        if kind == "container":
             child_items = build_print_items(
                 normalize_items(block.get("children")),
                 values,
                 asset_by_field,
                 record_id=record_id,
                 print_config=config,
+                container_depth=container_depth + 1,
             )
             if hide_empty_fields and not child_items:
                 continue
             items.append(
                 {
-                    "kind": "section",
-                    "name": compact_text(block.get("name")) or "Untitled Section",
-                    "show_title": normalize_boolean_setting(config.get("show_section_titles"), default=True),
-                    "items": child_items,
-                }
-            )
-            continue
-
-        if kind == "field_group":
-            child_items = build_print_items(
-                normalize_items(block.get("children")),
-                values,
-                asset_by_field,
-                record_id=record_id,
-                print_config=config,
-            )
-            if hide_empty_fields and not child_items:
-                continue
-            items.append(
-                {
-                    "kind": "group",
-                    "name": compact_text(block.get("name")) or "Untitled Group",
-                    "show_title": normalize_boolean_setting(config.get("show_group_titles"), default=True),
+                    "kind": "section" if container_depth == 0 else "group",
+                    "name": compact_text(block.get("name")) or "Untitled Container",
+                    "show_title": normalize_boolean_setting(
+                        config.get(
+                            "show_top_level_container_titles"
+                            if container_depth == 0
+                            else "show_nested_container_titles"
+                        ),
+                        default=True,
+                    ),
                     "items": child_items,
                 }
             )
@@ -4434,8 +4327,9 @@ def sync_definition_parent_node_key(
 def definition_schema_order_hint(definition: FormDefinition) -> int:
     version = current_version(definition)
     if version is not None:
-        schema = load_legacy_storage_document(version)
-        return int(schema.get("order") or 1)
+        schema, _ = load_block_storage_document(version)
+        meta = schema.get("meta") if isinstance(schema.get("meta"), dict) else {}
+        return int(meta.get("form_order") or 1)
     return 1
 
 
@@ -4874,7 +4768,6 @@ def ensure_reference_seed(session: Session) -> None:
                     form_id=definition.id,
                     version_number=1,
                     summary="Seeded from current reference schema.",
-                    legacy_storage_schema=legacy_storage_schema,
                     block_storage_schema=block_storage_schema,
                     source="seed",
                     is_current=True,
@@ -4908,13 +4801,13 @@ def ensure_default_patient_info_fields(session: Session) -> int:
         if not ensure_default_patient_info_block_schema(block_schema):
             continue
 
-        legacy_storage_schema = load_legacy_storage_document(version)
+        meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
         form_order = int(
-            legacy_storage_schema.get("order")
+            meta.get("form_order")
             or (definition.library_node.node_order if definition.library_node is not None else 1)
             or 1
         )
-        legacy_storage_schema, stored_block_schema = build_form_version_storage_documents(
+        stored_block_schema = build_block_storage_payload(
             block_schema,
             slug=definition.slug,
             name=definition.name,
@@ -4930,7 +4823,6 @@ def ensure_default_patient_info_fields(session: Session) -> int:
                 form_id=definition.id,
                 version_number=next_version,
                 summary="Added default patient information fields.",
-                legacy_storage_schema=legacy_storage_schema,
                 block_storage_schema=stored_block_schema,
                 source="system",
                 is_current=True,
@@ -4969,13 +4861,12 @@ def ensure_client_signatory_defaults(session: Session) -> int:
             meta[CLIENT_SIGNATORY_DEFAULTS_META_KEY] = True
             block_schema["meta"] = meta
 
-            legacy_storage_schema = load_legacy_storage_document(version)
             form_order = int(
-                legacy_storage_schema.get("order")
+                meta.get("form_order")
                 or (definition.library_node.node_order if definition.library_node is not None else 1)
                 or 1
             )
-            legacy_storage_schema, stored_block_schema = build_form_version_storage_documents(
+            stored_block_schema = build_block_storage_payload(
                 block_schema,
                 slug=definition.slug,
                 name=definition.name,
@@ -4993,7 +4884,6 @@ def ensure_client_signatory_defaults(session: Session) -> int:
                     form_id=definition.id,
                     version_number=next_version,
                     summary="Applied approved client signatory defaults.",
-                    legacy_storage_schema=legacy_storage_schema,
                     block_storage_schema=stored_block_schema,
                     source="system",
                     is_current=True,
@@ -5011,23 +4901,18 @@ def ensure_client_signatory_defaults(session: Session) -> int:
 
 
 def ensure_form_version_storage_documents(session: Session) -> None:
+    """Upgrade stored versions in place to the canonical container schema."""
     versions = session.scalars(select(FormVersion).options(selectinload(FormVersion.form))).all()
     changed = False
 
     for version in versions:
         legacy_storage_schema = load_legacy_storage_document(version)
-        schema_changed = False
-
-        if "common_field_set_id" in legacy_storage_schema:
-            legacy_storage_schema.pop("common_field_set_id", None)
-            schema_changed = True
-
-        definition_slug = version.form.slug if version.form is not None else compact_text(legacy_storage_schema.get("key"))
+        definition_slug = (
+            version.form.slug
+            if version.form is not None
+            else compact_text(legacy_storage_schema.get("key")) or "compat"
+        )
         stable_schema_id = stable_form_schema_id(definition_slug)
-        if compact_text(legacy_storage_schema.get("id")) != stable_schema_id:
-            legacy_storage_schema["id"] = stable_schema_id
-            schema_changed = True
-
         block_schema, block_changed = load_block_storage_document(
             version,
             legacy_storage_schema=legacy_storage_schema,
@@ -5043,13 +4928,30 @@ def ensure_form_version_storage_documents(session: Session) -> None:
         if compact_text(meta.get("legacy_form_id")):
             meta.pop("legacy_form_id", None)
             block_changed = True
-        stable_form_key = compact_text(legacy_storage_schema.get("key"))
+        stable_form_key = compact_text(
+            version.form.slug if version.form is not None else legacy_storage_schema.get("key")
+        )
         if compact_text(meta.get("form_key")) != stable_form_key:
             meta["form_key"] = stable_form_key
             block_changed = True
         if compact_text(meta.get("legacy_form_key")):
             meta.pop("legacy_form_key", None)
             block_changed = True
+        stable_form_name = compact_text(
+            version.form.name if version.form is not None else legacy_storage_schema.get("name")
+        ) or "Untitled Form"
+        if compact_text(meta.get("form_name")) != stable_form_name:
+            meta["form_name"] = stable_form_name
+            block_changed = True
+        default_container_id = f"{stable_schema_id}.details"
+        for block in normalize_items(block_schema.get("blocks")):
+            if not isinstance(block, dict) or compact_text(block.get("kind")) != "container":
+                continue
+            if compact_text(block.get("id")) != default_container_id:
+                continue
+            if compact_text(block.get("name")) == "Form Details":
+                block["name"] = f"{stable_form_name} Details"
+                block_changed = True
         stable_form_order = int(legacy_storage_schema.get("order") or 1)
         if int(meta.get("form_order") or 1) != stable_form_order:
             meta["form_order"] = stable_form_order
@@ -5058,13 +4960,9 @@ def ensure_form_version_storage_documents(session: Session) -> None:
             meta.pop("legacy_order", None)
             block_changed = True
 
+        block_schema["meta"] = meta
         if normalize_active_block_storage_schema(block_schema):
             block_changed = True
-        block_schema["meta"] = meta
-
-        if schema_changed:
-            version.schema_json = json.dumps(legacy_storage_schema, ensure_ascii=False)
-            changed = True
         if block_changed:
             version.block_schema_json = json.dumps(block_schema, ensure_ascii=False)
             changed = True
@@ -5087,7 +4985,7 @@ def create_form(session: Session, payload: FormSavePayload) -> dict[str, Any]:
         library_parent_node_key=payload.library_parent_node_key,
         library_new_container_name=payload.library_new_container_name,
     )
-    legacy_storage_schema, stored_block_schema = build_form_version_storage_documents(
+    stored_block_schema = build_block_storage_payload(
         raw_block_schema,
         slug=slug,
         name=name,
@@ -5113,7 +5011,6 @@ def create_form(session: Session, payload: FormSavePayload) -> dict[str, Any]:
         form_id=definition.id,
         version_number=1,
         summary=compact_text(payload.summary) or "Initial builder version.",
-        legacy_storage_schema=legacy_storage_schema,
         block_storage_schema=stored_block_schema,
         source="builder",
         is_current=True,
@@ -5140,7 +5037,7 @@ def update_form(session: Session, slug: str, payload: FormSavePayload) -> dict[s
         library_new_container_name=payload.library_new_container_name,
         existing_definition=definition,
     )
-    legacy_storage_schema, stored_block_schema = build_form_version_storage_documents(
+    stored_block_schema = build_block_storage_payload(
         raw_block_schema,
         slug=definition.slug,
         name=name,
@@ -5164,7 +5061,6 @@ def update_form(session: Session, slug: str, payload: FormSavePayload) -> dict[s
         form_id=definition.id,
         version_number=next_version,
         summary=compact_text(payload.summary) or f"Builder update v{next_version}.",
-        legacy_storage_schema=legacy_storage_schema,
         block_storage_schema=stored_block_schema,
         source="builder",
         is_current=True,
