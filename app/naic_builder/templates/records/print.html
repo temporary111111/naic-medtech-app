@@ -12,7 +12,7 @@
   {% if document.print_config.template_id == "classic_landscape" %}
   <style>@page { size: A4 landscape; margin: 6mm 8mm; }</style>
   {% else %}
-  <style>@page { size: A4 portrait; margin: 0; }</style>
+  <style>@page { size: A4 portrait; margin: 4mm 6mm; }</style>
   {% endif %}
   {% from "records/_print_document.html" import render_print_page %}
   {% set record_meta = document["record"] or {} %}
