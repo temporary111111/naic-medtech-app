@@ -308,8 +308,8 @@ body {
 
 .print-clinic-brand {
   display: grid;
-  grid-template-columns: 50px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 12px;
   align-items: center;
   min-width: 0;
   font-family: Arial, Helvetica, sans-serif;
@@ -319,10 +319,9 @@ body {
   grid-template-columns: minmax(0, 1fr);
 }
 
-.print-logo,
 .print-logo-placeholder {
-  width: 50px;
-  height: 50px;
+  width: 62px;
+  height: 62px;
   border: 1px solid var(--line-soft);
   border-radius: 7px;
   background: #fff;
@@ -330,8 +329,10 @@ body {
 
 .print-logo {
   display: block;
+  width: 62px;
+  height: 62px;
   object-fit: contain;
-  padding: 4px;
+  background: transparent;
 }
 
 .print-logo-placeholder {
@@ -923,20 +924,26 @@ body {
 }
 
 .print-template-classic-landscape .print-clinic-brand {
-  grid-template-columns: minmax(0, 1fr) 48px;
+  grid-template-columns: minmax(0, 1fr) 60px;
 }
 
 .print-template-classic-landscape .print-clinic-brand.no-logo {
   grid-template-columns: minmax(0, 1fr);
 }
 
-.print-template-classic-landscape .print-logo,
 .print-template-classic-landscape .print-logo-placeholder {
   grid-column: 2;
   grid-row: 1;
-  width: 44px;
-  height: 44px;
+  width: 56px;
+  height: 56px;
   border-radius: 0;
+}
+
+.print-template-classic-landscape .print-logo {
+  grid-column: 2;
+  grid-row: 1;
+  width: 56px;
+  height: 56px;
 }
 
 .print-template-classic-landscape .print-clinic-copy {
@@ -1155,19 +1162,23 @@ body {
   }
 
   .print-clinic-brand {
-    grid-template-columns: 38px minmax(0, 1fr);
-    gap: 7px;
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 9px;
   }
 
   .print-clinic-brand.no-logo {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .print-logo,
   .print-logo-placeholder {
-    width: 38px;
-    height: 38px;
+    width: 52px;
+    height: 52px;
     border-radius: 5px;
+  }
+
+  .print-logo {
+    width: 52px;
+    height: 52px;
   }
 
   .print-clinic-copy strong {
@@ -1394,10 +1405,14 @@ body {
     padding-bottom: 2px;
   }
 
-  .print-template-classic-landscape .print-logo,
   .print-template-classic-landscape .print-logo-placeholder {
-    width: 30px;
-    height: 30px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .print-template-classic-landscape .print-logo {
+    width: 44px;
+    height: 44px;
   }
 
   .print-template-classic-landscape .print-clinic-copy strong {
