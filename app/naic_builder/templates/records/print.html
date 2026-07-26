@@ -6,7 +6,7 @@
   <title>Print Record | {{ document.form_name }}</title>
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
-  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260725-print-workflow-2">
+  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260725-print-workflow-3">
 </head>
 <body class="print-template-{{ document.print_config.template_id | replace('_', '-') }} print-text-{{ document.print_config.text_size | replace('_', '-') }} print-density-{{ document.print_config.density }} print-font-{{ (document.print_config.font_family or 'arial_narrow') | replace('_', '-') }}" style="--accent: {{ document.print_config.accent_color }}; --accent-ink: {{ document.print_accent_ink or '#ffffff' }}">
   {% if document.print_config.template_id == "classic_landscape" %}
@@ -41,30 +41,21 @@
           {% if request.query_params.get("return_to") %}
           <input type="hidden" name="return_to" value="{{ request.query_params.get('return_to') }}">
           {% endif %}
-          <fieldset class="print-layout-options">
-            <legend>Print template</legend>
+          <label class="print-layout-field">
+            <span>Print template</span>
+            <select name="template" data-template-select>
             {% for option in print_template_options %}
-            <label class="print-layout-option{% if presentation.id == option.id %} is-selected{% endif %}">
-              <input type="radio" name="template" value="{{ option.id }}"{% if presentation.id == option.id %} checked{% endif %}>
-              <span class="print-layout-option__visual" aria-hidden="true"></span>
-              <span class="print-layout-option__copy">
-                <strong>{{ option.name }}</strong>
-                <small>{{ option.orientation }} · {{ option.description }}</small>
-              </span>
-            </label>
+              <option value="{{ option.id }}"{% if presentation.id == option.id %} selected{% endif %}>{{ option.name }}</option>
             {% endfor %}
-          </fieldset>
-          <fieldset class="print-text-options" data-modern-text-options>
-            <legend>Modern Portrait text size</legend>
-            <label>
-              <input type="radio" name="text_size" value="standard"{% if document.print_config.text_size != "large" %} checked{% endif %}>
-              <span>Standard</span>
-            </label>
-            <label>
-              <input type="radio" name="text_size" value="large"{% if document.print_config.text_size == "large" %} checked{% endif %}>
-              <span>Large</span>
-            </label>
-          </fieldset>
+            </select>
+          </label>
+          <label class="print-layout-field" data-modern-text-options>
+            <span>Modern Portrait text size</span>
+            <select name="text_size">
+              <option value="standard"{% if document.print_config.text_size != "large" %} selected{% endif %}>Standard</option>
+              <option value="large"{% if document.print_config.text_size == "large" %} selected{% endif %}>Large</option>
+            </select>
+          </label>
           <label class="print-default-option">
             <input type="checkbox" name="set_default" value="1">
             <span>Use this as my default</span>
@@ -93,17 +84,17 @@
   <script>
     (() => {
       const textOptions = document.querySelector("[data-modern-text-options]");
-      const templateOptions = document.querySelectorAll('input[name="template"]');
-      if (!textOptions || !templateOptions.length) return;
+      const textSizeSelect = textOptions ? textOptions.querySelector("select") : null;
+      const templateSelect = document.querySelector("[data-template-select]");
+      if (!textOptions || !textSizeSelect || !templateSelect) return;
 
       const syncTextSizeOptions = () => {
-        const selectedTemplate = document.querySelector('input[name="template"]:checked');
-        const usesModernTextSize = selectedTemplate && selectedTemplate.value === "modern_portrait";
-        textOptions.disabled = !usesModernTextSize;
+        const usesModernTextSize = templateSelect.value === "modern_portrait";
+        textSizeSelect.disabled = !usesModernTextSize;
         textOptions.classList.toggle("is-disabled", !usesModernTextSize);
       };
 
-      templateOptions.forEach((option) => option.addEventListener("change", syncTextSizeOptions));
+      templateSelect.addEventListener("change", syncTextSizeOptions);
       syncTextSizeOptions();
     })();
   </script>

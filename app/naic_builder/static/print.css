@@ -123,8 +123,8 @@ body {
 
 .print-layout-control {
   position: relative;
-  flex: 0 1 210px;
-  min-width: 190px;
+  flex: 0 1 290px;
+  min-width: 220px;
   padding: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -144,7 +144,7 @@ body {
 }
 
 .print-layout-control summary span,
-.print-layout-form legend,
+.print-layout-field > span,
 .print-default-option,
 .print-layout-notice {
   color: var(--muted);
@@ -161,95 +161,30 @@ body {
 .print-layout-form {
   display: grid;
   gap: 10px;
-  width: min(390px, calc(100vw - 32px));
+  width: 100%;
   padding: 10px;
   border-top: 1px solid var(--line-soft);
 }
 
-.print-layout-options,
-.print-text-options {
+.print-layout-field {
   display: grid;
-  gap: 7px;
+  gap: 4px;
   min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
 }
 
-.print-layout-options {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.print-layout-option {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 7px;
-  align-items: start;
-  min-width: 0;
-  padding: 7px;
-  border: 1px solid var(--line-soft);
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.print-layout-option:has(input:checked) {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent) inset;
-}
-
-.print-layout-option input {
-  margin: 2px 0 0;
-}
-
-.print-layout-option__visual {
-  grid-column: 2;
-  display: block;
+.print-layout-field select {
   width: 100%;
-  height: 38px;
-  border: 1px solid var(--line-soft);
-  border-radius: 3px;
-  background:
-    linear-gradient(var(--accent), var(--accent)) 5px 5px / calc(100% - 10px) 8px no-repeat,
-    linear-gradient(var(--line-soft), var(--line-soft)) 5px 18px / 46% 4px no-repeat,
-    linear-gradient(var(--line-soft), var(--line-soft)) 5px 26px / calc(100% - 10px) 4px no-repeat,
-    #fff;
+  min-height: 32px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--ink);
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
 }
 
-.print-layout-option input[value="classic_landscape"] + .print-layout-option__visual {
-  background:
-    linear-gradient(var(--ink), var(--ink)) center 6px / 48% 4px no-repeat,
-    linear-gradient(var(--line), var(--line)) 5px 15px / calc(100% - 10px) 1px no-repeat,
-    repeating-linear-gradient(90deg, transparent 0 18%, var(--line-soft) 18% 19%, transparent 19% 100%) 5px 21px / calc(100% - 10px) 12px no-repeat,
-    #fff;
-}
-
-.print-layout-option__copy {
-  grid-column: 2;
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.print-layout-option__copy strong {
-  font-size: 11px;
-  line-height: 1.2;
-}
-
-.print-layout-option__copy small {
-  color: var(--muted);
-  font-size: 9px;
-  line-height: 1.25;
-}
-
-.print-text-options {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.print-text-options legend {
-  grid-column: 1 / -1;
-}
-
-.print-text-options label,
 .print-default-option {
   display: inline-flex;
   gap: 6px;
@@ -257,27 +192,22 @@ body {
   min-width: 0;
 }
 
-.print-text-options label {
-  min-height: 30px;
-  padding: 6px 7px;
-  border: 1px solid var(--line-soft);
-  border-radius: 5px;
-  color: var(--ink);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.print-text-options.is-disabled {
+.print-layout-field.is-disabled {
   opacity: 0.5;
 }
 
-.print-text-options.is-disabled label {
+.print-layout-field.is-disabled select {
   cursor: not-allowed;
 }
 
 .print-layout-notice {
   margin: 0;
   color: var(--accent);
+}
+
+.print-layout-form .print-link--next {
+  width: 100%;
+  justify-content: center;
 }
 
 .print-inline-form {
