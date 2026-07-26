@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 from typing import Any
 from urllib.error import URLError
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 from urllib.request import urlopen
 
 from sqlalchemy import select
@@ -38,6 +38,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("slugs", nargs="*", help="Form slugs to test.")
     parser.add_argument("--all", action="store_true", help="Test all current forms.")
     parser.add_argument("--max-pages", type=int, default=1, help="Maximum acceptable PDF page count.")
+    parser.add_argument(
+        "--template",
+        choices=("modern_portrait", "classic_landscape"),
+        default="modern_portrait",
+        help="Print template to render during the audit.",
+    )
+    parser.add_argument(
+        "--text-size",
+        choices=("standard", "large"),
+        default="standard",
+        help="Text-size profile to render during the audit.",
+    )
     parser.add_argument(
         "--output-dir",
         default=str(ROOT / "output" / "print-qa"),
@@ -188,6 +200,9 @@ def generate_pdf(
     output_path: Path,
     storage_state_path: Path,
 ) -> subprocess.CompletedProcess[str]:
+    # npx.cmd is executed by cmd.exe on Windows. Quote the URL explicitly so
+    # query-string separators are passed to Playwright instead of cmd.exe.
+    url_argument = f'"{url}"' if os.name == "nt" else url
     command = [
         npx,
         "--yes",
@@ -203,7 +218,7 @@ def generate_pdf(
         "30000",
         "--load-storage",
         str(storage_state_path),
-        url,
+        url_argument,
         str(output_path),
     ]
     return subprocess.run(
@@ -241,6 +256,8 @@ def main() -> int:
     records: list[dict[str, Any]] = []
     report: dict[str, Any] = {
         "max_pages": args.max_pages,
+        "template": args.template,
+        "text_size": args.text_size,
         "results": [],
         "failures": [],
     }
@@ -263,8 +280,8 @@ def main() -> int:
         for record in records:
             slug = str(record["slug"])
             record_id = int(record["record_id"])
-            pdf_path = output_dir / f"{safe_filename(slug)}-{record_id}.pdf"
-            url = f"{base_url}/records/{record_id}/print"
+            pdf_path = output_dir / f"{safe_filename(slug)}-{record_id}-{args.template}-{args.text_size}.pdf"
+            url = f"{base_url}/records/{record_id}/print?{urlencode({'template': args.template, 'text_size': args.text_size})}"
             completed = generate_pdf(
                 npx=npx,
                 url=url,
@@ -284,6 +301,8 @@ def main() -> int:
                 "record_key": record.get("record_key"),
                 "fit": record.get("fit"),
                 "fit_label": record.get("fit_label"),
+                "template": args.template,
+                "text_size": args.text_size,
                 "pages": pages,
                 "pdf": str(pdf_path),
             }

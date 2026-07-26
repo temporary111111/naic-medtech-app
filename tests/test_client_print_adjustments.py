@@ -17,9 +17,10 @@ TEST_RUNTIME = tempfile.TemporaryDirectory(prefix="ndhi-client-adjustments-")
 os.environ["NDHI_LABRECORDS_DATA_DIR"] = TEST_RUNTIME.name
 
 from naic_builder.database import Base
-from naic_builder.models import FormDefinition, FormVersion, Record
+from naic_builder.models import FormDefinition, FormVersion, Record, User
 from naic_builder.schemas import ClinicProfilePayload
 from naic_builder.services import (
+    apply_print_presentation,
     build_print_clinic_profile,
     build_print_display_value,
     build_print_summary_items,
@@ -30,12 +31,60 @@ from naic_builder.services import (
     format_print_temporal_value,
     list_record_completion_issues,
     normalize_signatory_slot,
+    save_user_print_preferences,
     save_clinic_profile,
     signatory_snapshots_for_print,
 )
 
 
 class ClientPrintAdjustmentTests(unittest.TestCase):
+    def test_print_presentation_uses_known_choices_and_user_defaults(self) -> None:
+        presentation = apply_print_presentation(
+            {"density": "compact"},
+            template_id="classic_landscape",
+            text_size="large",
+        )
+        self.assertEqual(presentation["template_id"], "classic_landscape")
+        self.assertEqual(presentation["text_size"], "standard")
+
+        modern = apply_print_presentation(
+            {"density": "compact"},
+            template_id="modern_portrait",
+            text_size="large",
+        )
+        self.assertEqual(modern["template_id"], "modern_portrait")
+        self.assertEqual(modern["text_size"], "large")
+        self.assertEqual(
+            apply_print_presentation({}, template_id="unknown", text_size="huge")["template_id"],
+            "modern_portrait",
+        )
+
+        engine = create_engine("sqlite://")
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine)
+        with Session() as session:
+            user = User(
+                email="print-default@example.test",
+                login_id="print_default",
+                full_name="Print Default",
+                role="medtech",
+                status="active",
+                must_change_password=False,
+            )
+            session.add(user)
+            session.commit()
+
+            saved = save_user_print_preferences(
+                session,
+                user,
+                template_id="modern_portrait",
+                text_size="large",
+            )
+            self.assertEqual(saved, {"template_id": "modern_portrait", "text_size": "large"})
+            session.refresh(user)
+            self.assertEqual(user.print_template_id, "modern_portrait")
+            self.assertEqual(user.print_text_size, "large")
+
     def test_shared_print_template_places_units_and_labels_correctly(self) -> None:
         environment = Environment(loader=FileSystemLoader(ROOT / "app" / "naic_builder" / "templates"))
         macro = environment.get_template("records/_print_document.html").module.render_print_page

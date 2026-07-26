@@ -6,12 +6,18 @@
   <title>Print Record | {{ document.form_name }}</title>
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
-  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260724-path-stack">
+  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260725-print-workflow-2">
 </head>
-<body class="print-density-{{ document.print_config.density }} print-font-{{ (document.print_config.font_family or 'arial_narrow') | replace('_', '-') }}" style="--accent: {{ document.print_config.accent_color }}; --accent-ink: {{ document.print_accent_ink or '#ffffff' }}">
+<body class="print-template-{{ document.print_config.template_id | replace('_', '-') }} print-text-{{ document.print_config.text_size | replace('_', '-') }} print-density-{{ document.print_config.density }} print-font-{{ (document.print_config.font_family or 'arial_narrow') | replace('_', '-') }}" style="--accent: {{ document.print_config.accent_color }}; --accent-ink: {{ document.print_accent_ink or '#ffffff' }}">
+  {% if document.print_config.template_id == "classic_landscape" %}
+  <style>@page { size: A4 landscape; margin: 6mm 8mm; }</style>
+  {% else %}
+  <style>@page { size: A4 portrait; margin: 0; }</style>
+  {% endif %}
   {% from "records/_print_document.html" import render_print_page %}
   {% set record_meta = document["record"] or {} %}
   {% set fit = document.fit_estimate or {} %}
+  {% set presentation = document.template or {} %}
 
   <main class="print-shell">
     <div class="print-toolbar">
@@ -23,6 +29,52 @@
         <strong>{{ fit.label or "Estimated fit" }}</strong>
         <span>{{ fit.detail or "Use browser print preview for final confirmation." }}</span>
       </div>
+      <details class="print-layout-control">
+        <summary>
+          <span>Layout</span>
+          <strong>{{ presentation.name }}{% if presentation.id == "modern_portrait" %} · {{ presentation.text_size_label }} text{% endif %}</strong>
+        </summary>
+        <form method="post" action="/records/{{ record_meta.id }}/print-options" class="print-layout-form">
+          {% if request.query_params.get("from") == "history" %}
+          <input type="hidden" name="from" value="history">
+          {% endif %}
+          {% if request.query_params.get("return_to") %}
+          <input type="hidden" name="return_to" value="{{ request.query_params.get('return_to') }}">
+          {% endif %}
+          <fieldset class="print-layout-options">
+            <legend>Print template</legend>
+            {% for option in print_template_options %}
+            <label class="print-layout-option{% if presentation.id == option.id %} is-selected{% endif %}">
+              <input type="radio" name="template" value="{{ option.id }}"{% if presentation.id == option.id %} checked{% endif %}>
+              <span class="print-layout-option__visual" aria-hidden="true"></span>
+              <span class="print-layout-option__copy">
+                <strong>{{ option.name }}</strong>
+                <small>{{ option.orientation }} · {{ option.description }}</small>
+              </span>
+            </label>
+            {% endfor %}
+          </fieldset>
+          <fieldset class="print-text-options" data-modern-text-options>
+            <legend>Modern Portrait text size</legend>
+            <label>
+              <input type="radio" name="text_size" value="standard"{% if document.print_config.text_size != "large" %} checked{% endif %}>
+              <span>Standard</span>
+            </label>
+            <label>
+              <input type="radio" name="text_size" value="large"{% if document.print_config.text_size == "large" %} checked{% endif %}>
+              <span>Large</span>
+            </label>
+          </fieldset>
+          <label class="print-default-option">
+            <input type="checkbox" name="set_default" value="1">
+            <span>Use this as my default</span>
+          </label>
+          {% if print_preference_saved %}
+          <p class="print-layout-notice">Your default print layout was saved.</p>
+          {% endif %}
+          <button class="print-link print-link--next" type="submit">Apply layout</button>
+        </form>
+      </details>
       <div class="print-toolbar-actions">
         <button class="print-button" type="button" onclick="window.print()">Print / Save PDF</button>
         {% if record_meta.form_slug %}
@@ -38,5 +90,22 @@
 
     {{ render_print_page(document) }}
   </main>
+  <script>
+    (() => {
+      const textOptions = document.querySelector("[data-modern-text-options]");
+      const templateOptions = document.querySelectorAll('input[name="template"]');
+      if (!textOptions || !templateOptions.length) return;
+
+      const syncTextSizeOptions = () => {
+        const selectedTemplate = document.querySelector('input[name="template"]:checked');
+        const usesModernTextSize = selectedTemplate && selectedTemplate.value === "modern_portrait";
+        textOptions.disabled = !usesModernTextSize;
+        textOptions.classList.toggle("is-disabled", !usesModernTextSize);
+      };
+
+      templateOptions.forEach((option) => option.addEventListener("change", syncTextSizeOptions));
+      syncTextSizeOptions();
+    })();
+  </script>
 </body>
 </html>

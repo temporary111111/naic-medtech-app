@@ -231,6 +231,8 @@ def ensure_runtime_schema() -> None:
             "avatar_path": "TEXT",
             "avatar_original_filename": "VARCHAR(255)",
             "avatar_mime_type": "VARCHAR(120)",
+            "print_template_id": "VARCHAR(80) NOT NULL DEFAULT 'modern_portrait'",
+            "print_text_size": "VARCHAR(40) NOT NULL DEFAULT 'standard'",
         }
         for column_name, column_type in avatar_columns.items():
             if column_name not in user_columns:

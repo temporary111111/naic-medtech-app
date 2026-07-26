@@ -109,6 +109,25 @@ PRINT_FONT_FAMILIES = {
     "times_new_roman",
     "bahnschrift_title",
 }
+PRINT_TEMPLATE_IDS = {"modern_portrait", "classic_landscape"}
+PRINT_TEMPLATE_ORDER = ("modern_portrait", "classic_landscape")
+PRINT_TEXT_SIZES = {"standard", "large"}
+DEFAULT_PRINT_TEMPLATE_ID = "modern_portrait"
+DEFAULT_PRINT_TEXT_SIZE = "standard"
+PRINT_TEMPLATE_DETAILS = {
+    "modern_portrait": {
+        "id": "modern_portrait",
+        "name": "Modern Portrait",
+        "description": "A4 portrait result sheet with a colored report header.",
+        "orientation": "Portrait",
+    },
+    "classic_landscape": {
+        "id": "classic_landscape",
+        "name": "Classic Landscape",
+        "description": "A4 landscape layout inspired by the clinic's legacy result sheets.",
+        "orientation": "Landscape",
+    },
+}
 DEFAULT_PRINT_SUMMARY_ITEMS = [
     {"id": "summary_primary", "label": "Record", "source": "primary_identity", "field_id": ""},
     {"id": "summary_secondary", "label": "Detail", "source": "secondary_identity", "field_id": ""},
@@ -276,6 +295,46 @@ def normalize_print_result_layout(value: Any) -> str:
 def normalize_print_font_family(value: Any) -> str:
     font_family = compact_text(value).lower().replace("-", "_").replace(" ", "_")
     return font_family if font_family in PRINT_FONT_FAMILIES else "arial_narrow"
+
+
+def normalize_print_template_id(value: Any) -> str:
+    template_id = compact_text(value).lower().replace("-", "_").replace(" ", "_")
+    return template_id if template_id in PRINT_TEMPLATE_IDS else DEFAULT_PRINT_TEMPLATE_ID
+
+
+def normalize_print_text_size(value: Any, *, template_id: Any = "") -> str:
+    normalized_template_id = normalize_print_template_id(template_id)
+    text_size = compact_text(value).lower()
+    if normalized_template_id != "modern_portrait":
+        return DEFAULT_PRINT_TEXT_SIZE
+    return text_size if text_size in PRINT_TEXT_SIZES else DEFAULT_PRINT_TEXT_SIZE
+
+
+def apply_print_presentation(
+    print_config: dict[str, Any] | None,
+    *,
+    template_id: Any = "",
+    text_size: Any = "",
+) -> dict[str, Any]:
+    config = dict(print_config) if isinstance(print_config, dict) else {}
+    selected_template_id = normalize_print_template_id(template_id)
+    selected_text_size = normalize_print_text_size(text_size, template_id=selected_template_id)
+    config["template_id"] = selected_template_id
+    config["text_size"] = selected_text_size
+    return config
+
+
+def print_presentation_details(template_id: Any, text_size: Any = "") -> dict[str, str]:
+    selected_template_id = normalize_print_template_id(template_id)
+    details = dict(PRINT_TEMPLATE_DETAILS[selected_template_id])
+    selected_text_size = normalize_print_text_size(text_size, template_id=selected_template_id)
+    details["text_size"] = selected_text_size
+    details["text_size_label"] = "Large" if selected_text_size == "large" else "Standard"
+    return details
+
+
+def print_presentation_options() -> list[dict[str, str]]:
+    return [dict(PRINT_TEMPLATE_DETAILS[template_id]) for template_id in PRINT_TEMPLATE_ORDER]
 
 
 def normalize_print_signature_source(value: Any, *, default: str = "blank") -> str:
@@ -478,9 +537,39 @@ def serialize_user(user: User) -> dict[str, Any]:
         "avatar_original_filename": compact_text(user.avatar_original_filename),
         "avatar_mime_type": compact_text(user.avatar_mime_type),
         "has_avatar": bool(compact_text(user.avatar_path)),
+        "print_template_id": normalize_print_template_id(user.print_template_id),
+        "print_text_size": normalize_print_text_size(
+            user.print_text_size,
+            template_id=user.print_template_id,
+        ),
         "created_at": user.created_at.astimezone(timezone.utc).isoformat(),
         "updated_at": user.updated_at.astimezone(timezone.utc).isoformat(),
     }
+
+
+def user_print_preferences(user: User | None) -> dict[str, str]:
+    template_id = normalize_print_template_id(user.print_template_id if user is not None else "")
+    return {
+        "template_id": template_id,
+        "text_size": normalize_print_text_size(
+            user.print_text_size if user is not None else "",
+            template_id=template_id,
+        ),
+    }
+
+
+def save_user_print_preferences(
+    session: Session,
+    user: User,
+    *,
+    template_id: Any,
+    text_size: Any,
+) -> dict[str, str]:
+    selected_template_id = normalize_print_template_id(template_id)
+    user.print_template_id = selected_template_id
+    user.print_text_size = normalize_print_text_size(text_size, template_id=selected_template_id)
+    save_user(session, user)
+    return user_print_preferences(user)
 
 
 def get_or_create_clinic_profile(session: Session) -> ClinicProfile:
@@ -3255,6 +3344,8 @@ def print_item_fit_units(items: list[dict[str, Any]]) -> float:
 def estimate_print_page_fit(document: dict[str, Any]) -> dict[str, Any]:
     print_config = document.get("print_config") if isinstance(document.get("print_config"), dict) else {}
     density = normalize_print_density(print_config.get("density"))
+    template_id = normalize_print_template_id(print_config.get("template_id"))
+    text_size = normalize_print_text_size(print_config.get("text_size"), template_id=template_id)
     show_summary = normalize_boolean_setting(print_config.get("show_summary"), default=False)
     summary_count = len(normalize_items(document.get("summary_items"))) if show_summary else 0
     base_units = 8.5
@@ -3268,8 +3359,10 @@ def estimate_print_page_fit(document: dict[str, Any]) -> dict[str, Any]:
         base_units += max(1, (summary_count + 2) // 3) * 2.2
 
     density_factor = 1.14 if density == "comfortable" else 1.0
+    if template_id == "modern_portrait" and text_size == "large":
+        density_factor *= 1.12
     estimated_units = (base_units + print_item_fit_units(normalize_items(document.get("items")))) * density_factor
-    limit_units = 52.0
+    limit_units = 62.0 if template_id == "classic_landscape" else 52.0
     if estimated_units <= limit_units * 0.82:
         status = "likely"
         label = "Likely fits one page"
@@ -3318,7 +3411,7 @@ def build_form_print_preview_document(
         fallback_secondary="NAIC-2026-0001",
     )
     meta = entry_schema.get("meta") if isinstance(entry_schema.get("meta"), dict) else {}
-    print_config = normalize_print_config(meta.get("print_config"))
+    print_config = apply_print_presentation(normalize_print_config(meta.get("print_config")))
     signatory_slots = normalize_signatory_slots(meta.get("signatories"), use_defaults=False)
     signatory_samples = normalize_record_signatory_snapshots({}, signatory_slots)
     print_accent_ink = print_accent_text_color(print_config.get("accent_color"))
@@ -3358,8 +3451,10 @@ def build_form_print_preview_document(
         "print_config": print_config,
         "print_accent_ink": print_accent_ink,
         "template": {
-            "id": "clinic_lab_result_v1",
-            "name": "Clinic lab result",
+            **print_presentation_details(
+                print_config.get("template_id"),
+                print_config.get("text_size"),
+            ),
             "page_size": "A4",
         },
         "title": report_title,
@@ -3407,6 +3502,8 @@ def build_record_print_document(
     *,
     clinic_profile: dict[str, Any] | None = None,
     clinic_logo_url: str = "",
+    template_id: Any = "",
+    text_size: Any = "",
 ) -> dict[str, Any]:
     serialized = serialize_record(record, include_entry_schema=True)
     entry_schema = serialized.get("entry_schema") or {}
@@ -3420,7 +3517,11 @@ def build_record_print_document(
         or ""
     )
     meta = entry_schema.get("meta") if isinstance(entry_schema.get("meta"), dict) else {}
-    print_config = normalize_print_config(meta.get("print_config"))
+    print_config = apply_print_presentation(
+        normalize_print_config(meta.get("print_config")),
+        template_id=template_id,
+        text_size=text_size,
+    )
     print_accent_ink = print_accent_text_color(print_config.get("accent_color"))
     report_title = resolve_print_report_title(
         print_config,
@@ -3441,8 +3542,10 @@ def build_record_print_document(
         "print_config": print_config,
         "print_accent_ink": print_accent_ink,
         "template": {
-            "id": "clinic_lab_result_v1",
-            "name": "Clinic lab result",
+            **print_presentation_details(
+                print_config.get("template_id"),
+                print_config.get("text_size"),
+            ),
             "page_size": "A4",
         },
         "title": report_title,

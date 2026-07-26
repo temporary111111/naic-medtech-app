@@ -101,6 +101,9 @@ from .services import (
     list_move_target_choices,
     move_container,
     move_form,
+    normalize_print_template_id,
+    normalize_print_text_size,
+    print_presentation_options,
     request_account,
     RecordCompletionValidationError,
     remove_clinic_logo,
@@ -114,12 +117,14 @@ from .services import (
     save_clinic_profile,
     save_signatory_stamp_image,
     save_user_avatar,
+    save_user_print_preferences,
     store_record_image_asset,
     update_user_admin_details,
     update_user_status,
     approve_user_account,
     update_record,
     update_form,
+    user_print_preferences,
     void_completed_record,
 )
 
@@ -965,6 +970,15 @@ def render_record_print_page(
 
     clinic_profile = get_clinic_profile(session)
     clinic_logo_url = "/settings/clinic/logo" if clinic_profile.get("has_logo") else ""
+    current_user = get_user_or_none(session, current_user_id(request) or 0)
+    saved_preference = user_print_preferences(current_user)
+    template_id = normalize_print_template_id(
+        request.query_params.get("template") or saved_preference["template_id"]
+    )
+    text_size = normalize_print_text_size(
+        request.query_params.get("text_size") or saved_preference["text_size"],
+        template_id=template_id,
+    )
     back_to_history = request.query_params.get("from") == "history"
     history_return_url = safe_records_history_return(request.query_params.get("return_to"))
     history_query = records_history_query(history_return_url) if back_to_history else ""
@@ -976,10 +990,15 @@ def render_record_print_page(
             "app_title": APP_TITLE,
             "back_href": f"/records/{record.id}?{history_query}" if history_query else f"/records/{record.id}",
             "back_label": "Back to record",
+            "print_template_options": print_presentation_options(),
+            "saved_print_preference": saved_preference,
+            "print_preference_saved": request.query_params.get("preference_saved") == "1",
             "document": build_record_print_document(
                 record,
                 clinic_profile=clinic_profile,
                 clinic_logo_url=clinic_logo_url,
+                template_id=template_id,
+                text_size=text_size,
             ),
         },
     )
@@ -1565,6 +1584,41 @@ def print_record_page(
     session: Session = Depends(get_session),
 ) -> HTMLResponse:
     return render_record_print_page(request, session, record_id=record_id)
+
+
+@app.post("/records/{record_id}/print-options")
+async def save_record_print_options(
+    record_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> RedirectResponse:
+    body = (await request.body()).decode("utf-8")
+    form_data = parse_qs(body, keep_blank_values=True)
+    template_id = normalize_print_template_id((form_data.get("template") or [""])[0])
+    text_size = normalize_print_text_size(
+        (form_data.get("text_size") or [""])[0],
+        template_id=template_id,
+    )
+    user = get_user_or_none(session, current_user_id(request) or 0)
+    preference_saved = False
+    if user is not None and (form_data.get("set_default") or [""])[0] in {"1", "on", "true"}:
+        save_user_print_preferences(
+            session,
+            user,
+            template_id=template_id,
+            text_size=text_size,
+        )
+        preference_saved = True
+
+    query: dict[str, str] = {"template": template_id, "text_size": text_size}
+    if preference_saved:
+        query["preference_saved"] = "1"
+    if (form_data.get("from") or [""])[0] == "history":
+        query["from"] = "history"
+    history_return_url = safe_records_history_return((form_data.get("return_to") or [""])[0])
+    if history_return_url:
+        query["return_to"] = history_return_url
+    return redirect_for_html(f"/records/{record_id}/print?{urlencode(query)}")
 
 
 @app.get("/forms", response_class=HTMLResponse)
