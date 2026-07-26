@@ -978,6 +978,11 @@ body {
   align-items: center;
 }
 
+.print-template-modern-portrait .print-exam-copy {
+  align-items: flex-start;
+  text-align: left;
+}
+
 .print-template-classic-landscape .print-title {
   font-size: 21px;
   font-weight: 800;
@@ -1177,7 +1182,7 @@ body {
   }
 
   .print-clinic-brand {
-    grid-template-columns: 52px minmax(0, 1fr);
+    grid-template-columns: 60px minmax(0, 1fr);
     gap: 9px;
   }
 
@@ -1186,14 +1191,14 @@ body {
   }
 
   .print-logo-placeholder {
-    width: 52px;
-    height: 52px;
+    width: 60px;
+    height: 60px;
     border-radius: 5px;
   }
 
   .print-logo {
-    width: 52px;
-    height: 52px;
+    width: 60px;
+    height: 60px;
   }
 
   .print-clinic-copy strong {
@@ -1425,14 +1430,18 @@ body {
     padding-bottom: 2px;
   }
 
+  .print-template-classic-landscape .print-clinic-brand {
+    grid-template-columns: minmax(0, 1fr) 52px;
+  }
+
   .print-template-classic-landscape .print-logo-placeholder {
-    width: 44px;
-    height: 44px;
+    width: 52px;
+    height: 52px;
   }
 
   .print-template-classic-landscape .print-logo {
-    width: 44px;
-    height: 44px;
+    width: 52px;
+    height: 52px;
   }
 
   .print-template-classic-landscape .print-clinic-copy strong {
