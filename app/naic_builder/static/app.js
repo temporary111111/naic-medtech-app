@@ -1,4 +1,4 @@
-﻿const state = {
+const state = {
   bootstrap: null,
   selectedFormSlug: null,
   loadedForm: null,
@@ -4262,7 +4262,7 @@ function renderItemCard(item, path, options = {}) {
     const showHeaderActions = !focusedCard || !options.hideToggle;
     const compactReference = compactText(getInputReferenceText(item));
     const compactUnit = compactText(getInputUnitHint(item));
-    const focusCopy = isGroup
+    const focusCopy = isContainer
       ? "Nested content"
       : inputType === "image"
         ? "One image will be uploaded when this form is filled up."
@@ -4271,7 +4271,7 @@ function renderItemCard(item, path, options = {}) {
           compactUnit ? `Unit ${compactUnit}` : "",
           inputNormalRangeLabel(item),
         ].filter(Boolean).join(" | ");
-    const addItems = isGroup
+    const addItems = isContainer
       ? [
           { action: "add-field", label: "Field", path: [...path, "children"] },
           { action: "add-container", label: "Container", path: [...path, "children"] },
@@ -4286,27 +4286,27 @@ function renderItemCard(item, path, options = {}) {
       : [];
 
     if (recursive) {
-      const childCount = isGroup ? getNodeChildren(item).length : 0;
+      const childCount = isContainer ? getNodeChildren(item).length : 0;
       return `
-        <article class="item-card ${isGroup ? "group-card recursive-container-card" : "field-card"} ${open ? "is-open" : ""}" data-node-path="${encodePath(path)}" data-parent-path="${encodePath(path.slice(0, -1))}" style="--content-depth:${Math.min(depth, 6)}">
+        <article class="item-card ${isContainer ? "group-card recursive-container-card" : "field-card"} ${open ? "is-open" : ""}" data-node-path="${encodePath(path)}" data-parent-path="${encodePath(path.slice(0, -1))}" style="--content-depth:${Math.min(depth, 6)}">
           <div class="item-head">
             <button
-              class="${isGroup ? "container-toggle" : "field-details-toggle"}"
+              class="${isContainer ? "container-toggle" : "field-details-toggle"}"
               type="button"
-              data-action="${isGroup ? "toggle-container" : "toggle-field-details"}"
+              data-action="${isContainer ? "toggle-container" : "toggle-field-details"}"
               data-path="${encodePath(path)}"
               aria-expanded="${open ? "true" : "false"}"
-              aria-label="${isGroup ? (open ? "Collapse container" : "Expand container") : (open ? "Hide field details" : "Show field details")}"
+              aria-label="${isContainer ? (open ? "Collapse container" : "Expand container") : (open ? "Hide field details" : "Show field details")}"
             >
               <span class="disclosure-chevron" aria-hidden="true"></span>
             </button>
             <div>
               <div class="item-meta">
                 <span class="item-summary">${escapeHtml(summary)}</span>
-                ${isGroup ? `<span class="item-summary">${childCount} ${childCount === 1 ? "item" : "items"}</span>` : ""}
-                ${!isGroup && getNodeProps(item).required ? '<span class="item-summary">Required</span>' : ""}
+                ${isContainer ? `<span class="item-summary">${childCount} ${childCount === 1 ? "item" : "items"}</span>` : ""}
+                ${!isContainer && getNodeProps(item).required ? '<span class="item-summary">Required</span>' : ""}
               </div>
-              <h4 class="item-display-title">${escapeHtml(item.name || (isGroup ? "Untitled Container" : "Untitled Field"))}</h4>
+              <h4 class="item-display-title">${escapeHtml(item.name || (isContainer ? "Untitled Container" : "Untitled Field"))}</h4>
             </div>
             <div class="row-actions">
               <button class="drag-handle" type="button" title="Drag to reorder" aria-label="Drag to reorder">
@@ -4316,7 +4316,7 @@ function renderItemCard(item, path, options = {}) {
             </div>
           </div>
 
-          ${isGroup ? `
+          ${isContainer ? `
             ${open ? `
               <div class="section-builder-head">
                 <label class="section-title-wrap">
@@ -4434,7 +4434,7 @@ function renderItemCard(item, path, options = {}) {
     }
   
     return `
-      <article class="item-card ${isGroup ? "group-card" : ""} ${open ? "is-open" : ""} ${focusedCard ? "is-focused" : ""}" data-node-path="${encodePath(path)}" data-parent-path="${encodePath(path.slice(0, -1))}">
+      <article class="item-card ${isContainer ? "group-card" : ""} ${open ? "is-open" : ""} ${focusedCard ? "is-focused" : ""}" data-node-path="${encodePath(path)}" data-parent-path="${encodePath(path.slice(0, -1))}">
         <div class="item-head ${focusedCard ? "item-head-focused" : ""}">
           <div>
             ${!focusedCard ? `
@@ -4442,7 +4442,7 @@ function renderItemCard(item, path, options = {}) {
               <span class="item-summary">${escapeHtml(summary)}</span>
             </div>
             ` : ""}
-            <h4 class="item-display-title">${escapeHtml(item.name || (isGroup ? "Untitled Container" : "Untitled Field"))}</h4>
+            <h4 class="item-display-title">${escapeHtml(item.name || (isContainer ? "Untitled Container" : "Untitled Field"))}</h4>
           </div>
           ${showHeaderActions ? `
           <div class="row-actions">
@@ -4460,12 +4460,12 @@ function renderItemCard(item, path, options = {}) {
         ${open ? `
           ${focusedCard && focusCopy ? `<p class="item-focus-copy">${escapeHtml(focusCopy)}</p>` : ""}
 
-          <div class="inline-grid item-basics-grid ${focusedCard ? "compact" : ""} ${isGroup ? "single" : ""}">
+          <div class="inline-grid item-basics-grid ${focusedCard ? "compact" : ""} ${isContainer ? "single" : ""}">
             <label>
               <span>Name</span>
-              <input class="item-title-input" data-path="${encodePath(path)}" data-bind="name" value="${escapeHtml(item.name || "")}" placeholder="${isGroup ? "Example: Vital Signs" : "Example: Color"}">
+              <input class="item-title-input" data-path="${encodePath(path)}" data-bind="name" value="${escapeHtml(item.name || "")}" placeholder="${isContainer ? "Example: Vital Signs" : "Example: Color"}">
             </label>
-              ${isGroup ? "" : `
+              ${isContainer ? "" : `
                 <label>
                   <span>Input</span>
                   <select data-action="item-input-type" data-path="${encodePath(path)}">
@@ -4475,14 +4475,14 @@ function renderItemCard(item, path, options = {}) {
               `}
           </div>
 
-          ${isGroup ? "" : `
+          ${isContainer ? "" : `
             <label class="field-required-toggle">
               <span>Required before completion</span>
               <input type="checkbox" data-action="field-required" data-path="${encodePath(path)}" ${getNodeProps(item).required ? "checked" : ""}>
             </label>
           `}
 
-          ${isGroup ? "" : inputType === "image" ? `
+          ${isContainer ? "" : inputType === "image" ? `
             <section class="reference-editor image-answer-editor">
               <div class="reference-editor-head">
                 <p>One image will be uploaded when this form is filled up.</p>
@@ -4534,7 +4534,7 @@ function renderItemCard(item, path, options = {}) {
           </div>
         ` : ""}
 
-        ${!isGroup && inferInputType(item) === "choice" ? renderOptionsEditor(item, path) : ""}
+        ${!isContainer && inferInputType(item) === "choice" ? renderOptionsEditor(item, path) : ""}
 
           ${state.ui.advancedMode ? `
             <details class="advanced">
@@ -5278,7 +5278,7 @@ async function handleEditorClick(event) {
     return;
   }
   if (action === "add-content-container") {
-    insertTopLevelContentBlock("section");
+    insertTopLevelContentBlock("container");
     return;
   }
   if (action === "add-content-section") {

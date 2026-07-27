@@ -185,6 +185,59 @@ def migrate_users_auth_shape(connection) -> None:
         connection.exec_driver_sql("PRAGMA foreign_keys=ON")
 
 
+def migrate_form_versions_legacy_schema_nullable(connection) -> None:
+    """Allow new canonical versions to omit the archived legacy document."""
+    connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+    try:
+        connection.exec_driver_sql(
+            """
+            CREATE TABLE form_versions_new (
+                id INTEGER NOT NULL PRIMARY KEY,
+                form_id INTEGER NOT NULL,
+                version_number INTEGER NOT NULL,
+                summary TEXT,
+                block_schema_json TEXT,
+                legacy_schema_json TEXT,
+                source VARCHAR(40) NOT NULL,
+                is_current BOOLEAN NOT NULL,
+                created_at DATETIME NOT NULL,
+                CONSTRAINT uq_form_version UNIQUE (form_id, version_number),
+                FOREIGN KEY(form_id) REFERENCES form_definitions (id)
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO form_versions_new (
+                id,
+                form_id,
+                version_number,
+                summary,
+                block_schema_json,
+                legacy_schema_json,
+                source,
+                is_current,
+                created_at
+            )
+            SELECT
+                id,
+                form_id,
+                version_number,
+                summary,
+                block_schema_json,
+                legacy_schema_json,
+                source,
+                is_current,
+                created_at
+            FROM form_versions
+            """
+        )
+        connection.exec_driver_sql("DROP TABLE form_versions")
+        connection.exec_driver_sql("ALTER TABLE form_versions_new RENAME TO form_versions")
+    finally:
+        connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+
+
 def ensure_runtime_schema() -> None:
     Base.metadata.create_all(bind=engine)
     with engine.begin() as connection:
@@ -202,6 +255,12 @@ def ensure_runtime_schema() -> None:
                 )
             else:
                 connection.exec_driver_sql("ALTER TABLE form_versions ADD COLUMN legacy_schema_json TEXT")
+        legacy_schema_info = {
+            str(row[1]): row
+            for row in connection.exec_driver_sql("PRAGMA table_info(form_versions)").all()
+        }
+        if legacy_schema_info.get("legacy_schema_json", (None, None, None, 0))[3]:
+            migrate_form_versions_legacy_schema_nullable(connection)
         form_definition_columns = {
             str(row[1])
             for row in connection.exec_driver_sql("PRAGMA table_info(form_definitions)").all()

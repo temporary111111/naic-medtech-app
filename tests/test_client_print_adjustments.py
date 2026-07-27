@@ -15,10 +15,16 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "app"))
 TEST_RUNTIME = tempfile.TemporaryDirectory(prefix="ndhi-client-adjustments-")
 os.environ["NDHI_LABRECORDS_DATA_DIR"] = TEST_RUNTIME.name
+os.environ["NDHI_AFTER_CHANGE_BACKUP_DISABLED"] = "1"
 
-from naic_builder.database import Base
+from naic_builder.database import (
+    Base,
+    SKIP_CHANGE_BACKUP_SESSION_KEY,
+    engine as runtime_engine,
+    migrate_form_versions_legacy_schema_nullable,
+)
 from naic_builder.models import FormDefinition, FormVersion, Record, User
-from naic_builder.schemas import ClinicProfilePayload
+from naic_builder.schemas import ClinicProfilePayload, FormSavePayload
 from naic_builder.services import (
     apply_print_presentation,
     build_block_storage_document_from_legacy_storage,
@@ -37,11 +43,124 @@ from naic_builder.services import (
     save_user_print_preferences,
     save_clinic_profile,
     signatory_snapshots_for_print,
+    update_form,
 )
 
 
+def tearDownModule() -> None:
+    runtime_engine.dispose()
+    TEST_RUNTIME.cleanup()
+
+
 class ClientPrintAdjustmentTests(unittest.TestCase):
-    def test_legacy_forms_upgrade_to_named_canonical_containers(self) -> None:
+    def test_top_level_builder_actions_keep_fields_and_containers_flexible(self) -> None:
+        source = (ROOT / "app" / "naic_builder" / "static" / "app.js").read_text(encoding="utf-8")
+
+        self.assertIn(
+            'if (action === "add-content-container") {\n    insertTopLevelContentBlock("container");',
+            source,
+        )
+        self.assertIn(
+            'if (action === "add-content-field") {\n    insertTopLevelContentBlock("field");',
+            source,
+        )
+        self.assertNotIn("function addTopLevelFieldInContainer()", source)
+
+    def test_legacy_schema_column_becomes_nullable_before_container_save(self) -> None:
+        engine = create_engine("sqlite://")
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine)
+        initial_schema = {
+            "schema_version": 2,
+            "source_kind": "builder_blocks_v2",
+            "meta": {
+                "form_id": "form.blood_gas_analysis",
+                "form_key": "blood_gas_analysis",
+                "form_name": "Blood Gas Analysis",
+                "form_order": 1,
+            },
+            "blocks": [],
+        }
+
+        with engine.begin() as connection:
+            connection.exec_driver_sql("DROP TABLE form_versions")
+            connection.exec_driver_sql(
+                """
+                CREATE TABLE form_versions (
+                    id INTEGER NOT NULL PRIMARY KEY,
+                    form_id INTEGER NOT NULL,
+                    version_number INTEGER NOT NULL,
+                    summary TEXT,
+                    legacy_schema_json TEXT NOT NULL,
+                    block_schema_json TEXT,
+                    source VARCHAR(40) NOT NULL,
+                    is_current BOOLEAN NOT NULL,
+                    created_at DATETIME NOT NULL,
+                    CONSTRAINT uq_form_version UNIQUE (form_id, version_number),
+                    FOREIGN KEY(form_id) REFERENCES form_definitions (id)
+                )
+                """
+            )
+
+        with Session() as session:
+            session.info[SKIP_CHANGE_BACKUP_SESSION_KEY] = True
+            definition = FormDefinition(slug="blood_gas_analysis", name="Blood Gas Analysis")
+            session.add(definition)
+            session.flush()
+            session.add(FormVersion(
+                form_id=definition.id,
+                version_number=1,
+                summary="Legacy snapshot",
+                legacy_schema_json=json.dumps({"id": "form.blood_gas_analysis"}),
+                block_schema_json=json.dumps(initial_schema),
+                source="builder",
+                is_current=True,
+            ))
+            session.commit()
+
+        with engine.begin() as connection:
+            migrate_form_versions_legacy_schema_nullable(connection)
+            columns = {row[1]: row for row in connection.exec_driver_sql("PRAGMA table_info(form_versions)")}
+            self.assertEqual(columns["legacy_schema_json"][3], 0)
+            self.assertEqual(connection.exec_driver_sql("PRAGMA foreign_key_check").all(), [])
+
+        with Session() as session:
+            session.info[SKIP_CHANGE_BACKUP_SESSION_KEY] = True
+            saved = update_form(session, "blood_gas_analysis", FormSavePayload(
+                slug="blood_gas_analysis",
+                name="Blood Gas Analysis",
+                summary="Add container",
+                form_schema={
+                    **initial_schema,
+                    "blocks": [{
+                        "id": "container.new",
+                        "kind": "container",
+                        "name": "New Container",
+                        "props": {"key": "new_container", "order": 1, "notes": []},
+                        "children": [{
+                            "id": "field.new",
+                            "kind": "field",
+                            "name": "New Field",
+                            "props": {"key": "new_field", "order": 1, "data_type": "text"},
+                            "children": [],
+                        }],
+                    }, {
+                        "id": "field.root",
+                        "kind": "field",
+                        "name": "Root Field",
+                        "props": {"key": "root_field", "order": 2, "data_type": "text"},
+                        "children": [],
+                    }],
+                },
+            ))
+            self.assertEqual(saved["block_schema"]["blocks"][0]["kind"], "container")
+            self.assertEqual(saved["block_schema"]["blocks"][0]["children"][0]["kind"], "field")
+            self.assertEqual(saved["block_schema"]["blocks"][1]["kind"], "field")
+            self.assertEqual(saved["block_schema"]["blocks"][1]["name"], "Root Field")
+            versions = session.scalars(select(FormVersion).order_by(FormVersion.version_number)).all()
+            self.assertIsNone(versions[-1].legacy_schema_json)
+
+    def test_legacy_forms_preserve_root_fields_and_convert_legacy_containers(self) -> None:
         schema = build_block_storage_document_from_legacy_storage({
             "id": "form.blood_bank",
             "key": "blood_bank",
@@ -84,9 +203,9 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(schema["source_kind"], "builder_blocks_v2")
         self.assertEqual(
             [block["name"] for block in schema["blocks"]],
-            ["Blood Bank Details", "Crossmatching"],
+            ["Examination", "Crossmatching"],
         )
-        self.assertEqual([block["kind"] for block in schema["blocks"]], ["container", "container"])
+        self.assertEqual([block["kind"] for block in schema["blocks"]], ["field", "container"])
         self.assertEqual(schema["blocks"][1]["children"][0]["kind"], "container")
 
         printed = build_print_items(
@@ -99,7 +218,7 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                 "show_nested_container_titles": True,
             },
         )
-        self.assertEqual(printed[0]["kind"], "section")
+        self.assertEqual(printed[0]["kind"], "field")
         self.assertEqual(printed[1]["kind"], "section")
         self.assertEqual(printed[1]["items"][0]["kind"], "group")
 
@@ -159,9 +278,9 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             self.assertEqual(upgraded["source_kind"], "builder_blocks_v2")
             self.assertEqual(
                 [block["name"] for block in upgraded["blocks"]],
-                ["Blood Bank Details", "Crossmatching"],
+                ["Examination", "Crossmatching"],
             )
-            self.assertEqual([block["kind"] for block in upgraded["blocks"]], ["container", "container"])
+            self.assertEqual([block["kind"] for block in upgraded["blocks"]], ["field", "container"])
             self.assertEqual(json.loads(version.legacy_schema_json), legacy_archive)
 
     def test_print_presentation_uses_known_choices_and_user_defaults(self) -> None:

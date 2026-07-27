@@ -1690,70 +1690,6 @@ def normalize_active_block_storage_node(node: dict[str, Any]) -> bool:
     return changed
 
 
-def organize_top_level_blocks(block_schema: dict[str, Any]) -> bool:
-    """Wrap loose root content in a named container without changing field IDs."""
-    blocks = normalize_items(block_schema.get("blocks"))
-    if not blocks or all(
-        isinstance(block, dict) and compact_text(block.get("kind")) == "container"
-        for block in blocks
-    ):
-        return False
-
-    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
-    form_name = compact_text(meta.get("form_name")) or "Form"
-    base_name = f"{form_name} Details"
-    form_id = compact_text(meta.get("form_id")) or slugify(form_name) or "form"
-    used_ids = {
-        compact_text(block.get("id"))
-        for block in blocks
-        if isinstance(block, dict) and compact_text(block.get("id"))
-    }
-
-    organized: list[dict[str, Any]] = []
-    loose_items: list[dict[str, Any]] = []
-    container_count = 0
-
-    def flush_loose_items() -> None:
-        nonlocal loose_items, container_count
-        if not loose_items:
-            return
-        container_count += 1
-        suffix = "" if container_count == 1 else f"_{container_count}"
-        container_id = f"{form_id}.details{suffix}"
-        while container_id in used_ids:
-            container_count += 1
-            suffix = f"_{container_count}"
-            container_id = f"{form_id}.details{suffix}"
-        used_ids.add(container_id)
-        title = base_name if container_count == 1 else f"Additional {form_name} Details"
-        organized.append(
-            {
-                "id": container_id,
-                "kind": "container",
-                "name": title,
-                "props": {"key": f"details{suffix}", "order": len(organized) + 1},
-                "children": loose_items,
-            }
-        )
-        loose_items = []
-
-    for block in blocks:
-        if not isinstance(block, dict):
-            continue
-        if compact_text(block.get("kind")) == "container":
-            flush_loose_items()
-            organized.append(block)
-        else:
-            loose_items.append(block)
-    flush_loose_items()
-
-    if organized == blocks:
-        return False
-    block_schema["blocks"] = organized
-    resequence_top_level_block_orders(organized)
-    return True
-
-
 def normalize_active_block_storage_schema(block_schema: dict[str, Any]) -> bool:
     if not isinstance(block_schema, dict):
         return False
@@ -1814,8 +1750,6 @@ def normalize_active_block_storage_schema(block_schema: dict[str, Any]) -> bool:
     for block in blocks:
         if normalize_active_block_storage_node(block):
             changed = True
-    if organize_top_level_blocks(block_schema):
-        changed = True
 
     return changed
 

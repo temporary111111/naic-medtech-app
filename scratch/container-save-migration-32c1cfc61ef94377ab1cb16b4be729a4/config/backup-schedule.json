@@ -1,0 +1,18 @@
+{
+  "deleted_external_archives": 0,
+  "deleted_local_archives": 0,
+  "enabled": true,
+  "last_backup_archive": "",
+  "last_backup_reason": "after-change-sync",
+  "last_checked_at_utc": "",
+  "last_error": "",
+  "last_error_at_utc": "",
+  "last_external_archive": "",
+  "last_external_error": "",
+  "last_requested_at_utc": "2026-07-26T15:57:18Z",
+  "last_skip_at_utc": "",
+  "last_skip_reason": "",
+  "last_started_at_utc": "",
+  "last_success_at_utc": "",
+  "status": "pending"
+}
