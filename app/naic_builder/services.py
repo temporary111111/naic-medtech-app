@@ -9,7 +9,7 @@ import re
 import secrets
 import shutil
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, time, timezone
 from typing import Any
 from uuid import uuid4
 
@@ -179,12 +179,15 @@ def compact_text(value: Any) -> str:
 def format_print_temporal_value(data_type: Any, value: Any) -> str:
     text = compact_text(value)
     kind = compact_text(data_type).lower()
-    if not text or kind not in {"date", "datetime"}:
+    if not text or kind not in {"date", "time", "datetime"}:
         return text
     try:
         if kind == "date":
             parsed_date = datetime.fromisoformat(text).date()
             return parsed_date.strftime("%m/%d/%Y")
+        if kind == "time":
+            parsed_time = time.fromisoformat(text)
+            return parsed_time.strftime("%I:%M %p")
         parsed_datetime = datetime.fromisoformat(text.replace("Z", "+00:00"))
         return parsed_datetime.strftime("%m/%d/%Y %I:%M %p")
     except ValueError:
@@ -2980,7 +2983,7 @@ def build_print_summary_items(
             field_block = field.get("block") if isinstance(field, dict) and isinstance(field.get("block"), dict) else {}
             field_props = field_block.get("props") if isinstance(field_block.get("props"), dict) else {}
             field_data_type = compact_text(field_props.get("data_type"))
-            if field_data_type in {"date", "datetime"}:
+            if field_data_type in {"date", "time", "datetime"}:
                 value = format_print_temporal_value(field_data_type, values.get(field_id))
             else:
                 value = record_value_display_text(values.get(field_id))

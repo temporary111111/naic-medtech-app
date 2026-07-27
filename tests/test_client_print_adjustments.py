@@ -397,7 +397,9 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             format_print_temporal_value("datetime", "2026-07-16T22:05"),
             "07/16/2026 10:05 PM",
         )
-        self.assertEqual(format_print_temporal_value("time", "22:05"), "22:05")
+        self.assertEqual(format_print_temporal_value("time", "10:15"), "10:15 AM")
+        self.assertEqual(format_print_temporal_value("time", "22:05"), "10:05 PM")
+        self.assertEqual(format_print_temporal_value("time", "00:05"), "12:05 AM")
         self.assertEqual(format_print_temporal_value("datetime", "legacy value"), "legacy value")
         self.assertEqual(
             build_print_display_value(
@@ -429,6 +431,27 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             issued_at_label="",
         )
         self.assertEqual(summary[0]["value"], "07/16/2026 10:05 PM")
+        time_summary = build_print_summary_items(
+            {
+                "show_summary": True,
+                "summary_items": [{"source": "field", "field_id": "collected_time"}],
+            },
+            {
+                "entry_schema": {
+                    "blocks": [{
+                        "id": "collected_time",
+                        "kind": "field",
+                        "name": "Collected time",
+                        "props": {"data_type": "time"},
+                    }],
+                },
+                "record_identity": {},
+                "record_key": "TEST-1",
+            },
+            {"collected_time": "22:05"},
+            issued_at_label="",
+        )
+        self.assertEqual(time_summary[0]["value"], "10:05 PM")
 
     def test_doh_license_persists_prints_and_clears(self) -> None:
         engine = create_engine("sqlite://")
