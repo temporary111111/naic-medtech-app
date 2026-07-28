@@ -172,6 +172,71 @@ body {
   min-width: 0;
 }
 
+.print-layout-choice {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.print-layout-choice legend {
+  padding: 0;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.print-segmented-control {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--faint);
+}
+
+.print-segmented-control label {
+  position: relative;
+  display: block;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.print-segmented-control input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.print-segmented-control span {
+  display: grid;
+  min-height: 28px;
+  place-items: center;
+  padding: 4px 7px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.print-segmented-control input:checked + span {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  background: var(--accent);
+}
+
+.print-segmented-control input:focus-visible + span {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .print-layout-field select {
   width: 100%;
   min-height: 32px;
@@ -342,7 +407,8 @@ body {
   font-weight: 800;
 }
 
-.print-template-modern-portrait .print-document-header {
+.print-template-modern-portrait .print-document-header,
+.print-template-modern-landscape .print-document-header {
   padding-bottom: 4px;
   border-bottom: 0;
 }
@@ -978,7 +1044,8 @@ body {
   align-items: center;
 }
 
-.print-template-modern-portrait .print-exam-copy {
+.print-template-modern-portrait .print-exam-copy,
+.print-template-modern-landscape .print-exam-copy {
   align-items: flex-start;
   text-align: left;
 }
@@ -1087,6 +1154,155 @@ body {
 .print-template-classic-landscape .print-signature-label {
   color: var(--ink);
   letter-spacing: 0.02em;
+}
+
+.print-template-classic-portrait .print-page {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.print-template-classic-portrait .print-document-header {
+  padding-bottom: 5px;
+  border-bottom: 2px solid var(--ink);
+}
+
+.print-template-classic-portrait .print-exam-head {
+  display: block;
+  min-height: 0;
+  margin-top: 7px;
+  padding: 0 0 5px;
+  border: 0;
+  border-bottom: 1px solid var(--ink);
+  border-radius: 0;
+  color: var(--ink);
+  background: transparent;
+}
+
+.print-template-classic-portrait .print-exam-copy {
+  min-height: 0;
+  align-items: center;
+  text-align: center;
+}
+
+.print-template-classic-portrait .print-title {
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.print-template-classic-portrait .print-path {
+  color: var(--muted);
+  font-size: 9px;
+  text-align: center;
+}
+
+.print-template-classic-portrait .print-status {
+  display: none;
+}
+
+.print-template-classic-portrait .print-section-head,
+.print-template-classic-portrait .print-group-head {
+  border-color: var(--ink);
+  border-bottom: 1px solid var(--ink);
+  background: #fff;
+}
+
+.print-template-classic-portrait .print-section-title,
+.print-template-classic-portrait .print-group-title,
+.print-template-classic-portrait .print-signature-label {
+  color: var(--ink);
+}
+
+.print-template-modern-landscape .print-shell,
+.print-template-modern-landscape .print-toolbar {
+  width: min(297mm, 100%);
+}
+
+.print-template-modern-landscape .print-page {
+  width: min(297mm, 100%);
+  min-height: 210mm;
+  padding: 10mm 12mm;
+}
+
+.print-template-modern-landscape .print-exam-head {
+  min-height: 40px;
+  margin-top: 6px;
+  padding: 5px 7px;
+}
+
+.print-template-modern-landscape .print-title {
+  font-size: 21px;
+}
+
+.print-template-modern-landscape .print-meta-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 7px;
+}
+
+.print-template-modern-landscape .print-meta-grid article {
+  gap: 3px;
+  padding: 5px 7px;
+}
+
+.print-template-modern-landscape .print-meta-grid article:nth-child(3n) {
+  border-right: 1px solid var(--line);
+}
+
+.print-template-modern-landscape .print-meta-grid article:nth-child(4n) {
+  border-right: 0;
+}
+
+.print-template-modern-landscape .print-body {
+  margin-top: 6px;
+}
+
+.print-template-modern-landscape .print-section-head,
+.print-template-modern-landscape .print-group-head {
+  min-height: 24px;
+  padding: 4px 6px;
+}
+
+.print-template-modern-landscape .print-section-title,
+.print-template-modern-landscape .print-group-title {
+  font-size: 10px;
+}
+
+.print-template-modern-landscape .print-row {
+  grid-template-columns: minmax(0, 1.2fr) minmax(180px, 1fr);
+  gap: 7px;
+  padding: 4px 6px;
+}
+
+.print-template-modern-landscape .print-field-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.print-template-modern-landscape .print-grid-cell {
+  gap: 3px;
+  padding: 4px 6px;
+}
+
+.print-template-modern-landscape .print-grid-cell:nth-child(-n + 2) {
+  border-top: 1px solid var(--line-soft);
+}
+
+.print-template-modern-landscape .print-grid-cell:nth-child(-n + 3) {
+  border-top: 0;
+}
+
+.print-template-modern-landscape .print-grid-cell:nth-child(odd) {
+  border-left: 1px solid var(--line-soft);
+}
+
+.print-template-modern-landscape .print-grid-cell:nth-child(3n + 1) {
+  border-left: 0;
+}
+
+.print-template-modern-landscape .print-footer {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 26px;
+  margin-top: 13px;
+  padding-top: 7px;
 }
 
 @media screen and (max-width: 760px) {

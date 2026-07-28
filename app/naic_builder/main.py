@@ -102,6 +102,7 @@ from .services import (
     move_container,
     move_form,
     normalize_print_template_id,
+    print_template_id_for,
     normalize_print_text_size,
     print_presentation_options,
     request_account,
@@ -1594,7 +1595,13 @@ async def save_record_print_options(
 ) -> RedirectResponse:
     body = (await request.body()).decode("utf-8")
     form_data = parse_qs(body, keep_blank_values=True)
-    template_id = normalize_print_template_id((form_data.get("template") or [""])[0])
+    selected_style = (form_data.get("style") or [""])[0]
+    selected_orientation = (form_data.get("orientation") or [""])[0]
+    template_id = (
+        print_template_id_for(selected_style, selected_orientation)
+        if selected_style or selected_orientation
+        else normalize_print_template_id((form_data.get("template") or [""])[0])
+    )
     text_size = normalize_print_text_size(
         (form_data.get("text_size") or [""])[0],
         template_id=template_id,

@@ -110,8 +110,26 @@ PRINT_FONT_FAMILIES = {
     "times_new_roman",
     "bahnschrift_title",
 }
-PRINT_TEMPLATE_IDS = {"modern_portrait", "classic_landscape"}
-PRINT_TEMPLATE_ORDER = ("modern_portrait", "classic_landscape")
+PRINT_TEMPLATE_IDS = {
+    "modern_portrait",
+    "modern_landscape",
+    "classic_portrait",
+    "classic_landscape",
+}
+PRINT_TEMPLATE_ORDER = (
+    "modern_portrait",
+    "classic_portrait",
+    "modern_landscape",
+    "classic_landscape",
+)
+PRINT_TEMPLATE_BY_STYLE_AND_ORIENTATION = {
+    ("modern", "portrait"): "modern_portrait",
+    ("classic", "portrait"): "classic_portrait",
+    ("modern", "landscape"): "modern_landscape",
+    ("classic", "landscape"): "classic_landscape",
+}
+PRINT_TEMPLATE_STYLES = {"classic", "modern"}
+PRINT_TEMPLATE_ORIENTATIONS = {"portrait", "landscape"}
 PRINT_TEXT_SIZES = {"standard", "large"}
 DEFAULT_PRINT_TEMPLATE_ID = "modern_portrait"
 DEFAULT_PRINT_TEXT_SIZE = "standard"
@@ -121,12 +139,36 @@ PRINT_TEMPLATE_DETAILS = {
         "name": "Modern Portrait",
         "description": "A4 portrait result sheet with a colored report header.",
         "orientation": "Portrait",
+        "orientation_key": "portrait",
+        "style": "modern",
+        "style_label": "Modern",
+    },
+    "classic_portrait": {
+        "id": "classic_portrait",
+        "name": "Classic Portrait",
+        "description": "A4 portrait clinical result sheet with a formal monochrome header.",
+        "orientation": "Portrait",
+        "orientation_key": "portrait",
+        "style": "classic",
+        "style_label": "Classic",
+    },
+    "modern_landscape": {
+        "id": "modern_landscape",
+        "name": "Modern Landscape",
+        "description": "A4 landscape result sheet with a colored report header.",
+        "orientation": "Landscape",
+        "orientation_key": "landscape",
+        "style": "modern",
+        "style_label": "Modern",
     },
     "classic_landscape": {
         "id": "classic_landscape",
         "name": "Classic Landscape",
         "description": "A4 landscape layout inspired by the clinic's legacy result sheets.",
         "orientation": "Landscape",
+        "orientation_key": "landscape",
+        "style": "classic",
+        "style_label": "Classic",
     },
 }
 DEFAULT_PRINT_SUMMARY_ITEMS = [
@@ -304,6 +346,25 @@ def normalize_print_font_family(value: Any) -> str:
 def normalize_print_template_id(value: Any) -> str:
     template_id = compact_text(value).lower().replace("-", "_").replace(" ", "_")
     return template_id if template_id in PRINT_TEMPLATE_IDS else DEFAULT_PRINT_TEMPLATE_ID
+
+
+def normalize_print_template_style(value: Any) -> str:
+    style = compact_text(value).lower()
+    return style if style in PRINT_TEMPLATE_STYLES else "modern"
+
+
+def normalize_print_template_orientation(value: Any) -> str:
+    orientation = compact_text(value).lower()
+    return orientation if orientation in PRINT_TEMPLATE_ORIENTATIONS else "portrait"
+
+
+def print_template_id_for(style: Any, orientation: Any) -> str:
+    return PRINT_TEMPLATE_BY_STYLE_AND_ORIENTATION[
+        (
+            normalize_print_template_style(style),
+            normalize_print_template_orientation(orientation),
+        )
+    ]
 
 
 def normalize_print_text_size(value: Any, *, template_id: Any = "") -> str:
