@@ -178,7 +178,7 @@ PRINT_PAPER_SIZE_DETAILS = {
         "width_mm": 148,
         "height_mm": 210,
         "dimensions_label": "148 x 210 mm",
-        "is_available": False,
+        "is_available": True,
     },
 }
 PRINT_AVAILABLE_PAPER_SIZE_IDS = {
@@ -654,13 +654,20 @@ def print_page_fit_limit_units(profile: dict[str, Any]) -> float:
     selected_paper = PRINT_PAPER_SIZE_DETAILS[paper_size]
     a4_paper = PRINT_PAPER_SIZE_DETAILS[DEFAULT_PRINT_PAPER_SIZE]
     is_landscape = orientation == "landscape"
+    page_width_mm = selected_paper["height_mm"] if is_landscape else selected_paper["width_mm"]
     page_height_mm = selected_paper["width_mm"] if is_landscape else selected_paper["height_mm"]
+    a4_page_width_mm = a4_paper["height_mm"] if is_landscape else a4_paper["width_mm"]
     a4_page_height_mm = a4_paper["width_mm"] if is_landscape else a4_paper["height_mm"]
     vertical_margins_mm = 12 if is_landscape else 8
     usable_height_factor = (page_height_mm - vertical_margins_mm) / (
         a4_page_height_mm - vertical_margins_mm
     )
-    return PRINT_TEMPLATE_CAPABILITIES[template_id]["fit_limit_units"] * usable_height_factor
+    narrow_width_factor = min(1.0, page_width_mm / a4_page_width_mm)
+    return (
+        PRINT_TEMPLATE_CAPABILITIES[template_id]["fit_limit_units"]
+        * usable_height_factor
+        * narrow_width_factor
+    )
 
 
 def normalize_print_signature_source(value: Any, *, default: str = "blank") -> str:
@@ -3530,7 +3537,8 @@ def estimate_print_page_fit(document: dict[str, Any]) -> dict[str, Any]:
         density_factor *= PRINT_TEMPLATE_CAPABILITIES[template_id]["large_text_fit_factor"]
     estimated_units = (base_units + print_item_fit_units(normalize_items(document.get("items")))) * density_factor
     limit_units = print_page_fit_limit_units(profile)
-    page_size_label = PRINT_PAPER_SIZE_DETAILS[profile["paper_size"]]["label"]
+    paper_size = profile["paper_size"]
+    page_size_label = PRINT_PAPER_SIZE_DETAILS[paper_size]["label"]
     if estimated_units <= limit_units * 0.82:
         status = "likely"
         label = "Likely fits one page"
@@ -3538,11 +3546,20 @@ def estimate_print_page_fit(document: dict[str, Any]) -> dict[str, Any]:
     elif estimated_units <= limit_units:
         status = "tight"
         label = "May be tight"
-        detail = "This should be checked in browser print preview before release."
+        detail = (
+            "A5 has limited vertical space. Check browser print preview before release."
+            if paper_size == "a5"
+            else "This should be checked in browser print preview before release."
+        )
     else:
         status = "long"
         label = "Likely exceeds one page"
-        detail = "Consider compact density, fewer summary rows, or hiding optional output later."
+        detail = (
+            "This A5 layout will likely continue on another page. You can still print it, "
+            "or use a larger paper size."
+            if paper_size == "a5"
+            else "Consider compact density, fewer summary rows, or hiding optional output later."
+        )
 
     return {
         "status": status,

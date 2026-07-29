@@ -211,7 +211,14 @@ def signed_session_cookie_value(user_id: int) -> str:
     return TimestampSigner(str(SESSION_SECRET)).sign(raw).decode("utf-8")
 
 
-def create_completed_print_qa_record(slug: str, *, actor_user_id: int | None) -> dict[str, Any]:
+def create_completed_print_qa_record(
+    slug: str,
+    *,
+    actor_user_id: int | None,
+    template_id: str = "",
+    text_size: str = "",
+    paper_size: str = "",
+) -> dict[str, Any]:
     from naic_builder.database import SessionLocal
     from naic_builder.models import FormDefinition
     from naic_builder.schemas import RecordCreatePayload, RecordUpdatePayload
@@ -262,6 +269,9 @@ def create_completed_print_qa_record(slug: str, *, actor_user_id: int | None) ->
             record,
             clinic_profile=clinic_profile,
             clinic_logo_url="/settings/clinic/logo" if clinic_profile.get("has_logo") else "",
+            template_id=template_id,
+            text_size=text_size,
+            paper_size=paper_size,
         )
         fit = document.get("fit_estimate") if isinstance(document.get("fit_estimate"), dict) else {}
 

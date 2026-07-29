@@ -58,7 +58,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--paper-size",
-        choices=("a4", "legal", "letter"),
+        choices=("a4", "legal", "letter", "a5"),
         default="a4",
         help="Paper size to render during the audit.",
     )
@@ -237,7 +237,7 @@ def generate_pdf(
         "pdf",
         *playwright_browser_channel_args(),
         "--paper-format",
-        {"a4": "A4", "legal": "Legal", "letter": "Letter"}[paper_size],
+        {"a4": "A4", "legal": "Legal", "letter": "Letter", "a5": "A5"}[paper_size],
         "--wait-for-selector",
         ".print-page",
         "--wait-for-timeout",
@@ -298,7 +298,13 @@ def main() -> int:
 
         slugs = load_slugs(args.all, args.slugs)
         records = [
-            create_completed_print_qa_record(slug, actor_user_id=actor_user_id)
+            create_completed_print_qa_record(
+                slug,
+                actor_user_id=actor_user_id,
+                template_id=args.template,
+                text_size=args.text_size,
+                paper_size=args.paper_size,
+            )
             for slug in slugs
         ]
 

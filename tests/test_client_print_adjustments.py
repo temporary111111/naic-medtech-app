@@ -365,8 +365,9 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(modern_landscape["page_height_mm"], 210)
         self.assertEqual(normalize_print_paper_size("legal"), "legal")
         self.assertEqual(normalize_print_paper_size("letter"), "letter")
+        self.assertEqual(normalize_print_paper_size("a5"), "a5")
         self.assertEqual(normalize_print_paper_size("unknown"), "a4")
-        self.assertEqual([option["id"] for option in print_paper_size_options()], ["a4", "legal", "letter"])
+        self.assertEqual([option["id"] for option in print_paper_size_options()], ["a4", "legal", "letter", "a5"])
         legal_portrait = print_presentation_details("modern_portrait", paper_size="legal")
         self.assertEqual(legal_portrait["page_size"], "Legal")
         self.assertEqual(legal_portrait["page_width_mm"], 216)
@@ -381,9 +382,24 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         letter_landscape = print_presentation_details("legacy_landscape", paper_size="letter")
         self.assertEqual(letter_landscape["page_width_mm"], 279)
         self.assertEqual(letter_landscape["page_height_mm"], 216)
+        a5_portrait = print_presentation_details("modern_portrait", paper_size="a5")
+        self.assertEqual(a5_portrait["page_size"], "A5")
+        self.assertEqual(a5_portrait["page_width_mm"], 148)
+        self.assertEqual(a5_portrait["page_height_mm"], 210)
+        a5_landscape = print_presentation_details("legacy_landscape", paper_size="a5")
+        self.assertEqual(a5_landscape["page_width_mm"], 210)
+        self.assertEqual(a5_landscape["page_height_mm"], 148)
         self.assertGreater(
             print_page_fit_limit_units(normalize_print_profile(template_id="modern_portrait", paper_size="legal")),
             print_page_fit_limit_units(normalize_print_profile(template_id="modern_portrait", paper_size="a4")),
+        )
+        self.assertLess(
+            print_page_fit_limit_units(normalize_print_profile(template_id="modern_portrait", paper_size="a5")),
+            print_page_fit_limit_units(normalize_print_profile(template_id="modern_portrait", paper_size="letter")),
+        )
+        self.assertLess(
+            print_page_fit_limit_units(normalize_print_profile(template_id="modern_landscape", paper_size="a5")),
+            print_page_fit_limit_units(normalize_print_profile(template_id="modern_landscape", paper_size="a4")),
         )
         self.assertLess(
             print_page_fit_limit_units(normalize_print_profile(template_id="modern_portrait", paper_size="letter")),
@@ -492,6 +508,17 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             self.assertEqual(saved["paper_size"], "letter")
             session.refresh(user)
             self.assertEqual(user.print_paper_size, "letter")
+
+            saved = save_user_print_preferences(
+                session,
+                user,
+                template_id="classic_portrait",
+                text_size="standard",
+                paper_size="a5",
+            )
+            self.assertEqual(saved["paper_size"], "a5")
+            session.refresh(user)
+            self.assertEqual(user.print_paper_size, "a5")
 
     def test_print_layout_uses_style_and_orientation_controls(self) -> None:
         source = (ROOT / "app" / "naic_builder" / "templates" / "records" / "print.html").read_text(encoding="utf-8")
