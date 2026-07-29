@@ -436,6 +436,17 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertNotIn("data-template-select", source)
         self.assertNotIn("data-modern-text-options", source)
 
+    def test_selected_font_is_not_overridden_by_classic_or_legacy_pages(self) -> None:
+        source = (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8")
+        self.assertNotIn(".print-template-classic-portrait .print-page", source)
+        for selector in (
+            ".print-template-classic-landscape .print-page",
+            ".print-template-legacy-landscape .print-page",
+        ):
+            start = source.index(selector)
+            block = source[start:source.index("}", start)]
+            self.assertNotIn("font-family:", block)
+
     def test_shared_print_template_places_units_and_labels_correctly(self) -> None:
         environment = Environment(loader=FileSystemLoader(ROOT / "app" / "naic_builder" / "templates"))
         macro = environment.get_template("records/_print_document.html").module.render_print_page
