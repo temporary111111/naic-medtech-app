@@ -39,9 +39,11 @@ from naic_builder.services import (
     ensure_form_version_storage_documents,
     format_print_temporal_value,
     list_record_completion_issues,
+    normalize_print_paper_size,
     normalize_print_profile,
     normalize_signatory_slot,
     print_orientation_options,
+    print_paper_size_options,
     print_presentation_details,
     print_style_options,
     print_template_id_for,
@@ -299,6 +301,7 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(presentation["style"], "classic")
         self.assertEqual(presentation["orientation"], "landscape")
         self.assertEqual(presentation["text_size"], "large")
+        self.assertEqual(presentation["paper_size"], "a4")
 
         modern = apply_print_presentation(
             {"density": "compact"},
@@ -307,6 +310,7 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         )
         self.assertEqual(modern["template_id"], "modern_portrait")
         self.assertEqual(modern["text_size"], "large")
+        self.assertEqual(modern["paper_size"], "a4")
         self.assertEqual(
             apply_print_presentation({}, template_id="unknown", text_size="huge")["template_id"],
             "modern_portrait",
@@ -351,9 +355,16 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(legacy_profile["style"], "legacy")
         self.assertEqual(legacy_profile["orientation"], "landscape")
         self.assertEqual(legacy_profile["text_size"], "large")
+        self.assertEqual(legacy_profile["paper_size"], "a4")
         modern_landscape = print_presentation_details("modern_landscape")
         self.assertEqual(modern_landscape["style"], "modern")
         self.assertEqual(modern_landscape["orientation_key"], "landscape")
+        self.assertEqual(modern_landscape["page_size"], "A4")
+        self.assertEqual(modern_landscape["page_width_mm"], 297)
+        self.assertEqual(modern_landscape["page_height_mm"], 210)
+        self.assertEqual(normalize_print_paper_size("legal"), "a4")
+        self.assertEqual(normalize_print_paper_size("unknown"), "a4")
+        self.assertEqual([option["id"] for option in print_paper_size_options()], ["a4"])
         self.assertEqual(
             [option["id"] for option in print_style_options()],
             ["modern", "classic", "legacy"],
@@ -393,6 +404,7 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             session.refresh(user)
             self.assertEqual(user.print_template_id, "modern_portrait")
             self.assertEqual(user.print_text_size, "large")
+            self.assertEqual(user.print_paper_size, "a4")
 
             saved = save_user_print_preferences(
                 session,
@@ -433,6 +445,8 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn("print-segmented-control--single", source)
         self.assertIn('name="text_size"', source)
         self.assertIn('<span>Text size</span>', source)
+        self.assertIn("presentation.page_css_size", source)
+        self.assertIn("presentation.page_width_mm", source)
         self.assertNotIn("data-template-select", source)
         self.assertNotIn("data-modern-text-options", source)
 

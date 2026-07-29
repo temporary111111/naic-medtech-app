@@ -12,6 +12,8 @@
   --alert: #a02525;
   --paper: #ffffff;
   --preview: #e9ece9;
+  --print-page-width: 210mm;
+  --print-page-height: 297mm;
 }
 
 @page {
@@ -92,7 +94,7 @@ body {
 
 .print-shell,
 .print-toolbar {
-  width: min(210mm, 100%);
+  width: min(var(--print-page-width), 100%);
   margin-inline: auto;
 }
 
@@ -364,8 +366,8 @@ body {
 }
 
 .print-page {
-  width: min(210mm, 100%);
-  min-height: 297mm;
+  width: min(var(--print-page-width), 100%);
+  min-height: var(--print-page-height);
   margin-inline: auto;
   padding: 13mm 14mm 15mm;
   background: var(--paper);
@@ -999,12 +1001,12 @@ body {
 
 .print-template-classic-landscape .print-shell,
 .print-template-classic-landscape .print-toolbar {
-  width: min(297mm, 100%);
+  width: min(var(--print-page-width), 100%);
 }
 
 .print-template-classic-landscape .print-page {
-  width: min(297mm, 100%);
-  min-height: 210mm;
+  width: min(var(--print-page-width), 100%);
+  min-height: var(--print-page-height);
   padding: 10mm 12mm;
 }
 
@@ -1230,12 +1232,12 @@ body {
 
 .print-template-modern-landscape .print-shell,
 .print-template-modern-landscape .print-toolbar {
-  width: min(297mm, 100%);
+  width: min(var(--print-page-width), 100%);
 }
 
 .print-template-modern-landscape .print-page {
-  width: min(297mm, 100%);
-  min-height: 210mm;
+  width: min(var(--print-page-width), 100%);
+  min-height: var(--print-page-height);
   padding: 10mm 12mm;
 }
 
@@ -1350,12 +1352,12 @@ body {
 
 .print-template-legacy-landscape .print-shell,
 .print-template-legacy-landscape .print-toolbar {
-  width: min(297mm, 100%);
+  width: min(var(--print-page-width), 100%);
 }
 
 .print-template-legacy-landscape .print-page {
-  width: min(297mm, 100%);
-  min-height: 210mm;
+  width: min(var(--print-page-width), 100%);
+  min-height: var(--print-page-height);
   padding: 10mm 12mm;
 }
 

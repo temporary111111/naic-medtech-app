@@ -136,10 +136,55 @@ PRINT_TEMPLATE_STYLES = set(PRINT_TEMPLATE_STYLE_ORDER)
 PRINT_TEMPLATE_ORIENTATIONS = {"portrait", "landscape"}
 DEFAULT_PRINT_TEMPLATE_ID = "modern_portrait"
 DEFAULT_PRINT_TEXT_SIZE = "standard"
-PRINT_PROFILE_VERSION = 1
+DEFAULT_PRINT_PAPER_SIZE = "a4"
+PRINT_PROFILE_VERSION = 2
 PRINT_TEXT_SIZE_DETAILS = {
     "standard": {"id": "standard", "label": "Standard"},
     "large": {"id": "large", "label": "Large"},
+}
+PRINT_PAPER_SIZE_ORDER = ("a4", "legal", "letter", "a5")
+PRINT_PAPER_SIZE_DETAILS = {
+    "a4": {
+        "id": "a4",
+        "label": "A4",
+        "css_size": "A4",
+        "width_mm": 210,
+        "height_mm": 297,
+        "dimensions_label": "210 x 297 mm",
+        "is_available": True,
+    },
+    "legal": {
+        "id": "legal",
+        "label": "Legal",
+        "css_size": "legal",
+        "width_mm": 216,
+        "height_mm": 356,
+        "dimensions_label": "216 x 356 mm",
+        "is_available": False,
+    },
+    "letter": {
+        "id": "letter",
+        "label": "Letter",
+        "css_size": "letter",
+        "width_mm": 216,
+        "height_mm": 279,
+        "dimensions_label": "216 x 279 mm",
+        "is_available": False,
+    },
+    "a5": {
+        "id": "a5",
+        "label": "A5",
+        "css_size": "A5",
+        "width_mm": 148,
+        "height_mm": 210,
+        "dimensions_label": "148 x 210 mm",
+        "is_available": False,
+    },
+}
+PRINT_AVAILABLE_PAPER_SIZE_IDS = {
+    paper_size_id
+    for paper_size_id, details in PRINT_PAPER_SIZE_DETAILS.items()
+    if details["is_available"]
 }
 PRINT_TEMPLATE_CAPABILITIES = {
     "modern_portrait": {
@@ -488,12 +533,26 @@ def normalize_print_text_size(value: Any, *, template_id: Any = "") -> str:
     return text_size if text_size in allowed_sizes else DEFAULT_PRINT_TEXT_SIZE
 
 
+def normalize_print_paper_size(value: Any) -> str:
+    paper_size = compact_text(value).lower().replace("-", "_").replace(" ", "_")
+    return paper_size if paper_size in PRINT_AVAILABLE_PAPER_SIZE_IDS else DEFAULT_PRINT_PAPER_SIZE
+
+
+def print_paper_size_options() -> list[dict[str, Any]]:
+    return [
+        dict(PRINT_PAPER_SIZE_DETAILS[paper_size_id])
+        for paper_size_id in PRINT_PAPER_SIZE_ORDER
+        if paper_size_id in PRINT_AVAILABLE_PAPER_SIZE_IDS
+    ]
+
+
 def normalize_print_profile(
     *,
     template_id: Any = "",
     style: Any = "",
     orientation: Any = "",
     text_size: Any = "",
+    paper_size: Any = "",
 ) -> dict[str, Any]:
     selected_template_id = normalize_print_template_id(template_id)
     fallback_parts = print_template_parts(selected_template_id)
@@ -519,12 +578,14 @@ def normalize_print_profile(
         text_size,
         template_id=selected_template_id,
     )
+    selected_paper_size = normalize_print_paper_size(paper_size)
     return {
         "version": PRINT_PROFILE_VERSION,
         "template_id": selected_template_id,
         "style": selected_style,
         "orientation": selected_orientation,
         "text_size": selected_text_size,
+        "paper_size": selected_paper_size,
     }
 
 
@@ -535,6 +596,7 @@ def apply_print_presentation(
     style: Any = "",
     orientation: Any = "",
     text_size: Any = "",
+    paper_size: Any = "",
 ) -> dict[str, Any]:
     config = dict(print_config) if isinstance(print_config, dict) else {}
     profile = normalize_print_profile(
@@ -542,6 +604,7 @@ def apply_print_presentation(
         style=style,
         orientation=orientation,
         text_size=text_size,
+        paper_size=paper_size,
     )
     config.update(profile)
     return config
@@ -553,15 +616,31 @@ def print_presentation_details(
     *,
     style: Any = "",
     orientation: Any = "",
+    paper_size: Any = "",
 ) -> dict[str, Any]:
     profile = normalize_print_profile(
         template_id=template_id,
         style=style,
         orientation=orientation,
         text_size=text_size,
+        paper_size=paper_size,
     )
     details = dict(PRINT_TEMPLATE_DETAILS[profile["template_id"]])
     details.update(profile)
+    paper_size_details = PRINT_PAPER_SIZE_DETAILS[profile["paper_size"]]
+    is_landscape = profile["orientation"] == "landscape"
+    page_width_mm = paper_size_details["height_mm"] if is_landscape else paper_size_details["width_mm"]
+    page_height_mm = paper_size_details["width_mm"] if is_landscape else paper_size_details["height_mm"]
+    details.update(
+        {
+            "paper_size_label": paper_size_details["label"],
+            "page_size": paper_size_details["label"],
+            "page_css_size": paper_size_details["css_size"],
+            "page_dimensions_label": paper_size_details["dimensions_label"],
+            "page_width_mm": page_width_mm,
+            "page_height_mm": page_height_mm,
+        }
+    )
     details["text_size_label"] = PRINT_TEXT_SIZE_DETAILS[profile["text_size"]]["label"]
     details["text_size_options"] = print_text_size_options(profile["template_id"])
     details["orientation_options"] = print_orientation_options()
@@ -779,6 +858,7 @@ def serialize_user(user: User) -> dict[str, Any]:
         "print_style": print_preference["style"],
         "print_orientation": print_preference["orientation"],
         "print_text_size": print_preference["text_size"],
+        "print_paper_size": print_preference["paper_size"],
         "created_at": user.created_at.astimezone(timezone.utc).isoformat(),
         "updated_at": user.updated_at.astimezone(timezone.utc).isoformat(),
     }
@@ -788,6 +868,7 @@ def user_print_preferences(user: User | None) -> dict[str, Any]:
     return normalize_print_profile(
         template_id=user.print_template_id if user is not None else "",
         text_size=user.print_text_size if user is not None else "",
+        paper_size=user.print_paper_size if user is not None else "",
     )
 
 
@@ -799,15 +880,18 @@ def save_user_print_preferences(
     style: Any = "",
     orientation: Any = "",
     text_size: Any = "",
+    paper_size: Any = "",
 ) -> dict[str, Any]:
     profile = normalize_print_profile(
         template_id=template_id,
         style=style,
         orientation=orientation,
         text_size=text_size,
+        paper_size=paper_size if compact_text(paper_size) else user.print_paper_size,
     )
     user.print_template_id = profile["template_id"]
     user.print_text_size = profile["text_size"]
+    user.print_paper_size = profile["paper_size"]
     save_user(session, user)
     return user_print_preferences(user)
 
@@ -3409,6 +3493,7 @@ def estimate_print_page_fit(document: dict[str, Any]) -> dict[str, Any]:
         style=print_config.get("style"),
         orientation=print_config.get("orientation"),
         text_size=print_config.get("text_size"),
+        paper_size=print_config.get("paper_size"),
     )
     template_id = profile["template_id"]
     text_size = profile["text_size"]
@@ -3520,8 +3605,8 @@ def build_form_print_preview_document(
             **print_presentation_details(
                 print_config.get("template_id"),
                 print_config.get("text_size"),
+                paper_size=print_config.get("paper_size"),
             ),
-            "page_size": "A4",
         },
         "title": report_title,
         "status": "draft",
@@ -3572,6 +3657,7 @@ def build_record_print_document(
     style: Any = "",
     orientation: Any = "",
     text_size: Any = "",
+    paper_size: Any = "",
 ) -> dict[str, Any]:
     serialized = serialize_record(record, include_entry_schema=True)
     entry_schema = serialized.get("entry_schema") or {}
@@ -3591,6 +3677,7 @@ def build_record_print_document(
         style=style,
         orientation=orientation,
         text_size=text_size,
+        paper_size=paper_size,
     )
     print_accent_ink = print_accent_text_color(print_config.get("accent_color"))
     report_title = resolve_print_report_title(
@@ -3615,8 +3702,8 @@ def build_record_print_document(
             **print_presentation_details(
                 print_config.get("template_id"),
                 print_config.get("text_size"),
+                paper_size=print_config.get("paper_size"),
             ),
-            "page_size": "A4",
         },
         "title": report_title,
         "status": serialized["status"],

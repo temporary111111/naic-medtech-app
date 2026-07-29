@@ -114,6 +114,7 @@ class User(Base):
     avatar_mime_type: Mapped[str | None] = mapped_column(String(120), nullable=True)
     print_template_id: Mapped[str] = mapped_column(String(80), default="modern_portrait")
     print_text_size: Mapped[str] = mapped_column(String(40), default="standard")
+    print_paper_size: Mapped[str] = mapped_column(String(40), default="a4")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

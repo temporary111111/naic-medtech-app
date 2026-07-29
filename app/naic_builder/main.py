@@ -977,6 +977,7 @@ def render_record_print_page(
         style=request.query_params.get("style"),
         orientation=request.query_params.get("orientation"),
         text_size=request.query_params.get("text_size") or saved_preference["text_size"],
+        paper_size=request.query_params.get("paper_size") or saved_preference["paper_size"],
     )
     back_to_history = request.query_params.get("from") == "history"
     history_return_url = safe_records_history_return(request.query_params.get("return_to"))
@@ -1001,6 +1002,7 @@ def render_record_print_page(
                 style=profile["style"],
                 orientation=profile["orientation"],
                 text_size=profile["text_size"],
+                paper_size=profile["paper_size"],
             ),
         },
     )
@@ -1596,13 +1598,15 @@ async def save_record_print_options(
 ) -> RedirectResponse:
     body = (await request.body()).decode("utf-8")
     form_data = parse_qs(body, keep_blank_values=True)
+    user = get_user_or_none(session, current_user_id(request) or 0)
+    saved_preference = user_print_preferences(user)
     profile = normalize_print_profile(
         template_id=(form_data.get("template") or [""])[0],
         style=(form_data.get("style") or [""])[0],
         orientation=(form_data.get("orientation") or [""])[0],
         text_size=(form_data.get("text_size") or [""])[0],
+        paper_size=(form_data.get("paper_size") or [""])[0] or saved_preference["paper_size"],
     )
-    user = get_user_or_none(session, current_user_id(request) or 0)
     preference_saved = False
     if user is not None and (form_data.get("set_default") or [""])[0] in {"1", "on", "true"}:
         save_user_print_preferences(
@@ -1612,6 +1616,7 @@ async def save_record_print_options(
             style=profile["style"],
             orientation=profile["orientation"],
             text_size=profile["text_size"],
+            paper_size=profile["paper_size"],
         )
         preference_saved = True
 
@@ -1619,6 +1624,7 @@ async def save_record_print_options(
         "style": profile["style"],
         "orientation": profile["orientation"],
         "text_size": profile["text_size"],
+        "paper_size": profile["paper_size"],
     }
     if preference_saved:
         query["preference_saved"] = "1"
