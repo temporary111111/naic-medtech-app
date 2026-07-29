@@ -44,6 +44,7 @@ from naic_builder.services import (
     normalize_signatory_slot,
     print_orientation_options,
     print_paper_size_options,
+    print_page_fit_limit_units,
     print_presentation_details,
     print_style_options,
     print_template_id_for,
@@ -362,9 +363,20 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(modern_landscape["page_size"], "A4")
         self.assertEqual(modern_landscape["page_width_mm"], 297)
         self.assertEqual(modern_landscape["page_height_mm"], 210)
-        self.assertEqual(normalize_print_paper_size("legal"), "a4")
+        self.assertEqual(normalize_print_paper_size("legal"), "legal")
         self.assertEqual(normalize_print_paper_size("unknown"), "a4")
-        self.assertEqual([option["id"] for option in print_paper_size_options()], ["a4"])
+        self.assertEqual([option["id"] for option in print_paper_size_options()], ["a4", "legal"])
+        legal_portrait = print_presentation_details("modern_portrait", paper_size="legal")
+        self.assertEqual(legal_portrait["page_size"], "Legal")
+        self.assertEqual(legal_portrait["page_width_mm"], 216)
+        self.assertEqual(legal_portrait["page_height_mm"], 356)
+        legal_landscape = print_presentation_details("legacy_landscape", paper_size="legal")
+        self.assertEqual(legal_landscape["page_width_mm"], 356)
+        self.assertEqual(legal_landscape["page_height_mm"], 216)
+        self.assertGreater(
+            print_page_fit_limit_units(normalize_print_profile(template_id="modern_portrait", paper_size="legal")),
+            print_page_fit_limit_units(normalize_print_profile(template_id="modern_portrait", paper_size="a4")),
+        )
         self.assertEqual(
             [option["id"] for option in print_style_options()],
             ["modern", "classic", "legacy"],
@@ -433,6 +445,30 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             session.refresh(user)
             self.assertEqual(user.print_template_id, "legacy_landscape")
             self.assertEqual(user.print_text_size, "large")
+            saved = save_user_print_preferences(
+                session,
+                user,
+                template_id="legacy_landscape",
+                text_size="large",
+                paper_size="legal",
+            )
+            self.assertEqual(saved["paper_size"], "legal")
+            session.refresh(user)
+            self.assertEqual(user.print_template_id, "legacy_landscape")
+            self.assertEqual(user.print_text_size, "large")
+            self.assertEqual(user.print_paper_size, "legal")
+
+            saved = save_user_print_preferences(
+                session,
+                user,
+                template_id="classic_portrait",
+                text_size="standard",
+            )
+            self.assertEqual(saved["template_id"], "classic_portrait")
+            self.assertEqual(saved["text_size"], "standard")
+            self.assertEqual(saved["paper_size"], "legal")
+            session.refresh(user)
+            self.assertEqual(user.print_paper_size, "legal")
 
     def test_print_layout_uses_style_and_orientation_controls(self) -> None:
         source = (ROOT / "app" / "naic_builder" / "templates" / "records" / "print.html").read_text(encoding="utf-8")
@@ -445,6 +481,9 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn("print-segmented-control--single", source)
         self.assertIn('name="text_size"', source)
         self.assertIn('<span>Text size</span>', source)
+        self.assertIn("print_paper_size_options", source)
+        self.assertIn('name="paper_size"', source)
+        self.assertIn('name="set_paper_default"', source)
         self.assertIn("presentation.page_css_size", source)
         self.assertIn("presentation.page_width_mm", source)
         self.assertNotIn("data-template-select", source)

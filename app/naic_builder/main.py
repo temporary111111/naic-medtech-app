@@ -103,6 +103,7 @@ from .services import (
     move_form,
     normalize_print_profile,
     print_orientation_options,
+    print_paper_size_options,
     print_style_options,
     request_account,
     RecordCompletionValidationError,
@@ -992,8 +993,10 @@ def render_record_print_page(
             "back_label": "Back to record",
             "print_style_options": print_style_options(),
             "print_orientation_options": print_orientation_options(),
+            "print_paper_size_options": print_paper_size_options(),
             "saved_print_preference": saved_preference,
             "print_preference_saved": request.query_params.get("preference_saved") == "1",
+            "print_paper_preference_saved": request.query_params.get("paper_preference_saved") == "1",
             "document": build_record_print_document(
                 record,
                 clinic_profile=clinic_profile,
@@ -1608,6 +1611,7 @@ async def save_record_print_options(
         paper_size=(form_data.get("paper_size") or [""])[0] or saved_preference["paper_size"],
     )
     preference_saved = False
+    paper_preference_saved = False
     if user is not None and (form_data.get("set_default") or [""])[0] in {"1", "on", "true"}:
         save_user_print_preferences(
             session,
@@ -1616,9 +1620,19 @@ async def save_record_print_options(
             style=profile["style"],
             orientation=profile["orientation"],
             text_size=profile["text_size"],
-            paper_size=profile["paper_size"],
         )
         preference_saved = True
+    if user is not None and (form_data.get("set_paper_default") or [""])[0] in {"1", "on", "true"}:
+        save_user_print_preferences(
+            session,
+            user,
+            template_id=saved_preference["template_id"],
+            style=saved_preference["style"],
+            orientation=saved_preference["orientation"],
+            text_size=saved_preference["text_size"],
+            paper_size=profile["paper_size"],
+        )
+        paper_preference_saved = True
 
     query: dict[str, str] = {
         "style": profile["style"],
@@ -1628,6 +1642,8 @@ async def save_record_print_options(
     }
     if preference_saved:
         query["preference_saved"] = "1"
+    if paper_preference_saved:
+        query["paper_preference_saved"] = "1"
     if (form_data.get("from") or [""])[0] == "history":
         query["from"] = "history"
     history_return_url = safe_records_history_return((form_data.get("return_to") or [""])[0])

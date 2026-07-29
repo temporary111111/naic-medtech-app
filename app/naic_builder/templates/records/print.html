@@ -6,7 +6,7 @@
   <title>Print Record | {{ document.form_name }}</title>
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
-  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260729-paper-size-foundation-v1">
+  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260729-legal-paper-size-v1">
   {% set presentation = document.template or {} %}
 </head>
 <body class="print-template-{{ document.print_config.template_id | replace('_', '-') }} print-text-{{ document.print_config.text_size | replace('_', '-') }} print-density-{{ document.print_config.density }} print-font-{{ (document.print_config.font_family or 'arial_narrow') | replace('_', '-') }}" style="--accent: {{ document.print_config.accent_color }}; --accent-ink: {{ document.print_accent_ink or '#ffffff' }}; --print-page-width: {{ presentation.page_width_mm }}mm; --print-page-height: {{ presentation.page_height_mm }}mm;">
@@ -41,6 +41,7 @@
           {% if request.query_params.get("return_to") %}
           <input type="hidden" name="return_to" value="{{ request.query_params.get('return_to') }}">
           {% endif %}
+          <input type="hidden" name="paper_size" value="{{ presentation.paper_size }}">
           <fieldset class="print-layout-choice">
             <legend>Style</legend>
             <div class="print-segmented-control print-segmented-control--styles" role="radiogroup" aria-label="Print style">
@@ -79,6 +80,39 @@
           <p class="print-layout-notice">Your default print layout was saved.</p>
           {% endif %}
           <button class="print-link print-link--next" type="submit">Apply layout</button>
+        </form>
+      </details>
+      <details class="print-paper-control">
+        <summary>
+          <span>Paper size</span>
+          <strong>{{ presentation.paper_size_label }} · {{ presentation.page_dimensions_label }}</strong>
+        </summary>
+        <form method="post" action="/records/{{ record_meta.id }}/print-options" class="print-paper-form">
+          {% if request.query_params.get("from") == "history" %}
+          <input type="hidden" name="from" value="history">
+          {% endif %}
+          {% if request.query_params.get("return_to") %}
+          <input type="hidden" name="return_to" value="{{ request.query_params.get('return_to') }}">
+          {% endif %}
+          <input type="hidden" name="style" value="{{ presentation.style }}">
+          <input type="hidden" name="orientation" value="{{ presentation.orientation_key }}">
+          <input type="hidden" name="text_size" value="{{ presentation.text_size }}">
+          <label class="print-layout-field">
+            <span>Paper size</span>
+            <select name="paper_size">
+              {% for option in print_paper_size_options %}
+              <option value="{{ option.id }}"{% if presentation.paper_size == option.id %} selected{% endif %}>{{ option.label }} · {{ option.dimensions_label }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="print-default-option">
+            <input type="checkbox" name="set_paper_default" value="1">
+            <span>Use this paper size as my default</span>
+          </label>
+          {% if print_paper_preference_saved %}
+          <p class="print-layout-notice">Your default paper size was saved.</p>
+          {% endif %}
+          <button class="print-link print-link--next" type="submit">Apply paper size</button>
         </form>
       </details>
       <div class="print-toolbar-actions">

@@ -57,6 +57,12 @@ def parse_args() -> argparse.Namespace:
         help="Text-size profile to render during the audit.",
     )
     parser.add_argument(
+        "--paper-size",
+        choices=("a4", "legal"),
+        default="a4",
+        help="Paper size to render during the audit.",
+    )
+    parser.add_argument(
         "--output-dir",
         default=str(ROOT / "output" / "print-qa"),
         help="Directory for generated PDFs and report JSON.",
@@ -222,6 +228,7 @@ def generate_pdf(
     url: str,
     output_path: Path,
     storage_state_path: Path,
+    paper_size: str,
 ) -> subprocess.CompletedProcess[str]:
     command = [
         *npx,
@@ -230,7 +237,7 @@ def generate_pdf(
         "pdf",
         *playwright_browser_channel_args(),
         "--paper-format",
-        "A4",
+        {"a4": "A4", "legal": "Legal"}[paper_size],
         "--wait-for-selector",
         ".print-page",
         "--wait-for-timeout",
@@ -279,6 +286,7 @@ def main() -> int:
         "max_pages": args.max_pages,
         "template": args.template,
         "text_size": args.text_size,
+        "paper_size": args.paper_size,
         "results": [],
         "failures": [],
     }
@@ -301,13 +309,14 @@ def main() -> int:
         for record in records:
             slug = str(record["slug"])
             record_id = int(record["record_id"])
-            pdf_path = output_dir / f"{safe_filename(slug)}-{record_id}-{args.template}-{args.text_size}.pdf"
-            url = f"{base_url}/records/{record_id}/print?{urlencode({'template': args.template, 'text_size': args.text_size})}"
+            pdf_path = output_dir / f"{safe_filename(slug)}-{record_id}-{args.template}-{args.text_size}-{args.paper_size}.pdf"
+            url = f"{base_url}/records/{record_id}/print?{urlencode({'template': args.template, 'text_size': args.text_size, 'paper_size': args.paper_size})}"
             completed = generate_pdf(
                 npx=npx,
                 url=url,
                 output_path=pdf_path,
                 storage_state_path=storage_state_path,
+                paper_size=args.paper_size,
             )
             if completed.returncode != 0:
                 message = (completed.stderr or completed.stdout or "Playwright PDF failed.").strip()
@@ -324,6 +333,7 @@ def main() -> int:
                 "fit_label": record.get("fit_label"),
                 "template": args.template,
                 "text_size": args.text_size,
+                "paper_size": args.paper_size,
                 "pages": pages,
                 "pdf": str(pdf_path),
             }

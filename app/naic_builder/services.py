@@ -160,7 +160,7 @@ PRINT_PAPER_SIZE_DETAILS = {
         "width_mm": 216,
         "height_mm": 356,
         "dimensions_label": "216 x 356 mm",
-        "is_available": False,
+        "is_available": True,
     },
     "letter": {
         "id": "letter",
@@ -645,6 +645,22 @@ def print_presentation_details(
     details["text_size_options"] = print_text_size_options(profile["template_id"])
     details["orientation_options"] = print_orientation_options()
     return details
+
+
+def print_page_fit_limit_units(profile: dict[str, Any]) -> float:
+    template_id = normalize_print_template_id(profile.get("template_id"))
+    paper_size = normalize_print_paper_size(profile.get("paper_size"))
+    orientation = normalize_print_template_orientation(profile.get("orientation"))
+    selected_paper = PRINT_PAPER_SIZE_DETAILS[paper_size]
+    a4_paper = PRINT_PAPER_SIZE_DETAILS[DEFAULT_PRINT_PAPER_SIZE]
+    is_landscape = orientation == "landscape"
+    page_height_mm = selected_paper["width_mm"] if is_landscape else selected_paper["height_mm"]
+    a4_page_height_mm = a4_paper["width_mm"] if is_landscape else a4_paper["height_mm"]
+    vertical_margins_mm = 12 if is_landscape else 8
+    usable_height_factor = (page_height_mm - vertical_margins_mm) / (
+        a4_page_height_mm - vertical_margins_mm
+    )
+    return PRINT_TEMPLATE_CAPABILITIES[template_id]["fit_limit_units"] * usable_height_factor
 
 
 def normalize_print_signature_source(value: Any, *, default: str = "blank") -> str:
@@ -3513,11 +3529,12 @@ def estimate_print_page_fit(document: dict[str, Any]) -> dict[str, Any]:
     if text_size == "large":
         density_factor *= PRINT_TEMPLATE_CAPABILITIES[template_id]["large_text_fit_factor"]
     estimated_units = (base_units + print_item_fit_units(normalize_items(document.get("items")))) * density_factor
-    limit_units = PRINT_TEMPLATE_CAPABILITIES[template_id]["fit_limit_units"]
+    limit_units = print_page_fit_limit_units(profile)
+    page_size_label = PRINT_PAPER_SIZE_DETAILS[profile["paper_size"]]["label"]
     if estimated_units <= limit_units * 0.82:
         status = "likely"
         label = "Likely fits one page"
-        detail = "The current sample looks safely within the A4 target."
+        detail = f"The current sample looks safely within the {page_size_label} target."
     elif estimated_units <= limit_units:
         status = "tight"
         label = "May be tight"
