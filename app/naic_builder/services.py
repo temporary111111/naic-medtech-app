@@ -213,6 +213,15 @@ PRINT_TEMPLATE_CAPABILITIES = {
         "large_text_fit_factor": 1.10,
     },
 }
+PRINT_TEMPLATE_PAPER_CAPABILITIES = {
+    # Legacy A5 is the clinic's historical result-sheet workflow. It has a
+    # compact, single-page renderer, so large type is intentionally excluded.
+    ("legacy_landscape", "a5"): {
+        "text_sizes": ("standard",),
+        "fit_limit_units": 48.0,
+        "requires_one_page": True,
+    },
+}
 PRINT_TEMPLATE_DETAILS = {
     "modern_portrait": {
         "id": "modern_portrait",
@@ -520,17 +529,32 @@ def print_template_parts(template_id: Any) -> dict[str, str]:
     }
 
 
-def print_text_size_options(template_id: Any) -> list[dict[str, str]]:
+def print_template_paper_capabilities(template_id: Any, paper_size: Any = "") -> dict[str, Any]:
     selected_template_id = normalize_print_template_id(template_id)
-    allowed_sizes = PRINT_TEMPLATE_CAPABILITIES[selected_template_id]["text_sizes"]
+    selected_paper_size = normalize_print_paper_size(paper_size)
+    capabilities = dict(PRINT_TEMPLATE_CAPABILITIES[selected_template_id])
+    capabilities.update(
+        PRINT_TEMPLATE_PAPER_CAPABILITIES.get((selected_template_id, selected_paper_size), {})
+    )
+    return capabilities
+
+
+def print_text_size_options(template_id: Any, *, paper_size: Any = "") -> list[dict[str, str]]:
+    selected_template_id = normalize_print_template_id(template_id)
+    allowed_sizes = print_template_paper_capabilities(selected_template_id, paper_size)["text_sizes"]
     return [dict(PRINT_TEXT_SIZE_DETAILS[size]) for size in allowed_sizes]
 
 
-def normalize_print_text_size(value: Any, *, template_id: Any = "") -> str:
+def normalize_print_text_size(
+    value: Any,
+    *,
+    template_id: Any = "",
+    paper_size: Any = "",
+) -> str:
     normalized_template_id = normalize_print_template_id(template_id)
     text_size = compact_text(value).lower()
-    allowed_sizes = PRINT_TEMPLATE_CAPABILITIES[normalized_template_id]["text_sizes"]
-    return text_size if text_size in allowed_sizes else DEFAULT_PRINT_TEXT_SIZE
+    allowed_sizes = print_template_paper_capabilities(normalized_template_id, paper_size)["text_sizes"]
+    return text_size if text_size in allowed_sizes else allowed_sizes[0]
 
 
 def normalize_print_paper_size(value: Any) -> str:
@@ -574,11 +598,12 @@ def normalize_print_profile(
     selected_parts = print_template_parts(selected_template_id)
     selected_style = selected_parts["style"]
     selected_orientation = selected_parts["orientation"]
+    selected_paper_size = normalize_print_paper_size(paper_size)
     selected_text_size = normalize_print_text_size(
         text_size,
         template_id=selected_template_id,
+        paper_size=selected_paper_size,
     )
-    selected_paper_size = normalize_print_paper_size(paper_size)
     return {
         "version": PRINT_PROFILE_VERSION,
         "template_id": selected_template_id,
@@ -642,7 +667,15 @@ def print_presentation_details(
         }
     )
     details["text_size_label"] = PRINT_TEXT_SIZE_DETAILS[profile["text_size"]]["label"]
-    details["text_size_options"] = print_text_size_options(profile["template_id"])
+    capabilities = print_template_paper_capabilities(
+        profile["template_id"],
+        profile["paper_size"],
+    )
+    details["text_size_options"] = print_text_size_options(
+        profile["template_id"],
+        paper_size=profile["paper_size"],
+    )
+    details["requires_one_page"] = bool(capabilities.get("requires_one_page"))
     details["orientation_options"] = print_orientation_options()
     return details
 
@@ -663,8 +696,11 @@ def print_page_fit_limit_units(profile: dict[str, Any]) -> float:
         a4_page_height_mm - vertical_margins_mm
     )
     narrow_width_factor = min(1.0, page_width_mm / a4_page_width_mm)
+    capabilities = print_template_paper_capabilities(template_id, paper_size)
+    if "fit_limit_units" in PRINT_TEMPLATE_PAPER_CAPABILITIES.get((template_id, paper_size), {}):
+        return float(capabilities["fit_limit_units"])
     return (
-        PRINT_TEMPLATE_CAPABILITIES[template_id]["fit_limit_units"]
+        capabilities["fit_limit_units"]
         * usable_height_factor
         * narrow_width_factor
     )
@@ -3533,16 +3569,23 @@ def estimate_print_page_fit(document: dict[str, Any]) -> dict[str, Any]:
         base_units += max(1, (summary_count + 2) // 3) * 2.2
 
     density_factor = 1.14 if density == "comfortable" else 1.0
+    capabilities = print_template_paper_capabilities(template_id, profile["paper_size"])
     if text_size == "large":
-        density_factor *= PRINT_TEMPLATE_CAPABILITIES[template_id]["large_text_fit_factor"]
+        density_factor *= capabilities["large_text_fit_factor"]
     estimated_units = (base_units + print_item_fit_units(normalize_items(document.get("items")))) * density_factor
     limit_units = print_page_fit_limit_units(profile)
     paper_size = profile["paper_size"]
     page_size_label = PRINT_PAPER_SIZE_DETAILS[paper_size]["label"]
-    if estimated_units <= limit_units * 0.82:
+    requires_one_page = bool(capabilities.get("requires_one_page"))
+    likely_fit_ratio = 0.90 if requires_one_page else 0.82
+    if estimated_units <= limit_units * likely_fit_ratio:
         status = "likely"
-        label = "Likely fits one page"
-        detail = f"The current sample looks safely within the {page_size_label} target."
+        label = "Ready for one-page A5" if requires_one_page else "Likely fits one page"
+        detail = (
+            "Legacy A5 is configured to print this record on one page."
+            if requires_one_page
+            else f"The current sample looks safely within the {page_size_label} target."
+        )
     elif estimated_units <= limit_units:
         status = "tight"
         label = "May be tight"
@@ -3561,12 +3604,19 @@ def estimate_print_page_fit(document: dict[str, Any]) -> dict[str, Any]:
             else "Consider compact density, fewer summary rows, or hiding optional output later."
         )
 
+    can_print = not requires_one_page or status == "likely"
+    if requires_one_page and not can_print:
+        label = "Legacy A5 needs more space"
+        detail = "Legacy A5 is kept to one page. Use A4 or Legal for this record."
+
     return {
         "status": status,
         "label": label,
         "detail": detail,
         "estimated_units": round(estimated_units, 1),
         "limit_units": limit_units,
+        "requires_one_page": requires_one_page,
+        "can_print": can_print,
     }
 
 

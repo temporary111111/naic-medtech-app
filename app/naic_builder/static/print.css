@@ -2286,4 +2286,126 @@ body {
   .print-template-legacy-landscape.print-text-large .print-grid-cell small {
     font-size: 8.2px;
   }
+
+  /* The legacy A5 profile mirrors the clinic's historical one-page sheet. */
+  .print-template-legacy-landscape.print-paper-a5 .print-legacy-header {
+    grid-template-columns: 48px minmax(0, 1fr) minmax(118px, 0.76fr);
+    gap: 6px;
+    min-height: 48px;
+    padding-right: 2mm;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-legacy-header.no-logo {
+    grid-template-columns: minmax(0, 1fr) minmax(118px, 0.76fr);
+    padding: 2mm;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-legacy-header.no-clinic-info {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-legacy-header .print-logo-placeholder,
+  .print-template-legacy-landscape.print-paper-a5 .print-legacy-header .print-logo {
+    width: 48px;
+    height: 48px;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-legacy-header .print-clinic-copy strong {
+    font-size: 9.5px;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-legacy-header .print-clinic-copy span {
+    font-size: 6.4px;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-legacy-header .print-title {
+    font-size: 16px;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-meta-grid article {
+    gap: 1px;
+    padding: 1px 3px;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-meta-grid span {
+    font-size: 7px;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-meta-grid strong,
+  .print-template-legacy-landscape.print-paper-a5 .print-answer {
+    font-size: 9.5px;
+    line-height: 1.1;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-body {
+    margin-top: 2px;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-body > .print-section,
+  .print-template-legacy-landscape.print-paper-a5 .print-body > .print-group,
+  .print-template-legacy-landscape.print-paper-a5 .print-body > .print-table-block,
+  .print-template-legacy-landscape.print-paper-a5 .print-body > .print-note,
+  .print-template-legacy-landscape.print-paper-a5 .print-body > .print-divider-block {
+    margin-top: 1px;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-section-head,
+  .print-template-legacy-landscape.print-paper-a5 .print-group-head {
+    min-height: 14px;
+    padding: 1px 3px;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-section-title,
+  .print-template-legacy-landscape.print-paper-a5 .print-group-title,
+  .print-template-legacy-landscape.print-paper-a5 .print-row-name strong,
+  .print-template-legacy-landscape.print-paper-a5 .print-grid-cell-head strong {
+    font-size: 7.8px;
+    line-height: 1.1;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-row {
+    grid-template-columns: minmax(0, 1.18fr) minmax(106px, 1fr);
+    gap: 3px;
+    padding: 1px 3px;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-grid-cell {
+    gap: 1px;
+    padding: 1px 3px;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-result-unit,
+  .print-template-legacy-landscape.print-paper-a5 .print-row-name span,
+  .print-template-legacy-landscape.print-paper-a5 .print-grid-cell small {
+    font-size: 6.8px;
+    line-height: 1.1;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-footer {
+    gap: 6px;
+    margin-top: 1px;
+    padding-top: 1px;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-signature-mark {
+    min-height: 11px;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-signature.has-stamp-image .print-signature-mark {
+    min-height: 20px;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-signature-stamp {
+    max-height: 19px;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-signature-name {
+    font-size: 6.5px;
+  }
+
+  .print-template-legacy-landscape.print-paper-a5 .print-signature-label,
+  .print-template-legacy-landscape.print-paper-a5 .print-signature-designation,
+  .print-template-legacy-landscape.print-paper-a5 .print-signature small {
+    font-size: 5.5px;
+  }
 }

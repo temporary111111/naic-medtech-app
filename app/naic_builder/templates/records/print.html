@@ -6,11 +6,13 @@
   <title>Print Record | {{ document.form_name }}</title>
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
-  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260729-legal-paper-size-v1">
+  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260729-legacy-a5-one-page-v1">
   {% set presentation = document.template or {} %}
 </head>
-<body class="print-template-{{ document.print_config.template_id | replace('_', '-') }} print-text-{{ document.print_config.text_size | replace('_', '-') }} print-density-{{ document.print_config.density }} print-font-{{ (document.print_config.font_family or 'arial_narrow') | replace('_', '-') }}" style="--accent: {{ document.print_config.accent_color }}; --accent-ink: {{ document.print_accent_ink or '#ffffff' }}; --print-page-width: {{ presentation.page_width_mm }}mm; --print-page-height: {{ presentation.page_height_mm }}mm;">
-  {% if presentation.orientation_key == "landscape" %}
+<body class="print-template-{{ document.print_config.template_id | replace('_', '-') }} print-paper-{{ presentation.paper_size }} print-text-{{ document.print_config.text_size | replace('_', '-') }} print-density-{{ document.print_config.density }} print-font-{{ (document.print_config.font_family or 'arial_narrow') | replace('_', '-') }}" style="--accent: {{ document.print_config.accent_color }}; --accent-ink: {{ document.print_accent_ink or '#ffffff' }}; --print-page-width: {{ presentation.page_width_mm }}mm; --print-page-height: {{ presentation.page_height_mm }}mm;">
+  {% if presentation.requires_one_page %}
+  <style>@page { size: {{ presentation.page_css_size }} landscape; margin: 4mm 6mm; }</style>
+  {% elif presentation.orientation_key == "landscape" %}
   <style>@page { size: {{ presentation.page_css_size }} landscape; margin: 6mm 8mm; }</style>
   {% else %}
   <style>@page { size: {{ presentation.page_css_size }} portrait; margin: 4mm 6mm; }</style>
@@ -116,7 +118,7 @@
         </form>
       </details>
       <div class="print-toolbar-actions">
-        <button class="print-button" type="button" onclick="window.print()">Print / Save PDF</button>
+        <button class="print-button" type="button"{% if not fit.can_print %} disabled title="{{ fit.detail }}"{% else %} onclick="window.print()"{% endif %}>Print / Save PDF</button>
         {% if record_meta.form_slug %}
         <form method="post" action="/records/new" class="print-inline-form">
           <input type="hidden" name="form_slug" value="{{ record_meta.form_slug }}">

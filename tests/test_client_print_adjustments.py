@@ -34,6 +34,7 @@ from naic_builder.services import (
     build_print_summary_items,
     build_signatory_snapshot,
     default_signatory_slots,
+    estimate_print_page_fit,
     ensure_client_signatory_defaults,
     ensure_default_pathologist_stamp,
     ensure_form_version_storage_documents,
@@ -389,6 +390,33 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         a5_landscape = print_presentation_details("legacy_landscape", paper_size="a5")
         self.assertEqual(a5_landscape["page_width_mm"], 210)
         self.assertEqual(a5_landscape["page_height_mm"], 148)
+        self.assertTrue(a5_landscape["requires_one_page"])
+        self.assertEqual([option["id"] for option in a5_landscape["text_size_options"]], ["standard"])
+        legacy_a5_profile = normalize_print_profile(
+            template_id="legacy_landscape",
+            text_size="large",
+            paper_size="a5",
+        )
+        self.assertEqual(legacy_a5_profile["text_size"], "standard")
+        legacy_a5_fit = estimate_print_page_fit({
+            "print_config": {
+                "template_id": "legacy_landscape",
+                "text_size": "standard",
+                "paper_size": "a5",
+            },
+            "items": [],
+        })
+        self.assertTrue(legacy_a5_fit["requires_one_page"])
+        self.assertTrue(legacy_a5_fit["can_print"])
+        oversized_legacy_a5_fit = estimate_print_page_fit({
+            "print_config": {
+                "template_id": "legacy_landscape",
+                "text_size": "standard",
+                "paper_size": "a5",
+            },
+            "items": [{"kind": "field", "display": {}} for _ in range(40)],
+        })
+        self.assertFalse(oversized_legacy_a5_fit["can_print"])
         self.assertGreater(
             print_page_fit_limit_units(normalize_print_profile(template_id="modern_portrait", paper_size="legal")),
             print_page_fit_limit_units(normalize_print_profile(template_id="modern_portrait", paper_size="a4")),
