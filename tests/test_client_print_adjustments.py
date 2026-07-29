@@ -41,7 +41,9 @@ from naic_builder.services import (
     list_record_completion_issues,
     normalize_print_profile,
     normalize_signatory_slot,
+    print_orientation_options,
     print_presentation_details,
+    print_style_options,
     print_template_id_for,
     print_text_size_options,
     save_user_print_preferences,
@@ -313,11 +315,13 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(print_template_id_for("classic", "landscape"), "classic_landscape")
         self.assertEqual(print_template_id_for("modern", "portrait"), "modern_portrait")
         self.assertEqual(print_template_id_for("modern", "landscape"), "modern_landscape")
+        self.assertEqual(print_template_id_for("legacy", "landscape"), "legacy_landscape")
         for template_id in (
             "modern_portrait",
             "classic_portrait",
             "modern_landscape",
             "classic_landscape",
+            "legacy_landscape",
         ):
             self.assertEqual(
                 apply_print_presentation({}, template_id=template_id, text_size="large")["text_size"],
@@ -337,9 +341,29 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(profile["style"], "modern")
         self.assertEqual(profile["orientation"], "landscape")
         self.assertEqual(profile["text_size"], "large")
+        legacy_profile = normalize_print_profile(
+            template_id="legacy_landscape",
+            style="legacy",
+            orientation="portrait",
+            text_size="large",
+        )
+        self.assertEqual(legacy_profile["template_id"], "legacy_landscape")
+        self.assertEqual(legacy_profile["style"], "legacy")
+        self.assertEqual(legacy_profile["orientation"], "landscape")
+        self.assertEqual(legacy_profile["text_size"], "large")
         modern_landscape = print_presentation_details("modern_landscape")
         self.assertEqual(modern_landscape["style"], "modern")
         self.assertEqual(modern_landscape["orientation_key"], "landscape")
+        self.assertEqual(
+            [option["id"] for option in print_style_options()],
+            ["modern", "classic", "legacy"],
+        )
+        orientation_options = {option["id"]: option for option in print_orientation_options()}
+        self.assertEqual(orientation_options["portrait"]["supported_styles"], ["modern", "classic"])
+        self.assertEqual(
+            orientation_options["landscape"]["supported_styles"],
+            ["modern", "classic", "legacy"],
+        )
 
         engine = create_engine("sqlite://")
         Base.metadata.create_all(engine)
@@ -384,13 +408,29 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             self.assertEqual(user.print_template_id, "classic_portrait")
             self.assertEqual(user.print_text_size, "large")
 
+            saved = save_user_print_preferences(
+                session,
+                user,
+                template_id="legacy_landscape",
+                text_size="large",
+            )
+            self.assertEqual(saved["template_id"], "legacy_landscape")
+            self.assertEqual(saved["style"], "legacy")
+            self.assertEqual(saved["orientation"], "landscape")
+            self.assertEqual(saved["text_size"], "large")
+            session.refresh(user)
+            self.assertEqual(user.print_template_id, "legacy_landscape")
+            self.assertEqual(user.print_text_size, "large")
+
     def test_print_layout_uses_style_and_orientation_controls(self) -> None:
         source = (ROOT / "app" / "naic_builder" / "templates" / "records" / "print.html").read_text(encoding="utf-8")
 
-        self.assertIn('name="style" value="classic"', source)
-        self.assertIn('name="style" value="modern"', source)
-        self.assertIn('name="orientation" value="portrait"', source)
-        self.assertIn('name="orientation" value="landscape"', source)
+        self.assertIn('name="style" value="{{ option.id }}"', source)
+        self.assertIn("print_style_options", source)
+        self.assertIn("print_orientation_options", source)
+        self.assertIn("data-orientation-choice", source)
+        self.assertIn("data-supported-styles", source)
+        self.assertIn("print-segmented-control--single", source)
         self.assertIn('name="text_size"', source)
         self.assertIn('<span>Text size</span>', source)
         self.assertNotIn("data-template-select", source)
@@ -452,6 +492,37 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertLess(name_at, designation_at)
         self.assertNotIn(">Examination<", html)
         self.assertNotIn('class="print-row-unit"', html)
+
+        legacy_html = macro({
+            "items": [],
+            "clinic": {
+                "name": "NDH",
+                "logo_url": "/settings/clinic/logo",
+                "address": "Naic, Cavite",
+                "contact_line": "(046) 412-1443",
+                "doh_license_number": "03-123456-10",
+            },
+            "print_config": {
+                "style": "legacy",
+                "show_logo": True,
+                "show_clinic_info": True,
+                "show_status": False,
+                "show_summary": False,
+                "show_signatures": False,
+            },
+            "report_title": "Blood Bank",
+            "form_name": "Blood Bank",
+            "form_path_label": "Blood Bank",
+            "status": "completed",
+            "summary_items": [],
+            "signatures": [],
+        })
+        self.assertIn('class="print-legacy-header"', legacy_html)
+        self.assertIn('src="/settings/clinic/logo"', legacy_html)
+        self.assertIn('class="print-legacy-title"', legacy_html)
+        self.assertNotIn('class="print-exam-head"', legacy_html)
+        self.assertLess(legacy_html.index('src="/settings/clinic/logo"'), legacy_html.index("Blood Bank"))
+        self.assertLess(legacy_html.index("Blood Bank"), legacy_html.index("Naic, Cavite"))
 
     def test_print_temporal_values_are_nontechnical(self) -> None:
         self.assertEqual(format_print_temporal_value("date", "2026-07-16"), "07/16/2026")

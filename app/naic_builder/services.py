@@ -115,20 +115,24 @@ PRINT_TEMPLATE_IDS = {
     "modern_landscape",
     "classic_portrait",
     "classic_landscape",
+    "legacy_landscape",
 }
 PRINT_TEMPLATE_ORDER = (
     "modern_portrait",
     "classic_portrait",
     "modern_landscape",
     "classic_landscape",
+    "legacy_landscape",
 )
 PRINT_TEMPLATE_BY_STYLE_AND_ORIENTATION = {
     ("modern", "portrait"): "modern_portrait",
     ("classic", "portrait"): "classic_portrait",
     ("modern", "landscape"): "modern_landscape",
     ("classic", "landscape"): "classic_landscape",
+    ("legacy", "landscape"): "legacy_landscape",
 }
-PRINT_TEMPLATE_STYLES = {"classic", "modern"}
+PRINT_TEMPLATE_STYLE_ORDER = ("modern", "classic", "legacy")
+PRINT_TEMPLATE_STYLES = set(PRINT_TEMPLATE_STYLE_ORDER)
 PRINT_TEMPLATE_ORIENTATIONS = {"portrait", "landscape"}
 DEFAULT_PRINT_TEMPLATE_ID = "modern_portrait"
 DEFAULT_PRINT_TEXT_SIZE = "standard"
@@ -154,6 +158,11 @@ PRINT_TEMPLATE_CAPABILITIES = {
         "large_text_fit_factor": 1.08,
     },
     "classic_landscape": {
+        "text_sizes": ("standard", "large"),
+        "fit_limit_units": 62.0,
+        "large_text_fit_factor": 1.10,
+    },
+    "legacy_landscape": {
         "text_sizes": ("standard", "large"),
         "fit_limit_units": 62.0,
         "large_text_fit_factor": 1.10,
@@ -195,6 +204,15 @@ PRINT_TEMPLATE_DETAILS = {
         "orientation_key": "landscape",
         "style": "classic",
         "style_label": "Classic",
+    },
+    "legacy_landscape": {
+        "id": "legacy_landscape",
+        "name": "Legacy Landscape",
+        "description": "Historical laboratory-header style in a landscape layout.",
+        "orientation": "Landscape",
+        "orientation_key": "landscape",
+        "style": "legacy",
+        "style_label": "Legacy",
     },
 }
 DEFAULT_PRINT_SUMMARY_ITEMS = [
@@ -384,13 +402,68 @@ def normalize_print_template_orientation(value: Any) -> str:
     return orientation if orientation in PRINT_TEMPLATE_ORIENTATIONS else "portrait"
 
 
-def print_template_id_for(style: Any, orientation: Any) -> str:
-    return PRINT_TEMPLATE_BY_STYLE_AND_ORIENTATION[
-        (
-            normalize_print_template_style(style),
-            normalize_print_template_orientation(orientation),
+def print_template_ids_for_style(style: Any) -> tuple[str, ...]:
+    selected_style = normalize_print_template_style(style)
+    return tuple(
+        template_id
+        for template_id in PRINT_TEMPLATE_ORDER
+        if PRINT_TEMPLATE_DETAILS[template_id]["style"] == selected_style
+    )
+
+
+def print_style_options() -> list[dict[str, str]]:
+    options: list[dict[str, str]] = []
+    for style in PRINT_TEMPLATE_STYLE_ORDER:
+        template_ids = print_template_ids_for_style(style)
+        if not template_ids:
+            continue
+        options.append(
+            {
+                "id": style,
+                "label": PRINT_TEMPLATE_DETAILS[template_ids[0]]["style_label"],
+            }
         )
-    ]
+    return options
+
+
+def print_orientation_options() -> list[dict[str, Any]]:
+    options: list[dict[str, Any]] = []
+    for orientation in ("portrait", "landscape"):
+        supported_styles = [
+            style
+            for style in PRINT_TEMPLATE_STYLE_ORDER
+            if (style, orientation) in PRINT_TEMPLATE_BY_STYLE_AND_ORIENTATION
+        ]
+        options.append(
+            {
+                "id": orientation,
+                "label": orientation.title(),
+                "supported_styles": supported_styles,
+            }
+        )
+    return options
+
+
+def print_template_id_for(
+    style: Any,
+    orientation: Any,
+    *,
+    fallback_template_id: Any = "",
+) -> str:
+    selected_style = normalize_print_template_style(style)
+    selected_orientation = normalize_print_template_orientation(orientation)
+    resolved_template_id = PRINT_TEMPLATE_BY_STYLE_AND_ORIENTATION.get(
+        (selected_style, selected_orientation)
+    )
+    if resolved_template_id:
+        return resolved_template_id
+
+    fallback = normalize_print_template_id(fallback_template_id)
+    if PRINT_TEMPLATE_DETAILS[fallback]["style"] == selected_style:
+        return fallback
+
+    available_templates = print_template_ids_for_style(selected_style)
+    return available_templates[0] if available_templates else DEFAULT_PRINT_TEMPLATE_ID
 
 
 def print_template_parts(template_id: Any) -> dict[str, str]:
@@ -434,7 +507,14 @@ def normalize_print_profile(
         if compact_text(orientation)
         else fallback_parts["orientation"]
     )
-    selected_template_id = print_template_id_for(selected_style, selected_orientation)
+    selected_template_id = print_template_id_for(
+        selected_style,
+        selected_orientation,
+        fallback_template_id=selected_template_id,
+    )
+    selected_parts = print_template_parts(selected_template_id)
+    selected_style = selected_parts["style"]
+    selected_orientation = selected_parts["orientation"]
     selected_text_size = normalize_print_text_size(
         text_size,
         template_id=selected_template_id,
@@ -484,11 +564,8 @@ def print_presentation_details(
     details.update(profile)
     details["text_size_label"] = PRINT_TEXT_SIZE_DETAILS[profile["text_size"]]["label"]
     details["text_size_options"] = print_text_size_options(profile["template_id"])
+    details["orientation_options"] = print_orientation_options()
     return details
-
-
-def print_presentation_options() -> list[dict[str, str]]:
-    return [dict(PRINT_TEMPLATE_DETAILS[template_id]) for template_id in PRINT_TEMPLATE_ORDER]
 
 
 def normalize_print_signature_source(value: Any, *, default: str = "blank") -> str:

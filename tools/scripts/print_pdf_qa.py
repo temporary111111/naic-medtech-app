@@ -40,7 +40,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-pages", type=int, default=1, help="Maximum acceptable PDF page count.")
     parser.add_argument(
         "--template",
-        choices=("modern_portrait", "classic_landscape"),
+        choices=(
+            "modern_portrait",
+            "classic_portrait",
+            "modern_landscape",
+            "classic_landscape",
+            "legacy_landscape",
+        ),
         default="modern_portrait",
         help="Print template to render during the audit.",
     )
@@ -185,29 +191,44 @@ def count_pdf_pages(path: Path) -> int:
     return len(re.findall(rb"/Type\s*/Page\b", data))
 
 
-def playwright_executable() -> str:
+def playwright_command_prefix() -> list[str]:
+    if os.name == "nt":
+        node = shutil.which("node.exe")
+        npx_cli = Path(node).parent / "node_modules" / "npm" / "bin" / "npx-cli.js" if node else None
+        if node and npx_cli and npx_cli.is_file():
+            return [node, str(npx_cli)]
+
     executable = shutil.which("npx.cmd") if os.name == "nt" else shutil.which("npx")
     executable = executable or shutil.which("npx")
     if not executable:
         raise RuntimeError("npx was not found. Install Node.js/npm before running browser PDF QA.")
-    return executable
+    return [executable]
+
+
+def playwright_browser_channel_args() -> list[str]:
+    if os.name != "nt":
+        return []
+    edge_paths = (
+        Path(os.environ.get("PROGRAMFILES(X86)", "")) / "Microsoft" / "Edge" / "Application" / "msedge.exe",
+        Path(os.environ.get("PROGRAMFILES", "")) / "Microsoft" / "Edge" / "Application" / "msedge.exe",
+        Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft" / "Edge" / "Application" / "msedge.exe",
+    )
+    return ["--channel", "msedge"] if any(path.is_file() for path in edge_paths) else []
 
 
 def generate_pdf(
     *,
-    npx: str,
+    npx: list[str],
     url: str,
     output_path: Path,
     storage_state_path: Path,
 ) -> subprocess.CompletedProcess[str]:
-    # npx.cmd is executed by cmd.exe on Windows. Quote the URL explicitly so
-    # query-string separators are passed to Playwright instead of cmd.exe.
-    url_argument = f'"{url}"' if os.name == "nt" else url
     command = [
-        npx,
+        *npx,
         "--yes",
         "playwright",
         "pdf",
+        *playwright_browser_channel_args(),
         "--paper-format",
         "A4",
         "--wait-for-selector",
@@ -218,7 +239,7 @@ def generate_pdf(
         "30000",
         "--load-storage",
         str(storage_state_path),
-        url_argument,
+        url,
         str(output_path),
     ]
     return subprocess.run(
@@ -275,7 +296,7 @@ def main() -> int:
 
         server, base_url = start_server(args.host, args.port, output_dir)
         write_storage_state(storage_state_path, base_url, actor_user_id)
-        npx = playwright_executable()
+        npx = playwright_command_prefix()
 
         for record in records:
             slug = str(record["slug"])

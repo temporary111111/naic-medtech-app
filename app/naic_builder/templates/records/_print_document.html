@@ -131,7 +131,35 @@
   {% set clinic = document["clinic"] or {} %}
   {% set print_config = document["print_config"] or {} %}
   <section class="print-page">
-    {% if print_config.show_logo or print_config.show_clinic_info %}
+    {% if print_config.style == "legacy" %}
+    <header class="print-legacy-header{% if not print_config.show_logo %} no-logo{% endif %}{% if not print_config.show_clinic_info %} no-clinic-info{% endif %}">
+      {% if print_config.show_logo %}
+        {% if clinic.logo_url %}
+        <img class="print-logo" src="{{ clinic.logo_url }}" alt="{{ clinic.name }}">
+        {% else %}
+        <div class="print-logo-placeholder">{{ clinic.name[:2] | upper }}</div>
+        {% endif %}
+      {% endif %}
+      <div class="print-legacy-title">
+        <h1 class="print-title">{{ document.report_title or document.form_name }}</h1>
+      </div>
+      {% if print_config.show_clinic_info %}
+      <div class="print-clinic-copy">
+        <strong>{{ clinic.name }}</strong>
+        {% if clinic.address %}
+        <span>{{ clinic.address }}</span>
+        {% endif %}
+        {% if clinic.contact_line %}
+        <span>{{ clinic.contact_line }}</span>
+        {% endif %}
+        {% if clinic.doh_license_number %}
+        <span>DOH License No.: {{ clinic.doh_license_number }}</span>
+        {% endif %}
+      </div>
+      {% endif %}
+    </header>
+    {% else %}
+      {% if print_config.show_logo or print_config.show_clinic_info %}
     <header class="print-document-header">
       <div class="print-clinic-brand{% if not print_config.show_logo %} no-logo{% endif %}">
         {% if print_config.show_logo %}
@@ -157,7 +185,7 @@
         {% endif %}
       </div>
     </header>
-    {% endif %}
+      {% endif %}
 
     <section class="print-exam-head">
       <div class="print-exam-copy">
@@ -170,6 +198,7 @@
       <span class="print-status" data-status="{{ document.status }}">{{ document.status }}</span>
       {% endif %}
     </section>
+    {% endif %}
 
     {% if print_config.show_summary and document.summary_items %}
     <section class="print-meta-grid" aria-label="Record details">

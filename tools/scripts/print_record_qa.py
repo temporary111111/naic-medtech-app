@@ -8,6 +8,7 @@ import json
 import shutil
 import sys
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
@@ -62,8 +63,18 @@ def sqlite_sidecar_paths(db_path: Path) -> list[Path]:
 
 def remove_sqlite_sidecars(db_path: Path) -> None:
     for path in sqlite_sidecar_paths(db_path):
-        if path.exists():
-            path.unlink()
+        unlink_with_retry(path)
+
+
+def unlink_with_retry(path: Path, *, attempts: int = 8) -> None:
+    for attempt in range(attempts):
+        try:
+            path.unlink(missing_ok=True)
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.25)
 
 
 def snapshot_runtime_db() -> RuntimeDbSnapshot:
@@ -97,11 +108,10 @@ def restore_runtime_db(snapshot: RuntimeDbSnapshot) -> None:
     if snapshot.existed and snapshot.backup_path is not None:
         snapshot.db_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(snapshot.backup_path, snapshot.db_path)
-        snapshot.backup_path.unlink(missing_ok=True)
+        unlink_with_retry(snapshot.backup_path)
         return
 
-    if snapshot.db_path.exists():
-        snapshot.db_path.unlink()
+    unlink_with_retry(snapshot.db_path)
 
 
 def compact_text(value: Any) -> str:
@@ -160,12 +170,14 @@ def build_required_signatory_meta(block_schema: dict[str, Any]) -> dict[str, Any
 
 
 def first_active_user_id() -> int | None:
-    from naic_builder.database import SessionLocal
+    from naic_builder.database import SessionLocal, ensure_runtime_schema
     from naic_builder.models import User
     from naic_builder.schemas import SetupAdminPayload
-    from naic_builder.services import create_initial_admin
+    from naic_builder.services import create_initial_admin, ensure_reference_seed
 
+    ensure_runtime_schema()
     with SessionLocal() as session:
+        ensure_reference_seed(session)
         user = session.scalars(
             select(User)
             .where(User.status == "active")

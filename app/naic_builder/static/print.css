@@ -199,6 +199,18 @@ body {
   background: var(--faint);
 }
 
+.print-segmented-control--styles {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.print-segmented-control--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.print-segmented-control label[hidden] {
+  display: none;
+}
+
 .print-segmented-control label {
   position: relative;
   display: block;
@@ -1341,6 +1353,187 @@ body {
   font-size: 10.5px;
 }
 
+.print-template-legacy-landscape .print-shell,
+.print-template-legacy-landscape .print-toolbar {
+  width: min(297mm, 100%);
+}
+
+.print-template-legacy-landscape .print-page {
+  width: min(297mm, 100%);
+  min-height: 210mm;
+  padding: 10mm 12mm;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.print-template-legacy-landscape .print-legacy-header {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) minmax(190px, 0.72fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 68px;
+  padding: 3.5mm 4mm;
+  color: var(--accent-ink);
+  background: var(--accent);
+}
+
+.print-template-legacy-landscape .print-legacy-header.no-logo {
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 0.72fr);
+}
+
+.print-template-legacy-landscape .print-legacy-header.no-clinic-info {
+  grid-template-columns: 62px minmax(0, 1fr);
+}
+
+.print-template-legacy-landscape .print-legacy-header.no-logo.no-clinic-info {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.print-template-legacy-landscape .print-legacy-header .print-logo-placeholder,
+.print-template-legacy-landscape .print-legacy-header .print-logo {
+  width: 62px;
+  height: 62px;
+  border: 0;
+  border-radius: 0;
+}
+
+.print-template-legacy-landscape .print-legacy-header .print-logo-placeholder {
+  color: var(--accent-ink);
+  background: transparent;
+}
+
+.print-template-legacy-landscape .print-legacy-title {
+  min-width: 0;
+}
+
+.print-template-legacy-landscape .print-legacy-header .print-title {
+  margin: 0;
+  color: inherit;
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.08;
+  text-transform: uppercase;
+}
+
+.print-template-legacy-landscape .print-legacy-header .print-clinic-copy {
+  gap: 1px;
+  color: inherit;
+  text-align: right;
+}
+
+.print-template-legacy-landscape .print-legacy-header .print-clinic-copy strong {
+  color: inherit;
+  font-size: 15px;
+  line-height: 1.05;
+}
+
+.print-template-legacy-landscape .print-legacy-header .print-clinic-copy span {
+  color: inherit;
+  font-size: 8.5px;
+  line-height: 1.2;
+}
+
+.print-template-legacy-landscape .print-meta-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 0;
+}
+
+.print-template-legacy-landscape .print-meta-grid article {
+  gap: 3px;
+  padding: 5px 7px;
+}
+
+.print-template-legacy-landscape .print-meta-grid article:nth-child(3n) {
+  border-right: 1px solid var(--line);
+}
+
+.print-template-legacy-landscape .print-meta-grid article:nth-child(4n) {
+  border-right: 0;
+}
+
+.print-template-legacy-landscape .print-body {
+  margin-top: 6px;
+}
+
+.print-template-legacy-landscape .print-section-head,
+.print-template-legacy-landscape .print-group-head {
+  min-height: 24px;
+  padding: 4px 6px;
+  border-color: var(--ink);
+  border-bottom: 1px solid var(--ink);
+  background: #fff;
+}
+
+.print-template-legacy-landscape .print-section-title,
+.print-template-legacy-landscape .print-group-title {
+  color: var(--ink);
+  font-size: 10px;
+}
+
+.print-template-legacy-landscape .print-row {
+  grid-template-columns: minmax(0, 1.2fr) minmax(180px, 1fr);
+  gap: 7px;
+  padding: 4px 6px;
+  border-color: var(--line);
+}
+
+.print-template-legacy-landscape .print-field-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-color: var(--line);
+}
+
+.print-template-legacy-landscape .print-grid-cell {
+  gap: 3px;
+  padding: 4px 6px;
+}
+
+.print-template-legacy-landscape .print-grid-cell:nth-child(-n + 2) {
+  border-top: 1px solid var(--line-soft);
+}
+
+.print-template-legacy-landscape .print-grid-cell:nth-child(-n + 3) {
+  border-top: 0;
+}
+
+.print-template-legacy-landscape .print-grid-cell:nth-child(odd) {
+  border-left: 1px solid var(--line-soft);
+}
+
+.print-template-legacy-landscape .print-grid-cell:nth-child(3n + 1) {
+  border-left: 0;
+}
+
+.print-template-legacy-landscape .print-footer {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 26px;
+  margin-top: 13px;
+  padding-top: 7px;
+}
+
+.print-template-legacy-landscape .print-signature-label {
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+
+.print-template-legacy-landscape.print-text-large .print-title {
+  font-size: 25px;
+}
+
+.print-template-legacy-landscape.print-text-large .print-meta-grid strong,
+.print-template-legacy-landscape.print-text-large .print-answer {
+  font-size: 13.5px;
+}
+
+.print-template-legacy-landscape.print-text-large .print-row-name strong,
+.print-template-legacy-landscape.print-text-large .print-grid-cell-head strong {
+  font-size: 12px;
+}
+
+.print-template-legacy-landscape.print-text-large .print-result-unit,
+.print-template-legacy-landscape.print-text-large .print-row-name span,
+.print-template-legacy-landscape.print-text-large .print-grid-cell small {
+  font-size: 10.5px;
+}
+
 @media screen and (max-width: 760px) {
   body {
     padding: 12px;
@@ -1947,6 +2140,144 @@ body {
   .print-template-classic-landscape.print-text-large .print-result-unit,
   .print-template-classic-landscape.print-text-large .print-row-name span,
   .print-template-classic-landscape.print-text-large .print-grid-cell small {
+    font-size: 8.2px;
+  }
+
+  .print-template-legacy-landscape .print-page {
+    min-height: 0;
+    padding: 0;
+  }
+
+  .print-template-legacy-landscape .print-legacy-header {
+    grid-template-columns: 50px minmax(0, 1fr) minmax(145px, 0.72fr);
+    gap: 7px;
+    min-height: 54px;
+    padding: 2.5mm 3mm;
+  }
+
+  .print-template-legacy-landscape .print-legacy-header.no-logo {
+    grid-template-columns: minmax(0, 1fr) minmax(145px, 0.72fr);
+  }
+
+  .print-template-legacy-landscape .print-legacy-header.no-clinic-info {
+    grid-template-columns: 50px minmax(0, 1fr);
+  }
+
+  .print-template-legacy-landscape .print-legacy-header.no-logo.no-clinic-info {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .print-template-legacy-landscape .print-legacy-header .print-logo-placeholder,
+  .print-template-legacy-landscape .print-legacy-header .print-logo {
+    width: 50px;
+    height: 50px;
+  }
+
+  .print-template-legacy-landscape .print-legacy-header .print-clinic-copy strong {
+    font-size: 11px;
+  }
+
+  .print-template-legacy-landscape .print-legacy-header .print-clinic-copy span {
+    font-size: 7.2px;
+  }
+
+  .print-template-legacy-landscape .print-legacy-header .print-title {
+    font-size: 17px;
+  }
+
+  .print-template-legacy-landscape .print-meta-grid {
+    margin-top: 0;
+  }
+
+  .print-template-legacy-landscape .print-meta-grid article {
+    gap: 2px;
+    padding: 2.5px 4px;
+  }
+
+  .print-template-legacy-landscape .print-body {
+    margin-top: 4px;
+  }
+
+  .print-template-legacy-landscape .print-section-head,
+  .print-template-legacy-landscape .print-group-head {
+    min-height: 19px;
+    padding: 2.5px 4px;
+  }
+
+  .print-template-legacy-landscape .print-section-title,
+  .print-template-legacy-landscape .print-group-title {
+    font-size: 8.8px;
+  }
+
+  .print-template-legacy-landscape .print-row {
+    grid-template-columns: minmax(0, 1.2fr) minmax(130px, 1fr);
+    gap: 4px;
+    padding: 2.5px 4px;
+  }
+
+  .print-template-legacy-landscape .print-field-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .print-template-legacy-landscape .print-grid-cell {
+    gap: 2px;
+    padding: 2.5px 4px;
+  }
+
+  .print-template-legacy-landscape .print-footer {
+    gap: 12px;
+    margin-top: 4px;
+    padding-top: 3px;
+  }
+
+  .print-template-legacy-landscape .print-signature {
+    gap: 1px;
+  }
+
+  .print-template-legacy-landscape .print-signature-mark {
+    min-height: 17px;
+  }
+
+  .print-template-legacy-landscape .print-signature.has-stamp-image .print-signature-mark {
+    min-height: 32px;
+  }
+
+  .print-template-legacy-landscape .print-signature-stamp {
+    max-height: 31px;
+  }
+
+  .print-template-legacy-landscape .print-signature-name {
+    font-size: 8px;
+  }
+
+  .print-template-legacy-landscape .print-signature-label,
+  .print-template-legacy-landscape .print-signature-designation {
+    font-size: 6.8px;
+  }
+
+  .print-template-legacy-landscape .print-signature small {
+    font-size: 6.5px;
+  }
+
+  .print-template-legacy-landscape.print-text-large .print-title {
+    font-size: 18px;
+  }
+
+  .print-template-legacy-landscape.print-text-large .print-meta-grid strong,
+  .print-template-legacy-landscape.print-text-large .print-answer {
+    font-size: 10.5px;
+  }
+
+  .print-template-legacy-landscape.print-text-large .print-section-title,
+  .print-template-legacy-landscape.print-text-large .print-group-title,
+  .print-template-legacy-landscape.print-text-large .print-row-name strong,
+  .print-template-legacy-landscape.print-text-large .print-grid-cell-head strong {
+    font-size: 9.2px;
+  }
+
+  .print-template-legacy-landscape.print-text-large .print-result-unit,
+  .print-template-legacy-landscape.print-text-large .print-row-name span,
+  .print-template-legacy-landscape.print-text-large .print-grid-cell small {
     font-size: 8.2px;
   }
 }
