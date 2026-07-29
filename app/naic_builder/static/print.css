@@ -957,23 +957,31 @@ body {
   padding-block: 10px;
 }
 
-.print-template-modern-portrait.print-text-large .print-title {
+.print-template-modern-portrait.print-text-large .print-title,
+.print-template-classic-portrait.print-text-large .print-title {
   font-size: 27px;
 }
 
 .print-template-modern-portrait.print-text-large .print-meta-grid strong,
-.print-template-modern-portrait.print-text-large .print-answer {
+.print-template-modern-portrait.print-text-large .print-answer,
+.print-template-classic-portrait.print-text-large .print-meta-grid strong,
+.print-template-classic-portrait.print-text-large .print-answer {
   font-size: 14px;
 }
 
 .print-template-modern-portrait.print-text-large .print-row-name strong,
-.print-template-modern-portrait.print-text-large .print-grid-cell-head strong {
+.print-template-modern-portrait.print-text-large .print-grid-cell-head strong,
+.print-template-classic-portrait.print-text-large .print-row-name strong,
+.print-template-classic-portrait.print-text-large .print-grid-cell-head strong {
   font-size: 12.5px;
 }
 
 .print-template-modern-portrait.print-text-large .print-result-unit,
 .print-template-modern-portrait.print-text-large .print-row-name span,
-.print-template-modern-portrait.print-text-large .print-grid-cell small {
+.print-template-modern-portrait.print-text-large .print-grid-cell small,
+.print-template-classic-portrait.print-text-large .print-result-unit,
+.print-template-classic-portrait.print-text-large .print-row-name span,
+.print-template-classic-portrait.print-text-large .print-grid-cell small {
   font-size: 11px;
 }
 
@@ -1305,6 +1313,34 @@ body {
   padding-top: 7px;
 }
 
+.print-template-modern-landscape.print-text-large .print-title,
+.print-template-classic-landscape.print-text-large .print-title {
+  font-size: 25px;
+}
+
+.print-template-modern-landscape.print-text-large .print-meta-grid strong,
+.print-template-modern-landscape.print-text-large .print-answer,
+.print-template-classic-landscape.print-text-large .print-meta-grid strong,
+.print-template-classic-landscape.print-text-large .print-answer {
+  font-size: 13.5px;
+}
+
+.print-template-modern-landscape.print-text-large .print-row-name strong,
+.print-template-modern-landscape.print-text-large .print-grid-cell-head strong,
+.print-template-classic-landscape.print-text-large .print-row-name strong,
+.print-template-classic-landscape.print-text-large .print-grid-cell-head strong {
+  font-size: 12px;
+}
+
+.print-template-modern-landscape.print-text-large .print-result-unit,
+.print-template-modern-landscape.print-text-large .print-row-name span,
+.print-template-modern-landscape.print-text-large .print-grid-cell small,
+.print-template-classic-landscape.print-text-large .print-result-unit,
+.print-template-classic-landscape.print-text-large .print-row-name span,
+.print-template-classic-landscape.print-text-large .print-grid-cell small {
+  font-size: 10.5px;
+}
+
 @media screen and (max-width: 760px) {
   body {
     padding: 12px;
@@ -1617,23 +1653,31 @@ body {
     margin-top: 8px;
   }
 
-  .print-template-modern-portrait.print-text-large .print-title {
+  .print-template-modern-portrait.print-text-large .print-title,
+  .print-template-classic-portrait.print-text-large .print-title {
     font-size: 22px;
   }
 
   .print-template-modern-portrait.print-text-large .print-meta-grid strong,
-  .print-template-modern-portrait.print-text-large .print-answer {
+  .print-template-modern-portrait.print-text-large .print-answer,
+  .print-template-classic-portrait.print-text-large .print-meta-grid strong,
+  .print-template-classic-portrait.print-text-large .print-answer {
     font-size: 12.5px;
   }
 
   .print-template-modern-portrait.print-text-large .print-row-name strong,
-  .print-template-modern-portrait.print-text-large .print-grid-cell-head strong {
+  .print-template-modern-portrait.print-text-large .print-grid-cell-head strong,
+  .print-template-classic-portrait.print-text-large .print-row-name strong,
+  .print-template-classic-portrait.print-text-large .print-grid-cell-head strong {
     font-size: 11.5px;
   }
 
   .print-template-modern-portrait.print-text-large .print-result-unit,
   .print-template-modern-portrait.print-text-large .print-row-name span,
-  .print-template-modern-portrait.print-text-large .print-grid-cell small {
+  .print-template-modern-portrait.print-text-large .print-grid-cell small,
+  .print-template-classic-portrait.print-text-large .print-result-unit,
+  .print-template-classic-portrait.print-text-large .print-row-name span,
+  .print-template-classic-portrait.print-text-large .print-grid-cell small {
     font-size: 10px;
   }
 
@@ -1755,5 +1799,154 @@ body {
 
   .print-template-classic-landscape .print-signature small {
     font-size: 6.5px;
+  }
+
+  .print-template-modern-landscape .print-page {
+    min-height: 0;
+    padding: 0;
+  }
+
+  .print-template-modern-landscape .print-document-header {
+    padding-bottom: 2px;
+  }
+
+  .print-template-modern-landscape .print-clinic-brand {
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 7px;
+  }
+
+  .print-template-modern-landscape .print-logo-placeholder,
+  .print-template-modern-landscape .print-logo {
+    width: 52px;
+    height: 52px;
+  }
+
+  .print-template-modern-landscape .print-clinic-copy strong {
+    font-size: 11px;
+  }
+
+  .print-template-modern-landscape .print-clinic-copy span {
+    font-size: 7.5px;
+  }
+
+  .print-template-modern-landscape .print-exam-head {
+    min-height: 24px;
+    margin-top: 3px;
+    padding: 3px 5px;
+  }
+
+  .print-template-modern-landscape .print-title {
+    font-size: 17px;
+  }
+
+  .print-template-modern-landscape .print-meta-grid {
+    margin-top: 3px;
+  }
+
+  .print-template-modern-landscape .print-meta-grid article {
+    gap: 2px;
+    padding: 2.5px 4px;
+  }
+
+  .print-template-modern-landscape .print-body {
+    margin-top: 4px;
+  }
+
+  .print-template-modern-landscape .print-section-head,
+  .print-template-modern-landscape .print-group-head {
+    min-height: 19px;
+    padding: 2.5px 4px;
+  }
+
+  .print-template-modern-landscape .print-section-title,
+  .print-template-modern-landscape .print-group-title {
+    font-size: 8.8px;
+  }
+
+  .print-template-modern-landscape .print-row {
+    gap: 4px;
+    padding: 2.5px 4px;
+  }
+
+  .print-template-modern-landscape .print-grid-cell {
+    gap: 2px;
+    padding: 2.5px 4px;
+  }
+
+  .print-template-modern-landscape .print-footer {
+    gap: 14px;
+    margin-top: 4px;
+    padding-top: 3px;
+  }
+
+  .print-template-modern-landscape .print-signature {
+    gap: 1px;
+  }
+
+  .print-template-modern-landscape .print-signature-mark {
+    min-height: 18px;
+  }
+
+  .print-template-modern-landscape .print-signature.has-stamp-image .print-signature-mark {
+    min-height: 34px;
+  }
+
+  .print-template-modern-landscape .print-signature-stamp {
+    max-height: 33px;
+  }
+
+  .print-template-modern-landscape .print-signature-name {
+    font-size: 8.2px;
+  }
+
+  .print-template-modern-landscape .print-signature-label,
+  .print-template-modern-landscape .print-signature-designation {
+    font-size: 7px;
+  }
+
+  .print-template-modern-landscape .print-signature small {
+    font-size: 6.7px;
+  }
+
+  .print-template-modern-landscape.print-text-large .print-title {
+    font-size: 19px;
+  }
+
+  .print-template-modern-landscape.print-text-large .print-meta-grid strong,
+  .print-template-modern-landscape.print-text-large .print-answer {
+    font-size: 11.5px;
+  }
+
+  .print-template-modern-landscape.print-text-large .print-row-name strong,
+  .print-template-modern-landscape.print-text-large .print-grid-cell-head strong {
+    font-size: 10.5px;
+  }
+
+  .print-template-modern-landscape.print-text-large .print-result-unit,
+  .print-template-modern-landscape.print-text-large .print-row-name span,
+  .print-template-modern-landscape.print-text-large .print-grid-cell small {
+    font-size: 9px;
+  }
+
+  .print-template-classic-landscape.print-text-large .print-title {
+    font-size: 17px;
+  }
+
+  .print-template-classic-landscape.print-text-large .print-meta-grid strong,
+  .print-template-classic-landscape.print-text-large .print-answer {
+    font-size: 10.5px;
+  }
+
+  .print-template-classic-landscape.print-text-large .print-section-title,
+  .print-template-classic-landscape.print-text-large .print-group-title,
+  .print-template-classic-landscape.print-text-large .print-row-name strong,
+  .print-template-classic-landscape.print-text-large .print-grid-cell-head strong {
+    font-size: 9.2px;
+  }
+
+  .print-template-classic-landscape.print-text-large .print-result-unit,
+  .print-template-classic-landscape.print-text-large .print-row-name span,
+  .print-template-classic-landscape.print-text-large .print-grid-cell small {
+    font-size: 8.2px;
   }
 }

@@ -101,9 +101,7 @@ from .services import (
     list_move_target_choices,
     move_container,
     move_form,
-    normalize_print_template_id,
-    print_template_id_for,
-    normalize_print_text_size,
+    normalize_print_profile,
     print_presentation_options,
     request_account,
     RecordCompletionValidationError,
@@ -973,12 +971,11 @@ def render_record_print_page(
     clinic_logo_url = "/settings/clinic/logo" if clinic_profile.get("has_logo") else ""
     current_user = get_user_or_none(session, current_user_id(request) or 0)
     saved_preference = user_print_preferences(current_user)
-    template_id = normalize_print_template_id(
-        request.query_params.get("template") or saved_preference["template_id"]
-    )
-    text_size = normalize_print_text_size(
-        request.query_params.get("text_size") or saved_preference["text_size"],
-        template_id=template_id,
+    profile = normalize_print_profile(
+        template_id=request.query_params.get("template") or saved_preference["template_id"],
+        style=request.query_params.get("style"),
+        orientation=request.query_params.get("orientation"),
+        text_size=request.query_params.get("text_size") or saved_preference["text_size"],
     )
     back_to_history = request.query_params.get("from") == "history"
     history_return_url = safe_records_history_return(request.query_params.get("return_to"))
@@ -998,8 +995,10 @@ def render_record_print_page(
                 record,
                 clinic_profile=clinic_profile,
                 clinic_logo_url=clinic_logo_url,
-                template_id=template_id,
-                text_size=text_size,
+                template_id=profile["template_id"],
+                style=profile["style"],
+                orientation=profile["orientation"],
+                text_size=profile["text_size"],
             ),
         },
     )
@@ -1595,16 +1594,11 @@ async def save_record_print_options(
 ) -> RedirectResponse:
     body = (await request.body()).decode("utf-8")
     form_data = parse_qs(body, keep_blank_values=True)
-    selected_style = (form_data.get("style") or [""])[0]
-    selected_orientation = (form_data.get("orientation") or [""])[0]
-    template_id = (
-        print_template_id_for(selected_style, selected_orientation)
-        if selected_style or selected_orientation
-        else normalize_print_template_id((form_data.get("template") or [""])[0])
-    )
-    text_size = normalize_print_text_size(
-        (form_data.get("text_size") or [""])[0],
-        template_id=template_id,
+    profile = normalize_print_profile(
+        template_id=(form_data.get("template") or [""])[0],
+        style=(form_data.get("style") or [""])[0],
+        orientation=(form_data.get("orientation") or [""])[0],
+        text_size=(form_data.get("text_size") or [""])[0],
     )
     user = get_user_or_none(session, current_user_id(request) or 0)
     preference_saved = False
@@ -1612,12 +1606,18 @@ async def save_record_print_options(
         save_user_print_preferences(
             session,
             user,
-            template_id=template_id,
-            text_size=text_size,
+            template_id=profile["template_id"],
+            style=profile["style"],
+            orientation=profile["orientation"],
+            text_size=profile["text_size"],
         )
         preference_saved = True
 
-    query: dict[str, str] = {"template": template_id, "text_size": text_size}
+    query: dict[str, str] = {
+        "style": profile["style"],
+        "orientation": profile["orientation"],
+        "text_size": profile["text_size"],
+    }
     if preference_saved:
         query["preference_saved"] = "1"
     if (form_data.get("from") or [""])[0] == "history":

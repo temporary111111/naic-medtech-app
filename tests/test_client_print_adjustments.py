@@ -39,9 +39,11 @@ from naic_builder.services import (
     ensure_form_version_storage_documents,
     format_print_temporal_value,
     list_record_completion_issues,
+    normalize_print_profile,
     normalize_signatory_slot,
     print_presentation_details,
     print_template_id_for,
+    print_text_size_options,
     save_user_print_preferences,
     save_clinic_profile,
     signatory_snapshots_for_print,
@@ -292,7 +294,9 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             text_size="large",
         )
         self.assertEqual(presentation["template_id"], "classic_landscape")
-        self.assertEqual(presentation["text_size"], "standard")
+        self.assertEqual(presentation["style"], "classic")
+        self.assertEqual(presentation["orientation"], "landscape")
+        self.assertEqual(presentation["text_size"], "large")
 
         modern = apply_print_presentation(
             {"density": "compact"},
@@ -309,14 +313,30 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(print_template_id_for("classic", "landscape"), "classic_landscape")
         self.assertEqual(print_template_id_for("modern", "portrait"), "modern_portrait")
         self.assertEqual(print_template_id_for("modern", "landscape"), "modern_landscape")
-        self.assertEqual(
-            apply_print_presentation({}, template_id="classic_portrait", text_size="large"),
-            {"template_id": "classic_portrait", "text_size": "standard"},
+        for template_id in (
+            "modern_portrait",
+            "classic_portrait",
+            "modern_landscape",
+            "classic_landscape",
+        ):
+            self.assertEqual(
+                apply_print_presentation({}, template_id=template_id, text_size="large")["text_size"],
+                "large",
+            )
+            self.assertEqual(
+                [option["id"] for option in print_text_size_options(template_id)],
+                ["standard", "large"],
+            )
+
+        profile = normalize_print_profile(
+            template_id="classic_landscape",
+            style="modern",
+            text_size="large",
         )
-        self.assertEqual(
-            apply_print_presentation({}, template_id="modern_landscape", text_size="large"),
-            {"template_id": "modern_landscape", "text_size": "standard"},
-        )
+        self.assertEqual(profile["template_id"], "modern_landscape")
+        self.assertEqual(profile["style"], "modern")
+        self.assertEqual(profile["orientation"], "landscape")
+        self.assertEqual(profile["text_size"], "large")
         modern_landscape = print_presentation_details("modern_landscape")
         self.assertEqual(modern_landscape["style"], "modern")
         self.assertEqual(modern_landscape["orientation_key"], "landscape")
@@ -342,7 +362,10 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                 template_id="modern_portrait",
                 text_size="large",
             )
-            self.assertEqual(saved, {"template_id": "modern_portrait", "text_size": "large"})
+            self.assertEqual(saved["template_id"], "modern_portrait")
+            self.assertEqual(saved["style"], "modern")
+            self.assertEqual(saved["orientation"], "portrait")
+            self.assertEqual(saved["text_size"], "large")
             session.refresh(user)
             self.assertEqual(user.print_template_id, "modern_portrait")
             self.assertEqual(user.print_text_size, "large")
@@ -353,10 +376,13 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                 template_id="classic_portrait",
                 text_size="large",
             )
-            self.assertEqual(saved, {"template_id": "classic_portrait", "text_size": "standard"})
+            self.assertEqual(saved["template_id"], "classic_portrait")
+            self.assertEqual(saved["style"], "classic")
+            self.assertEqual(saved["orientation"], "portrait")
+            self.assertEqual(saved["text_size"], "large")
             session.refresh(user)
             self.assertEqual(user.print_template_id, "classic_portrait")
-            self.assertEqual(user.print_text_size, "standard")
+            self.assertEqual(user.print_text_size, "large")
 
     def test_print_layout_uses_style_and_orientation_controls(self) -> None:
         source = (ROOT / "app" / "naic_builder" / "templates" / "records" / "print.html").read_text(encoding="utf-8")
@@ -365,7 +391,10 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn('name="style" value="modern"', source)
         self.assertIn('name="orientation" value="portrait"', source)
         self.assertIn('name="orientation" value="landscape"', source)
+        self.assertIn('name="text_size"', source)
+        self.assertIn('<span>Text size</span>', source)
         self.assertNotIn("data-template-select", source)
+        self.assertNotIn("data-modern-text-options", source)
 
     def test_shared_print_template_places_units_and_labels_correctly(self) -> None:
         environment = Environment(loader=FileSystemLoader(ROOT / "app" / "naic_builder" / "templates"))

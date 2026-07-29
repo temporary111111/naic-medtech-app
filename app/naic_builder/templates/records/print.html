@@ -6,7 +6,7 @@
   <title>Print Record | {{ document.form_name }}</title>
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
-  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260728-print-style-orientation">
+  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260728-print-profile-v2">
   {% set presentation = document.template or {} %}
 </head>
 <body class="print-template-{{ document.print_config.template_id | replace('_', '-') }} print-text-{{ document.print_config.text_size | replace('_', '-') }} print-density-{{ document.print_config.density }} print-font-{{ (document.print_config.font_family or 'arial_narrow') | replace('_', '-') }}" style="--accent: {{ document.print_config.accent_color }}; --accent-ink: {{ document.print_accent_ink or '#ffffff' }}">
@@ -32,7 +32,7 @@
       <details class="print-layout-control">
         <summary>
           <span>Layout</span>
-          <strong>{{ presentation.style_label }} · {{ presentation.orientation }}{% if presentation.id == "modern_portrait" %} · {{ presentation.text_size_label }} text{% endif %}</strong>
+          <strong>{{ presentation.style_label }} · {{ presentation.orientation }} · {{ presentation.text_size_label }} text</strong>
         </summary>
         <form method="post" action="/records/{{ record_meta.id }}/print-options" class="print-layout-form">
           {% if request.query_params.get("from") == "history" %}
@@ -67,11 +67,12 @@
               </label>
             </div>
           </fieldset>
-          <label class="print-layout-field" data-modern-text-options>
-            <span>Modern Portrait text size</span>
+          <label class="print-layout-field">
+            <span>Text size</span>
             <select name="text_size">
-              <option value="standard"{% if document.print_config.text_size != "large" %} selected{% endif %}>Standard</option>
-              <option value="large"{% if document.print_config.text_size == "large" %} selected{% endif %}>Large</option>
+              {% for option in presentation.text_size_options %}
+              <option value="{{ option.id }}"{% if document.print_config.text_size == option.id %} selected{% endif %}>{{ option.label }}</option>
+              {% endfor %}
             </select>
           </label>
           <label class="print-default-option">
@@ -99,27 +100,5 @@
 
     {{ render_print_page(document) }}
   </main>
-  <script>
-    (() => {
-      const textOptions = document.querySelector("[data-modern-text-options]");
-      const textSizeSelect = textOptions ? textOptions.querySelector("select") : null;
-      const styleInputs = [...document.querySelectorAll("input[name=style]")];
-      const orientationInputs = [...document.querySelectorAll("input[name=orientation]")];
-      if (!textOptions || !textSizeSelect || !styleInputs.length || !orientationInputs.length) return;
-
-      const syncTextSizeOptions = () => {
-        const selectedStyle = styleInputs.find((input) => input.checked)?.value;
-        const selectedOrientation = orientationInputs.find((input) => input.checked)?.value;
-        const usesModernTextSize = selectedStyle === "modern" && selectedOrientation === "portrait";
-        textSizeSelect.disabled = !usesModernTextSize;
-        textOptions.classList.toggle("is-disabled", !usesModernTextSize);
-      };
-
-      [...styleInputs, ...orientationInputs].forEach((input) => {
-        input.addEventListener("change", syncTextSizeOptions);
-      });
-      syncTextSizeOptions();
-    })();
-  </script>
 </body>
 </html>

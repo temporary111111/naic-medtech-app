@@ -130,9 +130,35 @@ PRINT_TEMPLATE_BY_STYLE_AND_ORIENTATION = {
 }
 PRINT_TEMPLATE_STYLES = {"classic", "modern"}
 PRINT_TEMPLATE_ORIENTATIONS = {"portrait", "landscape"}
-PRINT_TEXT_SIZES = {"standard", "large"}
 DEFAULT_PRINT_TEMPLATE_ID = "modern_portrait"
 DEFAULT_PRINT_TEXT_SIZE = "standard"
+PRINT_PROFILE_VERSION = 1
+PRINT_TEXT_SIZE_DETAILS = {
+    "standard": {"id": "standard", "label": "Standard"},
+    "large": {"id": "large", "label": "Large"},
+}
+PRINT_TEMPLATE_CAPABILITIES = {
+    "modern_portrait": {
+        "text_sizes": ("standard", "large"),
+        "fit_limit_units": 52.0,
+        "large_text_fit_factor": 1.12,
+    },
+    "classic_portrait": {
+        "text_sizes": ("standard", "large"),
+        "fit_limit_units": 52.0,
+        "large_text_fit_factor": 1.12,
+    },
+    "modern_landscape": {
+        "text_sizes": ("standard", "large"),
+        "fit_limit_units": 62.0,
+        "large_text_fit_factor": 1.08,
+    },
+    "classic_landscape": {
+        "text_sizes": ("standard", "large"),
+        "fit_limit_units": 62.0,
+        "large_text_fit_factor": 1.10,
+    },
+}
 PRINT_TEMPLATE_DETAILS = {
     "modern_portrait": {
         "id": "modern_portrait",
@@ -367,34 +393,97 @@ def print_template_id_for(style: Any, orientation: Any) -> str:
     ]
 
 
+def print_template_parts(template_id: Any) -> dict[str, str]:
+    selected_template_id = normalize_print_template_id(template_id)
+    details = PRINT_TEMPLATE_DETAILS[selected_template_id]
+    return {
+        "style": details["style"],
+        "orientation": details["orientation_key"],
+    }
+
+
+def print_text_size_options(template_id: Any) -> list[dict[str, str]]:
+    selected_template_id = normalize_print_template_id(template_id)
+    allowed_sizes = PRINT_TEMPLATE_CAPABILITIES[selected_template_id]["text_sizes"]
+    return [dict(PRINT_TEXT_SIZE_DETAILS[size]) for size in allowed_sizes]
+
+
 def normalize_print_text_size(value: Any, *, template_id: Any = "") -> str:
     normalized_template_id = normalize_print_template_id(template_id)
     text_size = compact_text(value).lower()
-    if normalized_template_id != "modern_portrait":
-        return DEFAULT_PRINT_TEXT_SIZE
-    return text_size if text_size in PRINT_TEXT_SIZES else DEFAULT_PRINT_TEXT_SIZE
+    allowed_sizes = PRINT_TEMPLATE_CAPABILITIES[normalized_template_id]["text_sizes"]
+    return text_size if text_size in allowed_sizes else DEFAULT_PRINT_TEXT_SIZE
+
+
+def normalize_print_profile(
+    *,
+    template_id: Any = "",
+    style: Any = "",
+    orientation: Any = "",
+    text_size: Any = "",
+) -> dict[str, Any]:
+    selected_template_id = normalize_print_template_id(template_id)
+    fallback_parts = print_template_parts(selected_template_id)
+    selected_style = (
+        normalize_print_template_style(style)
+        if compact_text(style)
+        else fallback_parts["style"]
+    )
+    selected_orientation = (
+        normalize_print_template_orientation(orientation)
+        if compact_text(orientation)
+        else fallback_parts["orientation"]
+    )
+    selected_template_id = print_template_id_for(selected_style, selected_orientation)
+    selected_text_size = normalize_print_text_size(
+        text_size,
+        template_id=selected_template_id,
+    )
+    return {
+        "version": PRINT_PROFILE_VERSION,
+        "template_id": selected_template_id,
+        "style": selected_style,
+        "orientation": selected_orientation,
+        "text_size": selected_text_size,
+    }
 
 
 def apply_print_presentation(
     print_config: dict[str, Any] | None,
     *,
     template_id: Any = "",
+    style: Any = "",
+    orientation: Any = "",
     text_size: Any = "",
 ) -> dict[str, Any]:
     config = dict(print_config) if isinstance(print_config, dict) else {}
-    selected_template_id = normalize_print_template_id(template_id)
-    selected_text_size = normalize_print_text_size(text_size, template_id=selected_template_id)
-    config["template_id"] = selected_template_id
-    config["text_size"] = selected_text_size
+    profile = normalize_print_profile(
+        template_id=template_id,
+        style=style,
+        orientation=orientation,
+        text_size=text_size,
+    )
+    config.update(profile)
     return config
 
 
-def print_presentation_details(template_id: Any, text_size: Any = "") -> dict[str, str]:
-    selected_template_id = normalize_print_template_id(template_id)
-    details = dict(PRINT_TEMPLATE_DETAILS[selected_template_id])
-    selected_text_size = normalize_print_text_size(text_size, template_id=selected_template_id)
-    details["text_size"] = selected_text_size
-    details["text_size_label"] = "Large" if selected_text_size == "large" else "Standard"
+def print_presentation_details(
+    template_id: Any,
+    text_size: Any = "",
+    *,
+    style: Any = "",
+    orientation: Any = "",
+) -> dict[str, Any]:
+    profile = normalize_print_profile(
+        template_id=template_id,
+        style=style,
+        orientation=orientation,
+        text_size=text_size,
+    )
+    details = dict(PRINT_TEMPLATE_DETAILS[profile["template_id"]])
+    details.update(profile)
+    details["text_size_label"] = PRINT_TEXT_SIZE_DETAILS[profile["text_size"]]["label"]
+    details["text_size_options"] = print_text_size_options(profile["template_id"])
     return details
 
 
@@ -596,6 +685,7 @@ def get_user_by_identifier(session: Session, identifier: str) -> User | None:
 
 
 def serialize_user(user: User) -> dict[str, Any]:
+    print_preference = user_print_preferences(user)
     return {
         "id": user.id,
         "email": user.email,
@@ -608,37 +698,39 @@ def serialize_user(user: User) -> dict[str, Any]:
         "avatar_original_filename": compact_text(user.avatar_original_filename),
         "avatar_mime_type": compact_text(user.avatar_mime_type),
         "has_avatar": bool(compact_text(user.avatar_path)),
-        "print_template_id": normalize_print_template_id(user.print_template_id),
-        "print_text_size": normalize_print_text_size(
-            user.print_text_size,
-            template_id=user.print_template_id,
-        ),
+        "print_template_id": print_preference["template_id"],
+        "print_style": print_preference["style"],
+        "print_orientation": print_preference["orientation"],
+        "print_text_size": print_preference["text_size"],
         "created_at": user.created_at.astimezone(timezone.utc).isoformat(),
         "updated_at": user.updated_at.astimezone(timezone.utc).isoformat(),
     }
 
 
-def user_print_preferences(user: User | None) -> dict[str, str]:
-    template_id = normalize_print_template_id(user.print_template_id if user is not None else "")
-    return {
-        "template_id": template_id,
-        "text_size": normalize_print_text_size(
-            user.print_text_size if user is not None else "",
-            template_id=template_id,
-        ),
-    }
+def user_print_preferences(user: User | None) -> dict[str, Any]:
+    return normalize_print_profile(
+        template_id=user.print_template_id if user is not None else "",
+        text_size=user.print_text_size if user is not None else "",
+    )
 
 
 def save_user_print_preferences(
     session: Session,
     user: User,
     *,
-    template_id: Any,
-    text_size: Any,
-) -> dict[str, str]:
-    selected_template_id = normalize_print_template_id(template_id)
-    user.print_template_id = selected_template_id
-    user.print_text_size = normalize_print_text_size(text_size, template_id=selected_template_id)
+    template_id: Any = "",
+    style: Any = "",
+    orientation: Any = "",
+    text_size: Any = "",
+) -> dict[str, Any]:
+    profile = normalize_print_profile(
+        template_id=template_id,
+        style=style,
+        orientation=orientation,
+        text_size=text_size,
+    )
+    user.print_template_id = profile["template_id"]
+    user.print_text_size = profile["text_size"]
     save_user(session, user)
     return user_print_preferences(user)
 
@@ -3235,8 +3327,14 @@ def print_item_fit_units(items: list[dict[str, Any]]) -> float:
 def estimate_print_page_fit(document: dict[str, Any]) -> dict[str, Any]:
     print_config = document.get("print_config") if isinstance(document.get("print_config"), dict) else {}
     density = normalize_print_density(print_config.get("density"))
-    template_id = normalize_print_template_id(print_config.get("template_id"))
-    text_size = normalize_print_text_size(print_config.get("text_size"), template_id=template_id)
+    profile = normalize_print_profile(
+        template_id=print_config.get("template_id"),
+        style=print_config.get("style"),
+        orientation=print_config.get("orientation"),
+        text_size=print_config.get("text_size"),
+    )
+    template_id = profile["template_id"]
+    text_size = profile["text_size"]
     show_summary = normalize_boolean_setting(print_config.get("show_summary"), default=False)
     summary_count = len(normalize_items(document.get("summary_items"))) if show_summary else 0
     base_units = 8.5
@@ -3250,10 +3348,10 @@ def estimate_print_page_fit(document: dict[str, Any]) -> dict[str, Any]:
         base_units += max(1, (summary_count + 2) // 3) * 2.2
 
     density_factor = 1.14 if density == "comfortable" else 1.0
-    if template_id == "modern_portrait" and text_size == "large":
-        density_factor *= 1.12
+    if text_size == "large":
+        density_factor *= PRINT_TEMPLATE_CAPABILITIES[template_id]["large_text_fit_factor"]
     estimated_units = (base_units + print_item_fit_units(normalize_items(document.get("items")))) * density_factor
-    limit_units = 62.0 if template_id == "classic_landscape" else 52.0
+    limit_units = PRINT_TEMPLATE_CAPABILITIES[template_id]["fit_limit_units"]
     if estimated_units <= limit_units * 0.82:
         status = "likely"
         label = "Likely fits one page"
@@ -3394,6 +3492,8 @@ def build_record_print_document(
     clinic_profile: dict[str, Any] | None = None,
     clinic_logo_url: str = "",
     template_id: Any = "",
+    style: Any = "",
+    orientation: Any = "",
     text_size: Any = "",
 ) -> dict[str, Any]:
     serialized = serialize_record(record, include_entry_schema=True)
@@ -3411,6 +3511,8 @@ def build_record_print_document(
     print_config = apply_print_presentation(
         normalize_print_config(meta.get("print_config")),
         template_id=template_id,
+        style=style,
+        orientation=orientation,
         text_size=text_size,
     )
     print_accent_ink = print_accent_text_color(print_config.get("accent_color"))
