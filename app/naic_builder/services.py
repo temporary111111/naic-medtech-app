@@ -169,7 +169,7 @@ PRINT_PAPER_SIZE_DETAILS = {
         "width_mm": 216,
         "height_mm": 279,
         "dimensions_label": "216 x 279 mm",
-        "is_available": False,
+        "is_available": True,
     },
     "a5": {
         "id": "a5",

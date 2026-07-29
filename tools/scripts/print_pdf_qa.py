@@ -58,7 +58,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--paper-size",
-        choices=("a4", "legal"),
+        choices=("a4", "legal", "letter"),
         default="a4",
         help="Paper size to render during the audit.",
     )
@@ -237,7 +237,7 @@ def generate_pdf(
         "pdf",
         *playwright_browser_channel_args(),
         "--paper-format",
-        {"a4": "A4", "legal": "Legal"}[paper_size],
+        {"a4": "A4", "legal": "Legal", "letter": "Letter"}[paper_size],
         "--wait-for-selector",
         ".print-page",
         "--wait-for-timeout",
