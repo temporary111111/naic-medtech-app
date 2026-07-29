@@ -1408,9 +1408,10 @@ body {
 .print-template-legacy-landscape .print-legacy-header .print-title {
   margin: 0;
   color: inherit;
-  font-size: 21px;
+  font-size: 26px;
   font-weight: 800;
-  line-height: 1.08;
+  line-height: 1.04;
+  overflow-wrap: anywhere;
   text-transform: uppercase;
 }
 
@@ -1515,7 +1516,7 @@ body {
 }
 
 .print-template-legacy-landscape.print-text-large .print-title {
-  font-size: 25px;
+  font-size: 30px;
 }
 
 .print-template-legacy-landscape.print-text-large .print-meta-grid strong,
@@ -2182,7 +2183,7 @@ body {
   }
 
   .print-template-legacy-landscape .print-legacy-header .print-title {
-    font-size: 17px;
+    font-size: 20px;
   }
 
   .print-template-legacy-landscape .print-meta-grid {
@@ -2260,7 +2261,7 @@ body {
   }
 
   .print-template-legacy-landscape.print-text-large .print-title {
-    font-size: 18px;
+    font-size: 21px;
   }
 
   .print-template-legacy-landscape.print-text-large .print-meta-grid strong,
