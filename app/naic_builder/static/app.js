@@ -4195,7 +4195,7 @@ function renderFieldCompactSummary(item, inputType) {
   if (inputType === "number" && range) {
     meta.push(range);
   } else if (reference) {
-    meta.push(`Ref ${reference}`);
+    meta.push(`Normal values ${reference}`);
   }
   if (unit) {
     meta.push(unit);
@@ -4267,7 +4267,7 @@ function renderItemCard(item, path, options = {}) {
       : inputType === "image"
         ? "One image will be uploaded when this form is filled up."
       : [
-          compactReference ? `Reference ${compactReference}` : "",
+          compactReference ? `Normal values ${compactReference}` : "",
           compactUnit ? `Unit ${compactUnit}` : "",
           inputNormalRangeLabel(item),
         ].filter(Boolean).join(" | ");
@@ -4379,7 +4379,7 @@ function renderItemCard(item, path, options = {}) {
                   <section class="reference-editor">
                     <div class="inline-grid item-basics-grid compact">
                       <label>
-                        <span>Reference</span>
+                        <span>Normal values</span>
                         <input data-path="${encodePath(path)}" data-bind="reference_text" value="${escapeHtml(getInputReferenceText(item) || "")}" placeholder="${inputType === "choice" ? "Example: Negative" : "Example: 4.5 - 11.0"}">
                       </label>
                       <label>
@@ -4495,7 +4495,7 @@ function renderItemCard(item, path, options = {}) {
               </div>
               <div class="inline-grid item-basics-grid compact">
                 <label>
-                  <span>Reference</span>
+                  <span>Normal values</span>
                   <input data-path="${encodePath(path)}" data-bind="reference_text" value="${escapeHtml(getInputReferenceText(item) || "")}" placeholder="${inputType === "choice" ? "Example: Negative" : "Example: 4.5 - 11.0"}">
                 </label>
                 <label>
@@ -4771,7 +4771,7 @@ function renderPreviewItem(item) {
 
   const hints = [];
   if (getInputUnitHint(item)) hints.push(getInputUnitHint(item));
-  if (getInputReferenceText(item)) hints.push(`reference ${getInputReferenceText(item)}`);
+  if (getInputReferenceText(item)) hints.push(`Normal values ${getInputReferenceText(item)}`);
   const inputType = inferInputType(item);
 
   if (inputType === "image") {

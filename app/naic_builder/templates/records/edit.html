@@ -95,7 +95,7 @@
           </div>
         </div>
         {% if props.reference_text %}
-        <p class="entry-inline-hint">Reference: {{ props.reference_text }}</p>
+        <p class="entry-inline-hint">Normal values: {{ props.reference_text }}</p>
         {% elif props.normal_min or props.normal_max %}
         <p class="entry-inline-hint">Normal range: {{ props.normal_min or "..." }}{% if props.normal_max %} to {{ props.normal_max }}{% endif %}</p>
         {% endif %}

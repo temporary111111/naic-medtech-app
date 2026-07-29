@@ -64,7 +64,7 @@
           {{ render_print_field_result(field) }}
         </div>
         {% if field.reference_text %}
-        <small class="{% if field.is_abnormal %}is-abnormal{% endif %}">Reference: {{ field.reference_text }}</small>
+        <small class="{% if field.is_abnormal %}is-abnormal{% endif %}">Normal values: {{ field.reference_text }}</small>
         {% endif %}
       </article>
       {% endfor %}
@@ -74,7 +74,7 @@
       <div class="print-row-name">
         <strong>{{ item.name }}</strong>
         {% if item.reference_text %}
-        <span class="{% if item.is_abnormal %}is-abnormal{% endif %}">Reference: {{ item.reference_text }}</span>
+        <span class="{% if item.is_abnormal %}is-abnormal{% endif %}">Normal values: {{ item.reference_text }}</span>
         {% endif %}
       </div>
 

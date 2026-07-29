@@ -447,6 +447,21 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             block = source[start:source.index("}", start)]
             self.assertNotIn("font-family:", block)
 
+    def test_builder_and_record_print_use_normal_values_wording(self) -> None:
+        builder_source = (ROOT / "app" / "naic_builder" / "static" / "app.js").read_text(encoding="utf-8")
+        print_source = (ROOT / "app" / "naic_builder" / "templates" / "records" / "_print_document.html").read_text(encoding="utf-8")
+        edit_source = (ROOT / "app" / "naic_builder" / "templates" / "records" / "edit.html").read_text(encoding="utf-8")
+        view_source = (ROOT / "app" / "naic_builder" / "templates" / "records" / "view.html").read_text(encoding="utf-8")
+
+        self.assertNotIn("<span>Reference</span>", builder_source)
+        self.assertIn("<span>Normal values</span>", builder_source)
+        self.assertIn("Normal values ${compactReference}", builder_source)
+        self.assertIn("Normal values: {{ field.reference_text }}", print_source)
+        self.assertIn("Normal values: {{ item.reference_text }}", print_source)
+        self.assertNotIn("Reference:", print_source)
+        self.assertIn("Normal values: {{ props.reference_text }}", edit_source)
+        self.assertIn("Normal values: {{ props.reference_text }}", view_source)
+
     def test_shared_print_template_places_units_and_labels_correctly(self) -> None:
         environment = Environment(loader=FileSystemLoader(ROOT / "app" / "naic_builder" / "templates"))
         macro = environment.get_template("records/_print_document.html").module.render_print_page
@@ -454,7 +469,7 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             "kind": "field",
             "name": "PULSE RATE",
             "unit_hint": "bpm",
-            "reference_text": "",
+            "reference_text": "60 - 100",
             "display": {"kind": "text", "text": "-2"},
             "is_abnormal": False,
         }
@@ -495,6 +510,8 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(html.count('class="print-result-inline"'), 2)
         self.assertIn('class="print-result-unit">bpm', html)
         self.assertIn('class="print-result-unit">deg C', html)
+        self.assertEqual(html.count("Normal values: 60 - 100"), 2)
+        self.assertNotIn("Reference: 60 - 100", html)
         self.assertIn("DOH License No.: 03-123456-10", html)
         label_at = html.index('class="print-signature-label">Analyzed by:')
         name_at = html.index('class="print-signature-name">Crystel C. Tesoro, RMT')
