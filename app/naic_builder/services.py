@@ -277,6 +277,7 @@ DEFAULT_PRINT_SUMMARY_ITEMS = [
 ]
 DEFAULT_LAB_REQUEST_FIELD_SET_ID = "default_lab_request"
 DEFAULT_PATIENT_INFO_MATERIALIZED_META_KEY = "default_patient_info_materialized"
+DEFAULT_EXAMINATION_IN_PATIENT_INFO_META_KEY = "default_examination_in_patient_info_v1"
 PATIENT_INFO_GROUP_KEY = "patient_information"
 PATIENT_INFO_GROUP_NAME = "Patient Information"
 PATIENT_INFO_PRIMARY_KEY = "name"
@@ -1860,6 +1861,138 @@ def resequence_top_level_block_orders(blocks: list[dict[str, Any]]) -> None:
         props = block.get("props") if isinstance(block.get("props"), dict) else {}
         props["order"] = index
         block["props"] = props
+
+
+def resequence_block_orders(blocks: list[Any]) -> None:
+    for index, block in enumerate(blocks, start=1):
+        if not isinstance(block, dict):
+            continue
+        props = block.get("props") if isinstance(block.get("props"), dict) else {}
+        props["order"] = index
+        block["props"] = props
+
+
+def reference_form_slugs() -> set[str]:
+    return {
+        compact_text(form.get("key"))
+        for group in normalize_items(load_reference_schema().get("groups"))
+        if isinstance(group, dict)
+        for form in normalize_items(group.get("forms"))
+        if isinstance(form, dict) and compact_text(form.get("key"))
+    }
+
+
+def find_default_patient_info_block(block_schema: dict[str, Any]) -> dict[str, Any] | None:
+    for block in normalize_items(block_schema.get("blocks")):
+        if not isinstance(block, dict):
+            continue
+        props = block.get("props") if isinstance(block.get("props"), dict) else {}
+        if compact_text(props.get("key")) == PATIENT_INFO_GROUP_KEY:
+            return block
+        if compact_text(block.get("name")).lower() == PATIENT_INFO_GROUP_NAME.lower():
+            return block
+    return None
+
+
+def find_field_with_parent(
+    blocks: list[Any],
+    field_key: str,
+) -> tuple[list[Any], dict[str, Any]] | None:
+    for block in blocks:
+        if not isinstance(block, dict):
+            continue
+        props = block.get("props") if isinstance(block.get("props"), dict) else {}
+        if compact_text(block.get("kind")) == "field" and compact_text(props.get("key")) == field_key:
+            return blocks, block
+
+        children = block.get("children")
+        if isinstance(children, list):
+            match = find_field_with_parent(children, field_key)
+            if match is not None:
+                return match
+    return None
+
+
+def patient_info_examination_insert_index(children: list[Any]) -> int:
+    for index, child in enumerate(children):
+        if not isinstance(child, dict):
+            continue
+        props = child.get("props") if isinstance(child.get("props"), dict) else {}
+        if compact_text(props.get("key")) == "date_or_datetime":
+            return index + 1
+    return len(children)
+
+
+def remove_empty_reference_details_container(
+    block_schema: dict[str, Any],
+    reference_slugs: set[str],
+) -> bool:
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    form_key = compact_text(meta.get("form_key"))
+    form_id = compact_text(meta.get("form_id"))
+    if form_key not in reference_slugs or not form_id:
+        return False
+
+    expected_id = f"{form_id}.details"
+    blocks = normalize_items(block_schema.get("blocks"))
+    for index, block in enumerate(blocks):
+        if not isinstance(block, dict):
+            continue
+        props = block.get("props") if isinstance(block.get("props"), dict) else {}
+        if (
+            compact_text(block.get("kind")) == "container"
+            and compact_text(block.get("id")) == expected_id
+            and compact_text(props.get("key")) == "details"
+            and not normalize_items(block.get("children"))
+        ):
+            blocks.pop(index)
+            resequence_top_level_block_orders(blocks)
+            return True
+    return False
+
+
+def ensure_reference_examination_in_patient_info(
+    block_schema: dict[str, Any],
+    reference_slugs: set[str],
+) -> bool:
+    if not isinstance(block_schema, dict):
+        return False
+
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    if compact_text(meta.get("form_key")) not in reference_slugs:
+        return False
+
+    details_container_removed = remove_empty_reference_details_container(
+        block_schema,
+        reference_slugs,
+    )
+    if meta.get(DEFAULT_EXAMINATION_IN_PATIENT_INFO_META_KEY) is True:
+        return details_container_removed
+
+    patient_info = find_default_patient_info_block(block_schema)
+    if patient_info is None:
+        return False
+
+    patient_children = patient_info.get("children")
+    if not isinstance(patient_children, list):
+        patient_children = []
+        patient_info["children"] = patient_children
+
+    match = find_field_with_parent(normalize_items(block_schema.get("blocks")), "examination")
+    if match is None:
+        return False
+
+    parent_children, examination = match
+    if parent_children is not patient_children:
+        parent_children.remove(examination)
+        patient_children.insert(patient_info_examination_insert_index(patient_children), examination)
+        resequence_block_orders(patient_children)
+
+    remove_empty_reference_details_container(block_schema, reference_slugs)
+
+    meta[DEFAULT_EXAMINATION_IN_PATIENT_INFO_META_KEY] = True
+    block_schema["meta"] = meta
+    return True
 
 
 def ensure_default_patient_info_identity(block_schema: dict[str, Any]) -> bool:
@@ -5140,6 +5273,7 @@ def ensure_default_patient_info_fields(session: Session) -> int:
         )
     ).all()
     migrated_count = 0
+    reference_slugs = reference_form_slugs()
 
     for definition in definitions:
         version = current_version(definition)
@@ -5147,7 +5281,12 @@ def ensure_default_patient_info_fields(session: Session) -> int:
             continue
 
         block_schema, _ = load_block_storage_document(version)
-        if not ensure_default_patient_info_block_schema(block_schema):
+        patient_info_changed = ensure_default_patient_info_block_schema(block_schema)
+        examination_changed = ensure_reference_examination_in_patient_info(
+            block_schema,
+            reference_slugs,
+        )
+        if not patient_info_changed and not examination_changed:
             continue
 
         meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
@@ -5171,7 +5310,7 @@ def ensure_default_patient_info_fields(session: Session) -> int:
             build_form_version_record(
                 form_id=definition.id,
                 version_number=next_version,
-                summary="Added default patient information fields.",
+                summary="Applied default patient information layout.",
                 block_storage_schema=stored_block_schema,
                 source="system",
                 is_current=True,

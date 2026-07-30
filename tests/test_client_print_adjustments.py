@@ -33,8 +33,12 @@ from naic_builder.services import (
     build_print_items,
     build_print_summary_items,
     build_signatory_snapshot,
+    current_version,
     default_signatory_slots,
     default_patient_info_legacy_group,
+    ensure_default_patient_info_fields,
+    ensure_reference_examination_in_patient_info,
+    ensure_reference_seed,
     estimate_print_page_fit,
     ensure_client_signatory_defaults,
     ensure_default_pathologist_stamp,
@@ -42,6 +46,7 @@ from naic_builder.services import (
     evaluate_print_abnormal,
     format_print_temporal_value,
     list_record_completion_issues,
+    load_block_storage_document,
     normalize_print_paper_size,
     normalize_print_profile,
     normalize_signatory_slot,
@@ -52,6 +57,7 @@ from naic_builder.services import (
     print_style_options,
     print_template_id_for,
     print_text_size_options,
+    reference_form_slugs,
     save_user_print_preferences,
     save_clinic_profile,
     signatory_snapshots_for_print,
@@ -76,6 +82,87 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn('{ key: "age", name: "Age", dataType: "number", required: false },', builder_source)
         self.assertIn('{ key: "date_or_datetime", name: "Date & Time", dataType: "datetime", required: false },', builder_source)
         self.assertIn('{ key: "case_number", name: "Case Number", dataType: "number", required: true },', builder_source)
+
+    def test_reference_forms_keep_examination_inside_patient_information(self) -> None:
+        schema = json.loads(
+            (ROOT / "artifacts" / "schema" / "naic_medtech_app_schema.json").read_text(encoding="utf-8")
+        )
+        reference_slugs = reference_form_slugs()
+        forms = [form for group in schema["groups"] for form in group["forms"]]
+
+        self.assertEqual({form["key"] for form in forms}, reference_slugs)
+
+        for form in forms:
+            block_schema = build_block_storage_document_from_legacy_storage(form)
+            self.assertTrue(ensure_reference_examination_in_patient_info(block_schema, reference_slugs))
+
+            patient_info = next(
+                block
+                for block in block_schema["blocks"]
+                if block["props"]["key"] == "patient_information"
+            )
+            patient_field_keys = [child["props"]["key"] for child in patient_info["children"]]
+            self.assertIn("examination", patient_field_keys, form["key"])
+            self.assertEqual(
+                patient_field_keys.index("examination"),
+                patient_field_keys.index("date_or_datetime") + 1,
+                form["key"],
+            )
+
+        custom_schema = build_block_storage_document_from_legacy_storage(forms[0])
+        custom_schema["meta"]["form_key"] = "custom_form"
+        before = json.dumps(custom_schema, sort_keys=True)
+        self.assertFalse(ensure_reference_examination_in_patient_info(custom_schema, reference_slugs))
+        self.assertEqual(json.dumps(custom_schema, sort_keys=True), before)
+
+        legacy_schema = build_block_storage_document_from_legacy_storage(
+            next(form for form in forms if form["key"] == "blood_gas_analysis")
+        )
+        examination = next(
+            block for block in legacy_schema["blocks"] if block["props"]["key"] == "examination"
+        )
+        legacy_schema["blocks"].remove(examination)
+        legacy_schema["blocks"].insert(
+            1,
+            {
+                "id": f"{legacy_schema['meta']['form_id']}.details",
+                "kind": "container",
+                "name": "Blood Gas Analysis Details",
+                "props": {"key": "details", "order": 2},
+                "children": [examination],
+            },
+        )
+        self.assertTrue(ensure_reference_examination_in_patient_info(legacy_schema, reference_slugs))
+        self.assertFalse(
+            any(
+                block["id"] == f"{legacy_schema['meta']['form_id']}.details"
+                for block in legacy_schema["blocks"]
+            )
+        )
+
+    def test_fresh_reference_seed_applies_patient_information_examination_layout(self) -> None:
+        engine = create_engine("sqlite://")
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine)
+
+        try:
+            with Session() as session:
+                ensure_reference_seed(session)
+                self.assertEqual(ensure_default_patient_info_fields(session), len(reference_form_slugs()))
+
+                definitions = session.scalars(select(FormDefinition)).all()
+                self.assertEqual(len(definitions), len(reference_form_slugs()))
+                for definition in definitions:
+                    block_schema, _ = load_block_storage_document(current_version(definition))
+                    patient_info = next(
+                        block
+                        for block in block_schema["blocks"]
+                        if block["props"]["key"] == "patient_information"
+                    )
+                    patient_field_keys = [child["props"]["key"] for child in patient_info["children"]]
+                    self.assertIn("examination", patient_field_keys, definition.slug)
+        finally:
+            engine.dispose()
 
     def test_blood_bank_seed_uses_approved_container_names(self) -> None:
         schema = json.loads(
