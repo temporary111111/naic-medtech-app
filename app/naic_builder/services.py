@@ -10,7 +10,7 @@ import secrets
 import shutil
 from pathlib import Path
 from datetime import datetime, time, timezone
-from typing import Any
+from typing import Any, Callable
 from uuid import uuid4
 
 from sqlalchemy.exc import IntegrityError
@@ -335,6 +335,38 @@ HEMATOLOGY_DETAIL_FIELD_KEYS = (
     *HEMATOLOGY_DIFFERENTIAL_FIELD_KEYS,
     "others",
 )
+HBA1C_FORM_KEY = "hba1c"
+DEFAULT_HBA1C_LAYOUT_META_KEY = "default_hba1c_layout_v2"
+HBA1C_FIELD_DEFAULTS = {
+    "result": {
+        "normal_min": "4.0",
+        "normal_max": "5.6",
+        "unit": "%",
+        "unit_hint": "%",
+        "reference_text": None,
+        "normal_value": None,
+    },
+}
+PRO_TIME_APTT_FORM_KEY = "pro_time_aptt"
+DEFAULT_PRO_TIME_APTT_DEFAULTS_META_KEY = "default_pro_time_aptt_defaults_v2"
+PRO_TIME_APTT_CONTAINER_FIELD_DEFAULTS = {
+    "pro_time": {
+        "test": {"normal_min": "10.0", "normal_max": "13.9", "unit": "seconds", "unit_hint": "seconds", "reference_text": None, "normal_value": None},
+        "control": {"unit": "seconds", "unit_hint": "seconds", "reference_text": None, "normal_value": None},
+        "inr": {"normal_min": "0.70", "normal_max": "1.30", "reference_text": None, "normal_value": None},
+        "activity": {"unit": "%", "unit_hint": "%", "reference_text": None, "normal_value": None},
+    },
+    "aptt": {
+        "test": {"normal_min": "22.2", "normal_max": "37.9", "unit": "seconds", "unit_hint": "seconds", "reference_text": None, "normal_value": None},
+        "control": {"unit": "seconds", "unit_hint": "seconds", "reference_text": None, "normal_value": None},
+    },
+}
+HIV_1_AND_2_TESTING_FORM_KEY = "hiv_1_and_2_testing"
+DEFAULT_HIV_1_AND_2_TESTING_DEFAULTS_META_KEY = "default_hiv_1_and_2_testing_defaults_v1"
+COVID_19_ANTIGEN_RAPID_TEST_FORM_KEY = "covid_19_antigen_rapid_test"
+DEFAULT_COVID_19_ANTIGEN_RAPID_TEST_DEFAULTS_META_KEY = "default_covid_19_antigen_rapid_test_defaults_v1"
+MICROBIOLOGY_FORM_KEY = "microbiology"
+DEFAULT_MICROBIOLOGY_DEFAULTS_META_KEY = "default_microbiology_defaults_v1"
 PATIENT_INFO_GROUP_KEY = "patient_information"
 PATIENT_INFO_GROUP_NAME = "Patient Information"
 PATIENT_INFO_PRIMARY_KEY = "name"
@@ -2082,7 +2114,7 @@ def configure_blood_gas_numeric_ranges(block_schema: dict[str, Any]) -> bool:
 
 def configure_default_field_properties(
     block_schema: dict[str, Any],
-    field_defaults: dict[str, dict[str, str]],
+    field_defaults: dict[str, dict[str, str | None]],
 ) -> bool:
     changed = False
     for field_key, defaults in field_defaults.items():
@@ -2092,12 +2124,195 @@ def configure_default_field_properties(
         _, field = match
         props = field.get("props") if isinstance(field.get("props"), dict) else {}
         for property_name, expected_value in defaults.items():
+            if expected_value is None:
+                if property_name in props:
+                    props.pop(property_name)
+                    changed = True
+                continue
             if compact_text(props.get(property_name)) == expected_value:
                 continue
             props[property_name] = expected_value
             changed = True
         field["props"] = props
     return changed
+
+
+def configure_container_field_properties(
+    block_schema: dict[str, Any],
+    container_field_defaults: dict[str, dict[str, dict[str, str | None]]],
+) -> bool:
+    changed = False
+    blocks = normalize_items(block_schema.get("blocks"))
+    for container_key, field_defaults in container_field_defaults.items():
+        container = find_top_level_block_by_key(blocks, container_key)
+        if container is None:
+            continue
+        fields_by_key = {
+            compact_text((child.get("props") or {}).get("key")): child
+            for child in container.get("children") or []
+            if isinstance(child, dict) and child.get("kind") == "field"
+        }
+        for field_key, defaults in field_defaults.items():
+            field = fields_by_key.get(field_key)
+            if field is None:
+                continue
+            props = field.get("props") if isinstance(field.get("props"), dict) else {}
+            for property_name, expected_value in defaults.items():
+                if expected_value is None:
+                    if property_name in props:
+                        props.pop(property_name)
+                        changed = True
+                    continue
+                if compact_text(props.get(property_name)) == expected_value:
+                    continue
+                props[property_name] = expected_value
+                changed = True
+            field["props"] = props
+    return changed
+
+
+def configure_choice_field_normal_options(
+    block_schema: dict[str, Any],
+    choice_field_defaults: dict[str, tuple[str, ...]],
+) -> bool | None:
+    fields: list[tuple[dict[str, Any], set[str]]] = []
+    for field_key, normal_names in choice_field_defaults.items():
+        match = find_field_with_parent(normalize_items(block_schema.get("blocks")), field_key)
+        if match is None:
+            return None
+        _, field = match
+        props = field.get("props") if isinstance(field.get("props"), dict) else {}
+        options = normalize_items(props.get("options"))
+        wanted_names = {compact_text(name) for name in normal_names if compact_text(name)}
+        option_names = {
+            compact_text(option.get("name"))
+            for option in options
+            if isinstance(option, dict) and compact_text(option.get("name"))
+        }
+        if not wanted_names or not wanted_names.issubset(option_names):
+            return None
+        fields.append((field, wanted_names))
+
+    changed = False
+    for field, wanted_names in fields:
+        props = field.get("props") if isinstance(field.get("props"), dict) else {}
+        for option in normalize_items(props.get("options")):
+            if not isinstance(option, dict):
+                continue
+            expected = compact_text(option.get("name")) in wanted_names
+            if bool(option.get("is_normal")) != expected:
+                option["is_normal"] = expected
+                changed = True
+        field["props"] = props
+    return changed
+
+
+def ensure_default_image_field(
+    block_schema: dict[str, Any],
+    *,
+    container: dict[str, Any],
+    key: str,
+    name: str,
+    required: bool,
+) -> bool:
+    children = container.get("children") if isinstance(container.get("children"), list) else []
+    if not isinstance(container.get("children"), list):
+        container["children"] = children
+
+    existing = next(
+        (
+            child
+            for child in children
+            if isinstance(child, dict)
+            and child.get("kind") == "field"
+            and compact_text((child.get("props") or {}).get("key")) == key
+        ),
+        None,
+    )
+    changed = False
+    if existing is None:
+        meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+        form_id = compact_text(meta.get("form_id"))
+        if not form_id:
+            return False
+        existing = {
+            "id": f"{form_id}.{compact_text((container.get('props') or {}).get('key'))}.{key}",
+            "kind": "field",
+            "name": name,
+            "props": {
+                "key": key,
+                "order": len(children) + 1,
+                "control": "input",
+                "data_type": "image",
+                "required": required,
+                "source": {"normalized_from": "approved_default_result_image"},
+            },
+            "children": [],
+        }
+        children.append(existing)
+        return True
+
+    props = existing.get("props") if isinstance(existing.get("props"), dict) else {}
+    defaults: dict[str, Any] = {
+        "key": key,
+        "control": "input",
+        "data_type": "image",
+        "required": required,
+    }
+    for property_name, expected_value in defaults.items():
+        if props.get(property_name) != expected_value:
+            props[property_name] = expected_value
+            changed = True
+    if compact_text(existing.get("name")) != name:
+        existing["name"] = name
+        changed = True
+    existing["props"] = props
+    return changed
+
+
+def ensure_default_top_level_container(
+    block_schema: dict[str, Any],
+    *,
+    key: str,
+    name: str,
+    field_keys: tuple[str, ...],
+) -> tuple[dict[str, Any] | None, bool]:
+    blocks = normalize_items(block_schema.get("blocks"))
+    existing = find_top_level_block_by_key(blocks, key)
+    if existing is not None:
+        return existing, False
+
+    fields_by_key = {
+        compact_text((block.get("props") or {}).get("key")): block
+        for block in blocks
+        if isinstance(block, dict) and block.get("kind") == "field"
+    }
+    if any(field_key not in fields_by_key for field_key in field_keys):
+        return None, False
+
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    form_id = compact_text(meta.get("form_id"))
+    if not form_id:
+        return None, False
+    first_field_index = min(blocks.index(fields_by_key[field_key]) for field_key in field_keys)
+    container = {
+        "id": f"{form_id}.{key}",
+        "kind": "container",
+        "name": name,
+        "props": {
+            "key": key,
+            "order": first_field_index + 1,
+            "source": {"normalized_from": "approved_default_container_layout"},
+        },
+        "children": [fields_by_key[field_key] for field_key in field_keys],
+    }
+    field_ids = {id(field) for field in container["children"]}
+    blocks = [block for block in blocks if id(block) not in field_ids]
+    blocks.insert(first_field_index, container)
+    block_schema["blocks"] = blocks
+    resequence_block_orders(container["children"])
+    resequence_top_level_block_orders(blocks)
+    return container, True
 
 
 def ensure_default_hematology_layout(block_schema: dict[str, Any]) -> bool:
@@ -2111,38 +2326,15 @@ def ensure_default_hematology_layout(block_schema: dict[str, Any]) -> bool:
         return False
 
     changed = configure_default_field_properties(block_schema, HEMATOLOGY_FIELD_DEFAULTS)
-    blocks = normalize_items(block_schema.get("blocks"))
-    details = find_top_level_block_by_key(blocks, "details")
+    details, details_created = ensure_default_top_level_container(
+        block_schema,
+        key="details",
+        name="Hematology Details",
+        field_keys=HEMATOLOGY_DETAIL_FIELD_KEYS,
+    )
     if details is None:
-        fields_by_key = {
-            compact_text((block.get("props") or {}).get("key")): block
-            for block in blocks
-            if isinstance(block, dict) and block.get("kind") == "field"
-        }
-        if any(field_key not in fields_by_key for field_key in HEMATOLOGY_DETAIL_FIELD_KEYS):
-            return changed
-        first_detail_index = min(
-            blocks.index(fields_by_key[field_key])
-            for field_key in HEMATOLOGY_DETAIL_FIELD_KEYS
-        )
-        details = {
-            "id": f"{meta['form_id']}.details",
-            "kind": "container",
-            "name": "Hematology Details",
-            "props": {
-                "key": "details",
-                "order": first_detail_index + 1,
-                "source": {"normalized_from": "approved_default_container_layout"},
-            },
-            "children": [fields_by_key[field_key] for field_key in HEMATOLOGY_DETAIL_FIELD_KEYS],
-        }
-        detail_field_ids = {id(field) for field in details["children"]}
-        blocks = [block for block in blocks if id(block) not in detail_field_ids]
-        blocks.insert(first_detail_index, details)
-        block_schema["blocks"] = blocks
-        resequence_block_orders(details["children"])
-        resequence_top_level_block_orders(blocks)
-        changed = True
+        return changed
+    changed = changed or details_created
     detail_children = details.get("children") if isinstance(details.get("children"), list) else []
     differential_count = next(
         (
@@ -2194,6 +2386,142 @@ def ensure_default_hematology_layout(block_schema: dict[str, Any]) -> bool:
     meta[DEFAULT_HEMATOLOGY_LAYOUT_META_KEY] = True
     block_schema["meta"] = meta
     return True
+
+
+def ensure_default_hba1c_layout(block_schema: dict[str, Any]) -> bool:
+    if not isinstance(block_schema, dict):
+        return False
+
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    if compact_text(meta.get("form_key")) != HBA1C_FORM_KEY:
+        return False
+    if meta.get(DEFAULT_HBA1C_LAYOUT_META_KEY) is True:
+        return False
+
+    details, _ = ensure_default_top_level_container(
+        block_schema,
+        key="details",
+        name="HBA1C Details",
+        field_keys=("result",),
+    )
+    if details is None:
+        return False
+    configure_container_field_properties(
+        block_schema,
+        {"details": HBA1C_FIELD_DEFAULTS},
+    )
+    meta[DEFAULT_HBA1C_LAYOUT_META_KEY] = True
+    block_schema["meta"] = meta
+    return True
+
+
+def ensure_default_pro_time_aptt_layout(block_schema: dict[str, Any]) -> bool:
+    if not isinstance(block_schema, dict):
+        return False
+
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    if compact_text(meta.get("form_key")) != PRO_TIME_APTT_FORM_KEY:
+        return False
+    if meta.get(DEFAULT_PRO_TIME_APTT_DEFAULTS_META_KEY) is True:
+        return False
+
+    blocks = normalize_items(block_schema.get("blocks"))
+    if (
+        find_top_level_block_by_key(blocks, "pro_time") is None
+        or find_top_level_block_by_key(blocks, "aptt") is None
+    ):
+        return False
+    configure_container_field_properties(block_schema, PRO_TIME_APTT_CONTAINER_FIELD_DEFAULTS)
+    meta[DEFAULT_PRO_TIME_APTT_DEFAULTS_META_KEY] = True
+    block_schema["meta"] = meta
+    return True
+
+
+def ensure_default_qualitative_result_layout(
+    block_schema: dict[str, Any],
+    *,
+    form_key: str,
+    meta_key: str,
+    details_name: str,
+    detail_field_keys: tuple[str, ...],
+    normal_choice_options: dict[str, tuple[str, ...]],
+    result_image: dict[str, Any] | None = None,
+) -> bool:
+    if not isinstance(block_schema, dict):
+        return False
+
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    if compact_text(meta.get("form_key")) != form_key:
+        return False
+    if meta.get(meta_key) is True:
+        return False
+
+    details, _ = ensure_default_top_level_container(
+        block_schema,
+        key="details",
+        name=details_name,
+        field_keys=detail_field_keys,
+    )
+    if details is None:
+        return False
+    choice_options_changed = configure_choice_field_normal_options(
+        block_schema,
+        normal_choice_options,
+    )
+    if choice_options_changed is None:
+        return False
+
+    if isinstance(result_image, dict):
+        image_key = compact_text(result_image.get("key"))
+        image_name = compact_text(result_image.get("name"))
+        if not image_key or not image_name:
+            return False
+        ensure_default_image_field(
+            block_schema,
+            container=details,
+            key=image_key,
+            name=image_name,
+            required=bool(result_image.get("required")),
+        )
+        resequence_block_orders(normalize_items(details.get("children")))
+
+    meta[meta_key] = True
+    block_schema["meta"] = meta
+    return True
+
+
+def ensure_default_hiv_1_and_2_testing_layout(block_schema: dict[str, Any]) -> bool:
+    return ensure_default_qualitative_result_layout(
+        block_schema,
+        form_key=HIV_1_AND_2_TESTING_FORM_KEY,
+        meta_key=DEFAULT_HIV_1_AND_2_TESTING_DEFAULTS_META_KEY,
+        details_name="HIV 1&2 Testing Details",
+        detail_field_keys=("lot_number", "test_result"),
+        normal_choice_options={"test_result": ("NON-REACTIVE",)},
+    )
+
+
+def ensure_default_covid_19_antigen_rapid_test_layout(block_schema: dict[str, Any]) -> bool:
+    return ensure_default_qualitative_result_layout(
+        block_schema,
+        form_key=COVID_19_ANTIGEN_RAPID_TEST_FORM_KEY,
+        meta_key=DEFAULT_COVID_19_ANTIGEN_RAPID_TEST_DEFAULTS_META_KEY,
+        details_name="COVID 19 Antigen (Rapid Test) Details",
+        detail_field_keys=("test_result",),
+        normal_choice_options={"test_result": ("NEGATIVE",)},
+        result_image={"key": "result_image", "name": "Result Image", "required": True},
+    )
+
+
+def ensure_default_microbiology_layout(block_schema: dict[str, Any]) -> bool:
+    return ensure_default_qualitative_result_layout(
+        block_schema,
+        form_key=MICROBIOLOGY_FORM_KEY,
+        meta_key=DEFAULT_MICROBIOLOGY_DEFAULTS_META_KEY,
+        details_name="Microbiology Details",
+        detail_field_keys=("result",),
+        normal_choice_options={"result": ("NO FUNGAL ELEMENTS SEEN",)},
+    )
 
 
 def set_default_blood_gas_container(
@@ -3470,12 +3798,14 @@ def build_print_reference(props: dict[str, Any]) -> str:
 
     normal_min = compact_text(props.get("normal_min"))
     normal_max = compact_text(props.get("normal_max"))
+    unit_hint = compact_text(props.get("unit_hint") or props.get("unit"))
+    unit_suffix = f" {unit_hint}" if unit_hint else ""
     if normal_min and normal_max:
-        return f"{normal_min} to {normal_max}"
+        return f"{normal_min} to {normal_max}{unit_suffix}"
     if normal_min:
-        return f">= {normal_min}"
+        return f">= {normal_min}{unit_suffix}"
     if normal_max:
-        return f"<= {normal_max}"
+        return f"<= {normal_max}{unit_suffix}"
     return ""
 
 
@@ -5729,6 +6059,158 @@ def ensure_hematology_defaults(session: Session) -> int:
     definition.updated_at = utc_now()
     session.commit()
     return 1
+
+
+def apply_default_form_version(
+    session: Session,
+    definition: FormDefinition,
+    block_schema: dict[str, Any],
+    *,
+    summary: str,
+) -> int:
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    form_order = int(
+        meta.get("form_order")
+        or (definition.library_node.node_order if definition.library_node is not None else 1)
+        or 1
+    )
+    stored_block_schema = build_block_storage_payload(
+        block_schema,
+        slug=definition.slug,
+        name=definition.name,
+        form_order=form_order,
+    )
+    for existing_version in definition.versions:
+        existing_version.is_current = False
+
+    next_version = max((existing_version.version_number for existing_version in definition.versions), default=0) + 1
+    session.add(
+        build_form_version_record(
+            form_id=definition.id,
+            version_number=next_version,
+            summary=summary,
+            block_storage_schema=stored_block_schema,
+            source="system",
+            is_current=True,
+        )
+    )
+    definition.updated_at = utc_now()
+    session.commit()
+    return 1
+
+
+def ensure_hba1c_defaults(session: Session) -> int:
+    definition = session.scalar(
+        select(FormDefinition)
+        .where(FormDefinition.slug == HBA1C_FORM_KEY)
+        .options(
+            selectinload(FormDefinition.versions),
+            selectinload(FormDefinition.library_node),
+        )
+    )
+    if definition is None:
+        return 0
+
+    version = current_version(definition)
+    if version is None:
+        return 0
+
+    block_schema, _ = load_block_storage_document(version)
+    if not ensure_default_hba1c_layout(block_schema):
+        return 0
+    return apply_default_form_version(
+        session,
+        definition,
+        block_schema,
+        summary="Applied approved HBA1C defaults.",
+    )
+
+
+def ensure_pro_time_aptt_defaults(session: Session) -> int:
+    definition = session.scalar(
+        select(FormDefinition)
+        .where(FormDefinition.slug == PRO_TIME_APTT_FORM_KEY)
+        .options(
+            selectinload(FormDefinition.versions),
+            selectinload(FormDefinition.library_node),
+        )
+    )
+    if definition is None:
+        return 0
+
+    version = current_version(definition)
+    if version is None:
+        return 0
+
+    block_schema, _ = load_block_storage_document(version)
+    if not ensure_default_pro_time_aptt_layout(block_schema):
+        return 0
+    return apply_default_form_version(
+        session,
+        definition,
+        block_schema,
+        summary="Applied approved Pro-Time, APTT defaults.",
+    )
+
+
+def ensure_qualitative_result_form_defaults(
+    session: Session,
+    *,
+    form_key: str,
+    layout: Callable[[dict[str, Any]], bool],
+    summary: str,
+) -> int:
+    definition = session.scalar(
+        select(FormDefinition)
+        .where(FormDefinition.slug == form_key)
+        .options(
+            selectinload(FormDefinition.versions),
+            selectinload(FormDefinition.library_node),
+        )
+    )
+    if definition is None:
+        return 0
+
+    version = current_version(definition)
+    if version is None:
+        return 0
+
+    block_schema, _ = load_block_storage_document(version)
+    if not layout(block_schema):
+        return 0
+    return apply_default_form_version(
+        session,
+        definition,
+        block_schema,
+        summary=summary,
+    )
+
+
+def ensure_hiv_1_and_2_testing_defaults(session: Session) -> int:
+    return ensure_qualitative_result_form_defaults(
+        session,
+        form_key=HIV_1_AND_2_TESTING_FORM_KEY,
+        layout=ensure_default_hiv_1_and_2_testing_layout,
+        summary="Applied approved HIV 1&2 Testing defaults.",
+    )
+
+
+def ensure_covid_19_antigen_rapid_test_defaults(session: Session) -> int:
+    return ensure_qualitative_result_form_defaults(
+        session,
+        form_key=COVID_19_ANTIGEN_RAPID_TEST_FORM_KEY,
+        layout=ensure_default_covid_19_antigen_rapid_test_layout,
+        summary="Applied approved COVID 19 Antigen (Rapid Test) defaults.",
+    )
+
+
+def ensure_microbiology_defaults(session: Session) -> int:
+    return ensure_qualitative_result_form_defaults(
+        session,
+        form_key=MICROBIOLOGY_FORM_KEY,
+        layout=ensure_default_microbiology_layout,
+        summary="Applied approved Microbiology defaults.",
+    )
 
 
 def ensure_client_signatory_defaults(session: Session) -> int:

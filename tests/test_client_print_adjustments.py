@@ -32,6 +32,7 @@ from naic_builder.services import (
     build_print_display_value,
     build_form_print_preview_document,
     build_print_items,
+    build_print_reference,
     build_print_summary_items,
     build_signatory_snapshot,
     current_version,
@@ -39,9 +40,19 @@ from naic_builder.services import (
     default_patient_info_legacy_group,
     ensure_blood_gas_analysis_defaults,
     ensure_default_blood_gas_analysis_layout,
+    ensure_default_covid_19_antigen_rapid_test_layout,
+    ensure_default_hiv_1_and_2_testing_layout,
+    ensure_default_microbiology_layout,
     ensure_default_patient_info_fields,
     ensure_default_hematology_layout,
     ensure_hematology_defaults,
+    ensure_default_hba1c_layout,
+    ensure_default_pro_time_aptt_layout,
+    ensure_hba1c_defaults,
+    ensure_hiv_1_and_2_testing_defaults,
+    ensure_covid_19_antigen_rapid_test_defaults,
+    ensure_microbiology_defaults,
+    ensure_pro_time_aptt_defaults,
     ensure_reference_examination_in_patient_info,
     ensure_reference_seed,
     estimate_print_page_fit,
@@ -157,6 +168,11 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                 self.assertEqual(ensure_default_patient_info_fields(session), len(reference_form_slugs()))
                 self.assertEqual(ensure_blood_gas_analysis_defaults(session), 1)
                 self.assertEqual(ensure_hematology_defaults(session), 1)
+                self.assertEqual(ensure_hba1c_defaults(session), 1)
+                self.assertEqual(ensure_pro_time_aptt_defaults(session), 1)
+                self.assertEqual(ensure_hiv_1_and_2_testing_defaults(session), 1)
+                self.assertEqual(ensure_covid_19_antigen_rapid_test_defaults(session), 1)
+                self.assertEqual(ensure_microbiology_defaults(session), 1)
 
                 definitions = session.scalars(select(FormDefinition)).all()
                 self.assertEqual(len(definitions), len(reference_form_slugs()))
@@ -169,6 +185,76 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                     )
                     patient_field_keys = [child["props"]["key"] for child in patient_info["children"]]
                     self.assertIn("examination", patient_field_keys, definition.slug)
+        finally:
+            engine.dispose()
+
+    def test_qualitative_form_defaults_apply_normal_options_and_required_covid_image(self) -> None:
+        engine = create_engine("sqlite://")
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine)
+
+        try:
+            with Session() as session:
+                ensure_reference_seed(session)
+                ensure_default_patient_info_fields(session)
+                self.assertEqual(ensure_hiv_1_and_2_testing_defaults(session), 1)
+                self.assertEqual(ensure_covid_19_antigen_rapid_test_defaults(session), 1)
+                self.assertEqual(ensure_microbiology_defaults(session), 1)
+                self.assertEqual(ensure_hiv_1_and_2_testing_defaults(session), 0)
+                self.assertEqual(ensure_covid_19_antigen_rapid_test_defaults(session), 0)
+                self.assertEqual(ensure_microbiology_defaults(session), 0)
+
+                schemas: dict[str, dict] = {}
+                for definition in session.scalars(select(FormDefinition)).all():
+                    if definition.slug in {
+                        "hiv_1_and_2_testing",
+                        "covid_19_antigen_rapid_test",
+                        "microbiology",
+                    }:
+                        schemas[definition.slug], _ = load_block_storage_document(current_version(definition))
+
+                def fields_by_key(blocks):
+                    fields = {}
+                    for block in blocks:
+                        if block["kind"] == "field":
+                            fields[block["props"]["key"]] = block
+                        fields.update(fields_by_key(block.get("children") or []))
+                    return fields
+
+                hiv_fields = fields_by_key(schemas["hiv_1_and_2_testing"]["blocks"])
+                covid_fields = fields_by_key(schemas["covid_19_antigen_rapid_test"]["blocks"])
+                microbiology_fields = fields_by_key(schemas["microbiology"]["blocks"])
+
+                self.assertEqual(
+                    [option["name"] for option in hiv_fields["test_result"]["props"]["options"] if option["is_normal"]],
+                    ["NON-REACTIVE"],
+                )
+                self.assertEqual(
+                    [option["name"] for option in covid_fields["test_result"]["props"]["options"] if option["is_normal"]],
+                    ["NEGATIVE"],
+                )
+                self.assertEqual(
+                    [option["name"] for option in microbiology_fields["result"]["props"]["options"] if option["is_normal"]],
+                    ["NO FUNGAL ELEMENTS SEEN"],
+                )
+                self.assertEqual(evaluate_print_abnormal(hiv_fields["test_result"]["props"], "NON-REACTIVE"), (False, None))
+                self.assertEqual(evaluate_print_abnormal(hiv_fields["test_result"]["props"], "REACTIVE"), (True, "abnormal"))
+                self.assertEqual(evaluate_print_abnormal(covid_fields["test_result"]["props"], "NEGATIVE"), (False, None))
+                self.assertEqual(evaluate_print_abnormal(covid_fields["test_result"]["props"], "POSITIVE"), (True, "abnormal"))
+                self.assertEqual(
+                    evaluate_print_abnormal(microbiology_fields["result"]["props"], "NO FUNGAL ELEMENTS SEEN"),
+                    (False, None),
+                )
+                self.assertEqual(
+                    evaluate_print_abnormal(microbiology_fields["result"]["props"], "POSITIVE FOR FUNGAL ELEMENTS"),
+                    (True, "abnormal"),
+                )
+
+                result_image = covid_fields["result_image"]
+                self.assertEqual(result_image["name"], "Result Image")
+                self.assertEqual(result_image["props"]["control"], "input")
+                self.assertEqual(result_image["props"]["data_type"], "image")
+                self.assertTrue(result_image["props"]["required"])
         finally:
             engine.dispose()
 
@@ -325,6 +411,71 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(evaluate_print_abnormal(fields["segmenters"]["props"], "0.50"), (False, None))
         self.assertEqual(evaluate_print_abnormal(fields["segmenters"]["props"], "0.49"), (True, "low"))
         self.assertEqual(sample_print_value_for_field(fields["clotting_time"]), "3.5")
+
+    def test_hba1c_defaults_use_approved_range(self) -> None:
+        schema = json.loads(
+            (ROOT / "artifacts" / "schema" / "naic_medtech_app_schema.json").read_text(encoding="utf-8")
+        )
+        hba1c = next(
+            form
+            for group in schema["groups"]
+            for form in group["forms"]
+            if form["key"] == "hba1c"
+        )
+        block_schema = build_block_storage_document_from_legacy_storage(hba1c)
+        ensure_reference_examination_in_patient_info(block_schema, reference_form_slugs())
+
+        self.assertTrue(ensure_default_hba1c_layout(block_schema))
+        details = next(block for block in block_schema["blocks"] if block["props"]["key"] == "details")
+        result = next(child for child in details["children"] if child["props"]["key"] == "result")
+        self.assertEqual(result["props"]["normal_min"], "4.0")
+        self.assertEqual(result["props"]["normal_max"], "5.6")
+        self.assertEqual(result["props"]["unit"], "%")
+        self.assertEqual(result["props"]["unit_hint"], "%")
+        self.assertNotIn("reference_text", result["props"])
+        self.assertNotIn("normal_value", result["props"])
+        self.assertEqual(build_print_reference(result["props"]), "4.0 to 5.6 %")
+        self.assertEqual(evaluate_print_abnormal(result["props"], "4.0"), (False, None))
+        self.assertEqual(evaluate_print_abnormal(result["props"], "5.7"), (True, "high"))
+
+    def test_pro_time_aptt_defaults_use_approved_ranges(self) -> None:
+        schema = json.loads(
+            (ROOT / "artifacts" / "schema" / "naic_medtech_app_schema.json").read_text(encoding="utf-8")
+        )
+        pro_time_aptt = next(
+            form
+            for group in schema["groups"]
+            for form in group["forms"]
+            if form["key"] == "pro_time_aptt"
+        )
+        block_schema = build_block_storage_document_from_legacy_storage(pro_time_aptt)
+        ensure_reference_examination_in_patient_info(block_schema, reference_form_slugs())
+
+        self.assertTrue(ensure_default_pro_time_aptt_layout(block_schema))
+        pro_time = next(block for block in block_schema["blocks"] if block["props"]["key"] == "pro_time")
+        aptt = next(block for block in block_schema["blocks"] if block["props"]["key"] == "aptt")
+        pro_fields = {child["props"]["key"]: child for child in pro_time["children"]}
+        aptt_fields = {child["props"]["key"]: child for child in aptt["children"]}
+        self.assertEqual(pro_fields["test"]["props"]["normal_min"], "10.0")
+        self.assertEqual(pro_fields["test"]["props"]["normal_max"], "13.9")
+        self.assertEqual(pro_fields["test"]["props"]["unit"], "seconds")
+        self.assertEqual(pro_fields["test"]["props"]["unit_hint"], "seconds")
+        self.assertNotIn("reference_text", pro_fields["test"]["props"])
+        self.assertNotIn("normal_value", pro_fields["test"]["props"])
+        self.assertEqual(build_print_reference(pro_fields["test"]["props"]), "10.0 to 13.9 seconds")
+        self.assertEqual(pro_fields["inr"]["props"]["normal_min"], "0.70")
+        self.assertEqual(pro_fields["inr"]["props"]["normal_max"], "1.30")
+        self.assertNotIn("normal_min", pro_fields["control"]["props"])
+        self.assertEqual(pro_fields["control"]["props"]["unit_hint"], "seconds")
+        self.assertNotIn("reference_text", pro_fields["control"]["props"])
+        self.assertNotIn("normal_value", pro_fields["control"]["props"])
+        self.assertEqual(pro_fields["activity"]["props"]["unit"], "%")
+        self.assertEqual(aptt_fields["test"]["props"]["normal_min"], "22.2")
+        self.assertEqual(aptt_fields["test"]["props"]["normal_max"], "37.9")
+        self.assertEqual(aptt_fields["control"]["props"]["unit"], "seconds")
+        self.assertEqual(evaluate_print_abnormal(pro_fields["test"]["props"], "14"), (True, "high"))
+        self.assertEqual(evaluate_print_abnormal(aptt_fields["test"]["props"], "37.9"), (False, None))
+        self.assertEqual(evaluate_print_abnormal(aptt_fields["control"]["props"], "99"), (False, None))
 
     def test_print_containers_render_as_depth_aware_document_hierarchy(self) -> None:
         blocks = [

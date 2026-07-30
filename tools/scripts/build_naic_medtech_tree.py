@@ -136,6 +136,68 @@ FORM_DEFAULT_OVERRIDES = {
             },
         ],
     },
+    "hba1c": {
+        "root_fields_container": {
+            "key": "details",
+            "name": "HBA1C Details",
+        },
+        "field_property_overrides": {
+            "result": {
+                "normal_min": "4.0",
+                "normal_max": "5.6",
+                "unit": "%",
+                "unit_hint": "%",
+                "reference_text": None,
+                "normal_value": None,
+            },
+        },
+    },
+    "pro_time_aptt": {
+        "numeric_ranges": {
+            "pro_time.test": {"normal_min": "10.0", "normal_max": "13.9", "unit": "seconds", "unit_hint": "seconds", "reference_text": None, "normal_value": None},
+            "pro_time.control": {"unit": "seconds", "unit_hint": "seconds", "reference_text": None, "normal_value": None},
+            "pro_time.inr": {"normal_min": "0.70", "normal_max": "1.30", "reference_text": None, "normal_value": None},
+            "pro_time.activity": {"unit": "%", "unit_hint": "%", "reference_text": None, "normal_value": None},
+            "aptt.test": {"normal_min": "22.2", "normal_max": "37.9", "unit": "seconds", "unit_hint": "seconds", "reference_text": None, "normal_value": None},
+            "aptt.control": {"unit": "seconds", "unit_hint": "seconds", "reference_text": None, "normal_value": None},
+        },
+    },
+    "hiv_1_and_2_testing": {
+        "root_fields_container": {
+            "key": "details",
+            "name": "HIV 1&2 Testing Details",
+        },
+        "normal_choice_options": {
+            "test_result": ["NON-REACTIVE"],
+        },
+    },
+    "covid_19_antigen_rapid_test": {
+        "root_fields_container": {
+            "key": "details",
+            "name": "COVID 19 Antigen (Rapid Test) Details",
+        },
+        "normal_choice_options": {
+            "test_result": ["NEGATIVE"],
+        },
+        "detail_field_appends": [
+            {
+                "key": "result_image",
+                "name": "Result Image",
+                "control": "input",
+                "data_type": "image",
+                "required": True,
+            },
+        ],
+    },
+    "microbiology": {
+        "root_fields_container": {
+            "key": "details",
+            "name": "Microbiology Details",
+        },
+        "normal_choice_options": {
+            "result": ["NO FUNGAL ELEMENTS SEEN"],
+        },
+    },
 }
 
 
@@ -1167,9 +1229,13 @@ def apply_numeric_range_overrides(
             range_override = numeric_ranges.get(f"{section_key}.{field_key}")
             if not isinstance(range_override, dict):
                 continue
-            for property_name in ("normal_min", "normal_max"):
+            for property_name in ("normal_min", "normal_max", "unit", "unit_hint", "reference_text", "normal_value"):
+                if property_name not in range_override:
+                    continue
                 value = range_override.get(property_name)
-                if value is not None and str(value).strip():
+                if value is None:
+                    field.pop(property_name, None)
+                elif str(value).strip():
                     field[property_name] = str(value).strip()
 
 
@@ -1185,7 +1251,9 @@ def apply_field_property_overrides(
             overrides = field_property_overrides.get(field_key)
             if isinstance(overrides, dict):
                 for property_name, value in overrides.items():
-                    if value is not None and str(value).strip():
+                    if value is None:
+                        field.pop(property_name, None)
+                    elif str(value).strip():
                         field[property_name] = str(value).strip()
             children = field.get("fields")
             if isinstance(children, list):
@@ -1200,6 +1268,88 @@ def apply_field_property_overrides(
         section_fields = section.get("fields")
         if isinstance(section_fields, list):
             apply_to_fields(section_fields)
+
+
+def apply_normal_choice_options(
+    app_form: dict[str, object],
+    normal_choice_options: dict[str, object],
+) -> None:
+    def apply_to_fields(fields: list[object], parent_key: str = "") -> None:
+        for field in fields:
+            if not isinstance(field, dict):
+                continue
+            field_key = str(field.get("key") or "")
+            option_paths = [path for path in (f"{parent_key}.{field_key}" if parent_key else "", field_key) if path]
+            normal_names = next(
+                (
+                    normal_choice_options[path]
+                    for path in option_paths
+                    if isinstance(normal_choice_options.get(path), list)
+                ),
+                None,
+            )
+            if isinstance(normal_names, list):
+                wanted_names = {str(name) for name in normal_names}
+                for option in field.get("options") or []:
+                    if isinstance(option, dict):
+                        option["is_normal"] = str(option.get("name") or "") in wanted_names
+            children = field.get("fields")
+            if isinstance(children, list):
+                child_parent_key = f"{parent_key}.{field_key}" if parent_key and field_key else field_key
+                apply_to_fields(children, child_parent_key)
+
+    root_fields = app_form.get("fields")
+    if isinstance(root_fields, list):
+        apply_to_fields(root_fields)
+    for section in app_form.get("sections") or []:
+        if not isinstance(section, dict):
+            continue
+        section_fields = section.get("fields")
+        if isinstance(section_fields, list):
+            apply_to_fields(section_fields, str(section.get("key") or ""))
+
+
+def append_default_detail_fields(
+    app_form: dict[str, object],
+    detail_field_appends: list[object],
+) -> None:
+    details = next(
+        (
+            field
+            for field in app_form.get("fields") or []
+            if isinstance(field, dict)
+            and field.get("kind") == "field_group"
+            and str(field.get("key") or "") == "details"
+        ),
+        None,
+    )
+    if details is None:
+        return
+    fields = details.get("fields")
+    if not isinstance(fields, list):
+        return
+    existing_keys = {str(field.get("key") or "") for field in fields if isinstance(field, dict)}
+    for raw_field in detail_field_appends:
+        if not isinstance(raw_field, dict):
+            continue
+        key = str(raw_field.get("key") or "").strip()
+        name = str(raw_field.get("name") or "").strip()
+        if not key or not name or key in existing_keys:
+            continue
+        fields.append(
+            {
+                "id": f"{details['id']}.{key}",
+                "key": key,
+                "name": name,
+                "kind": "field",
+                "order": len(fields) + 1,
+                "control": str(raw_field.get("control") or "input"),
+                "data_type": str(raw_field.get("data_type") or "text"),
+                "required": bool(raw_field.get("required")),
+                "source": {"normalized_from": "approved_default_result_image"},
+            }
+        )
+        existing_keys.add(key)
 
 
 def apply_root_field_group_layout(
@@ -1409,6 +1559,10 @@ def apply_form_default_overrides(app_form: dict[str, object]) -> dict[str, objec
             }
         ]
 
+    detail_field_appends = overrides.get("detail_field_appends")
+    if isinstance(detail_field_appends, list):
+        append_default_detail_fields(app_form, detail_field_appends)
+
     patient_field_overrides = overrides.get("patient_field_overrides")
     if isinstance(patient_field_overrides, dict):
         app_form["fields"] = [
@@ -1435,6 +1589,8 @@ def apply_form_default_overrides(app_form: dict[str, object]) -> dict[str, objec
     section_names = overrides.get("section_names")
     field_group_names = overrides.get("field_group_names")
     normal_choice_options = overrides.get("normal_choice_options")
+    if isinstance(normal_choice_options, dict):
+        apply_normal_choice_options(app_form, normal_choice_options)
     for section in app_form.get("sections") or []:
         if not isinstance(section, dict):
             continue
@@ -1447,17 +1603,6 @@ def apply_form_default_overrides(app_form: dict[str, object]) -> dict[str, objec
             field_key = str(field.get("key") or "")
             if isinstance(field_group_names, dict) and field_key in field_group_names:
                 field["name"] = str(field_group_names[field_key])
-            option_path = f"{section_key}.{field_key}"
-            normal_names = (
-                normal_choice_options.get(option_path)
-                if isinstance(normal_choice_options, dict)
-                else None
-            )
-            if isinstance(normal_names, list):
-                for option in field.get("options") or []:
-                    if isinstance(option, dict):
-                        option["is_normal"] = str(option.get("name") or "") in normal_names
-
     return app_form
 
 
