@@ -480,7 +480,7 @@ function getDraftSignatory(slotId) {
   return getDraftSignatories().find((slot) => slot.id === targetId) || null;
 }
 
-function makeBlankSignatorySlot() {
+function makeBlankSignatorySlot(index) {
   const slotId = `signatory_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   return normalizeSignatorySlot(
     {
@@ -495,7 +495,7 @@ function makeBlankSignatorySlot() {
       default_option_id: "",
       options: [],
     },
-    getDraftSignatories().length + 1
+    index
   );
 }
 
@@ -524,7 +524,7 @@ function parseSignatoryOptionsText(value, slotId) {
 
 function addDraftSignatorySlot() {
   const slots = getDraftSignatories();
-  slots.push(makeBlankSignatorySlot());
+  slots.push(makeBlankSignatorySlot(slots.length + 1));
 }
 
 function removeDraftSignatorySlot(slotId) {

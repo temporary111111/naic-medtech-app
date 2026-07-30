@@ -6,10 +6,11 @@
   <title>Print Record | {{ document.form_name }}</title>
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
-  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260730-hierarchical-containers-v1">
+  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260730-adjustable-print-layout-v1">
   {% set presentation = document.template or {} %}
+  {% set record_meta = document["record"] or {} %}
 </head>
-<body class="print-template-{{ document.print_config.template_id | replace('_', '-') }} print-paper-{{ presentation.paper_size }} print-text-{{ document.print_config.text_size | replace('_', '-') }} print-density-{{ document.print_config.density }} print-font-{{ (document.print_config.font_family or 'arial_narrow') | replace('_', '-') }}" style="--accent: {{ document.print_config.accent_color }}; --accent-ink: {{ document.print_accent_ink or '#ffffff' }}; --print-page-width: {{ presentation.page_width_mm }}mm; --print-page-height: {{ presentation.page_height_mm }}mm;">
+<body class="print-template-{{ document.print_config.template_id | replace('_', '-') }} print-paper-{{ presentation.paper_size }} print-text-{{ document.print_config.text_size | replace('_', '-') }} print-density-{{ document.print_config.density }} print-font-{{ (document.print_config.font_family or 'arial_narrow') | replace('_', '-') }}" data-print-record-id="{{ record_meta.id }}" data-print-template-id="{{ document.print_config.template_id }}" data-print-paper-size="{{ presentation.paper_size }}" style="--accent: {{ document.print_config.accent_color }}; --accent-ink: {{ document.print_accent_ink or '#ffffff' }}; --print-page-width: {{ presentation.page_width_mm }}mm; --print-page-height: {{ presentation.page_height_mm }}mm;">
   {% if presentation.requires_one_page %}
   <style>@page { size: {{ presentation.page_css_size }} landscape; margin: 4mm 6mm; }</style>
   {% elif presentation.orientation_key == "landscape" %}
@@ -18,7 +19,6 @@
   <style>@page { size: {{ presentation.page_css_size }} portrait; margin: 4mm 6mm; }</style>
   {% endif %}
   {% from "records/_print_document.html" import render_print_page %}
-  {% set record_meta = document["record"] or {} %}
   {% set fit = document.fit_estimate or {} %}
 
   <main class="print-shell">
@@ -44,6 +44,7 @@
         <details class="print-more-menu">
           <summary>More</summary>
           <div class="print-more-panel">
+            <button type="button" data-open-layout-editor>Adjust layout</button>
             {% if record_meta.form_slug %}
             <form method="post" action="/records/new">
               <input type="hidden" name="form_slug" value="{{ record_meta.form_slug }}">
@@ -56,6 +57,21 @@
         <button class="print-button" type="button"{% if not fit.can_print %} disabled title="{{ fit.detail }}"{% else %} onclick="window.print()"{% endif %}>Print / Save PDF</button>
       </div>
     </header>
+
+    <section class="print-layout-editor" data-print-layout-editor hidden aria-labelledby="print-layout-editor-title">
+      <div class="print-layout-editor-copy">
+        <strong id="print-layout-editor-title">Adjust layout</strong>
+        <span data-layout-editor-hint>Select a grid, then drag a field's right border to change its width.</span>
+      </div>
+      <div class="print-layout-editor-actions">
+        <button type="button" data-layout-preserve disabled>Preserve grid</button>
+        <button type="button" data-layout-balance disabled>Balance final row</button>
+        <button type="button" data-layout-reset disabled>Reset grid</button>
+        <button type="button" data-layout-save>Save as my default</button>
+        <button type="button" class="is-primary" data-layout-done>Done</button>
+      </div>
+      <p class="print-layout-editor-status" data-layout-editor-status role="status"></p>
+    </section>
 
     <dialog class="print-settings-dialog" data-print-settings-dialog aria-labelledby="print-settings-title">
       <form method="dialog" class="print-settings-dismiss">
@@ -201,6 +217,219 @@
       paperSizeSelect?.addEventListener("change", syncTextSize);
       syncOrientation();
       syncTextSize();
+
+      const layoutEditor = document.querySelector("[data-print-layout-editor]");
+      const openLayoutEditor = document.querySelector("[data-open-layout-editor]");
+      const doneLayoutEditor = document.querySelector("[data-layout-done]");
+      const preserveLayoutButton = document.querySelector("[data-layout-preserve]");
+      const balanceLayoutButton = document.querySelector("[data-layout-balance]");
+      const resetLayoutButton = document.querySelector("[data-layout-reset]");
+      const saveLayoutButton = document.querySelector("[data-layout-save]");
+      const layoutHint = document.querySelector("[data-layout-editor-hint]");
+      const layoutStatus = document.querySelector("[data-layout-editor-status]");
+      const layoutGrids = Array.from(document.querySelectorAll("[data-print-layout-grid]"));
+      const layoutRecordId = document.body.dataset.printRecordId;
+      const layoutTemplateId = document.body.dataset.printTemplateId;
+      const layoutPaperSize = document.body.dataset.printPaperSize;
+      let layoutEditing = false;
+      let activeLayoutGrid = null;
+      let activeResize = null;
+
+      const gridCells = (grid) => Array.from(grid.querySelectorAll("[data-print-grid-cell]"));
+      const gridUnits = (grid) => Math.max(2, Number.parseInt(grid.dataset.gridUnits || "2", 10) || 2);
+      const allowedSpans = (grid) => {
+        const units = gridUnits(grid);
+        return [...new Set(units <= 4 ? [2, units] : [2, units / 2, units - 2, units])]
+          .filter((span) => Number.isInteger(span) && span > 0 && span <= units)
+          .sort((left, right) => left - right);
+      };
+      const closestAllowedSpan = (grid, desired) => allowedSpans(grid).reduce(
+        (closest, option) => Math.abs(option - desired) < Math.abs(closest - desired) ? option : closest,
+        allowedSpans(grid)[0],
+      );
+      const setCellSpan = (cell, span) => {
+        cell.dataset.printSpan = String(span);
+        cell.style.setProperty("--print-grid-span", String(span));
+      };
+      const fieldIds = (grid) => gridCells(grid).map((cell) => cell.dataset.fieldId || "").filter(Boolean);
+      const currentSpans = (grid) => gridCells(grid).map((cell) => Number.parseInt(cell.dataset.printSpan || "2", 10) || 2);
+      const rowGroups = (grid, spans = currentSpans(grid)) => {
+        const units = gridUnits(grid);
+        const rows = [];
+        let row = [];
+        let used = 0;
+        spans.forEach((span, index) => {
+          if (used + span > units) {
+            rows.push(row);
+            row = [];
+            used = 0;
+          }
+          row.push({ index, span });
+          used += span;
+          if (used === units) {
+            rows.push(row);
+            row = [];
+            used = 0;
+          }
+        });
+        if (row.length) rows.push(row);
+        return rows;
+      };
+      const updatePlaceholders = (grid, mode = grid.dataset.gridMode || "preserve") => {
+        grid.querySelectorAll(".print-grid-cell--placeholder").forEach((cell) => cell.remove());
+        const rows = rowGroups(grid);
+        const lastRow = rows.at(-1) || [];
+        const used = lastRow.reduce((total, cell) => total + cell.span, 0);
+        const remaining = gridUnits(grid) - used;
+        if (!remaining || used === gridUnits(grid)) return;
+        const placeholderSpans = mode === "preserve" && remaining % 2 === 0
+          ? Array.from({ length: remaining / 2 }, () => 2)
+          : [remaining];
+        placeholderSpans.forEach((span) => {
+          const placeholder = document.createElement("article");
+          placeholder.className = "print-grid-cell print-grid-cell--placeholder";
+          placeholder.setAttribute("aria-hidden", "true");
+          placeholder.style.setProperty("--print-grid-span", String(span));
+          grid.append(placeholder);
+        });
+      };
+      const setGridMode = (grid, mode) => {
+        grid.dataset.gridMode = mode;
+        const cells = gridCells(grid);
+        cells.forEach((cell) => setCellSpan(cell, Number.parseInt(cell.dataset.baseSpan || "2", 10) || 2));
+        if (mode === "balance") {
+          const rows = rowGroups(grid);
+          const lastRow = rows.at(-1) || [];
+          const units = gridUnits(grid);
+          const used = lastRow.reduce((total, cell) => total + cell.span, 0);
+          if (lastRow.length === 1) {
+            setCellSpan(cells[lastRow[0].index], units);
+          } else if (lastRow.length === 2 && used < units && units % 2 === 0) {
+            lastRow.forEach((item) => setCellSpan(cells[item.index], units / 2));
+          }
+        }
+        updatePlaceholders(grid, mode);
+      };
+      const setActiveGrid = (grid) => {
+        activeLayoutGrid = grid;
+        layoutGrids.forEach((item) => item.classList.toggle("is-layout-active", item === grid));
+        [preserveLayoutButton, balanceLayoutButton, resetLayoutButton].forEach((button) => {
+          if (button) button.disabled = !grid;
+        });
+        if (layoutHint) layoutHint.textContent = grid
+          ? "Drag a field's right border. The following fields reflow automatically."
+          : "Select a grid, then drag a field's right border to change its width.";
+      };
+      const currentLayoutPreference = () => {
+        const grids = {};
+        layoutGrids.forEach((grid) => {
+          const mode = grid.dataset.gridMode || "preserve";
+          if (mode === "preserve") return;
+          const ids = fieldIds(grid);
+          const spans = {};
+          gridCells(grid).forEach((cell) => {
+            const fieldId = cell.dataset.fieldId || "";
+            if (fieldId) spans[fieldId] = Number.parseInt(cell.dataset.printSpan || "2", 10) || 2;
+          });
+          grids[grid.dataset.gridId || ""] = { field_ids: ids, mode, spans };
+        });
+        return { grids };
+      };
+      const setLayoutStatus = (message, isError = false) => {
+        if (!layoutStatus) return;
+        layoutStatus.textContent = message;
+        layoutStatus.dataset.status = isError ? "error" : "success";
+      };
+      const openEditor = () => {
+        if (!layoutEditor) return;
+        if (moreMenu) moreMenu.open = false;
+        layoutEditing = true;
+        layoutEditor.hidden = false;
+        document.body.classList.add("is-layout-editing");
+        setActiveGrid(activeLayoutGrid || layoutGrids[0] || null);
+        setLayoutStatus("");
+        layoutEditor.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      };
+      const closeEditor = () => {
+        layoutEditing = false;
+        activeResize = null;
+        document.body.classList.remove("is-layout-editing", "is-layout-resizing");
+        if (layoutEditor) layoutEditor.hidden = true;
+      };
+
+      openLayoutEditor?.addEventListener("click", openEditor);
+      doneLayoutEditor?.addEventListener("click", closeEditor);
+      preserveLayoutButton?.addEventListener("click", () => {
+        if (activeLayoutGrid) setGridMode(activeLayoutGrid, "preserve");
+      });
+      resetLayoutButton?.addEventListener("click", () => {
+        if (activeLayoutGrid) setGridMode(activeLayoutGrid, "preserve");
+      });
+      balanceLayoutButton?.addEventListener("click", () => {
+        if (activeLayoutGrid) setGridMode(activeLayoutGrid, "balance");
+      });
+      layoutGrids.forEach((grid) => {
+        grid.addEventListener("click", (event) => {
+          const cell = event.target.closest("[data-print-grid-cell]");
+          if (layoutEditing && cell) setActiveGrid(grid);
+        });
+        grid.addEventListener("pointerdown", (event) => {
+          const cell = event.target.closest("[data-print-grid-cell]");
+          if (!layoutEditing || !cell) return;
+          setActiveGrid(grid);
+          const cellRect = cell.getBoundingClientRect();
+          if (event.clientX < cellRect.right - 12) return;
+          event.preventDefault();
+          cell.setPointerCapture?.(event.pointerId);
+          activeResize = {
+            grid,
+            cell,
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startWidth: cellRect.width,
+          };
+          document.body.classList.add("is-layout-resizing");
+        });
+      });
+      document.addEventListener("pointermove", (event) => {
+        if (!activeResize || event.pointerId !== activeResize.pointerId) return;
+        const gridRect = activeResize.grid.getBoundingClientRect();
+        const unitWidth = gridRect.width / gridUnits(activeResize.grid);
+        const desired = Math.round((activeResize.startWidth + event.clientX - activeResize.startX) / unitWidth);
+        const span = closestAllowedSpan(activeResize.grid, desired);
+        setCellSpan(activeResize.cell, span);
+        activeResize.grid.dataset.gridMode = "manual";
+        updatePlaceholders(activeResize.grid, "manual");
+      });
+      document.addEventListener("pointerup", (event) => {
+        if (!activeResize || event.pointerId !== activeResize.pointerId) return;
+        activeResize.cell.releasePointerCapture?.(event.pointerId);
+        activeResize = null;
+        document.body.classList.remove("is-layout-resizing");
+      });
+      saveLayoutButton?.addEventListener("click", async () => {
+        if (!layoutRecordId || !layoutTemplateId || !layoutPaperSize) return;
+        saveLayoutButton.disabled = true;
+        setLayoutStatus("Saving layout...");
+        try {
+          const response = await fetch(`/records/${layoutRecordId}/print-layout`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              template_id: layoutTemplateId,
+              paper_size: layoutPaperSize,
+              layout: currentLayoutPreference(),
+            }),
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.detail || "Could not save the print layout.");
+          setLayoutStatus(result.message || "Print layout saved for this profile.");
+        } catch (error) {
+          setLayoutStatus(error.message || "Could not save the print layout.", true);
+        } finally {
+          saveLayoutButton.disabled = false;
+        }
+      });
     })();
   </script>
 </body>

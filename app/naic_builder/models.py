@@ -115,6 +115,8 @@ class User(Base):
     print_template_id: Mapped[str] = mapped_column(String(80), default="modern_portrait")
     print_text_size: Mapped[str] = mapped_column(String(40), default="standard")
     print_paper_size: Mapped[str] = mapped_column(String(40), default="a4")
+    # Personal, form-specific print grid preferences. Form data and versions stay immutable.
+    print_layout_preferences_json: Mapped[str] = mapped_column(Text, default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

@@ -27,6 +27,7 @@ from naic_builder.models import FormDefinition, FormVersion, Record, User
 from naic_builder.schemas import ClinicProfilePayload, FormSavePayload
 from naic_builder.services import (
     apply_print_presentation,
+    apply_print_layout_preference,
     build_block_storage_document_from_legacy_storage,
     build_print_clinic_profile,
     build_print_display_value,
@@ -75,9 +76,11 @@ from naic_builder.services import (
     ensure_form_version_storage_documents,
     evaluate_print_abnormal,
     format_print_temporal_value,
+    filter_print_layout_preference_for_items,
     list_record_completion_issues,
     load_block_storage_document,
     normalize_print_paper_size,
+    normalize_print_layout_preference,
     normalize_print_profile,
     normalize_signatory_slot,
     print_orientation_options,
@@ -90,9 +93,11 @@ from naic_builder.services import (
     reference_form_slugs,
     sample_print_value_for_field,
     save_user_print_preferences,
+    save_user_print_layout_preference,
     save_clinic_profile,
     signatory_snapshots_for_print,
     update_form,
+    user_print_layout_preference,
 )
 
 
@@ -1554,6 +1559,124 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         })
         self.assertEqual(html.count('class="print-grid-cell print-grid-cell--placeholder"'), 2)
         self.assertEqual(html.count('aria-hidden="true"'), 2)
+
+    def test_print_grid_layout_modes_keep_or_balance_trailing_cells(self) -> None:
+        field_ids = [f"field_{index}" for index in range(7)]
+        items = [{
+            "kind": "field_grid",
+            "id": "root/container:0",
+            "field_ids": field_ids,
+            "items": [],
+        }]
+
+        apply_print_layout_preference(items, {}, field_grid_units=6)
+        preserved = items[0]["layout"]
+        self.assertEqual(preserved["mode"], "preserve")
+        self.assertEqual(preserved["spans"]["field_6"], 2)
+        self.assertEqual(preserved["placeholder_spans"], [2, 2])
+
+        preference = normalize_print_layout_preference({
+            "grids": {
+                "root/container:0": {
+                    "field_ids": field_ids,
+                    "mode": "balance",
+                }
+            }
+        })
+        apply_print_layout_preference(items, preference, field_grid_units=6)
+        balanced = items[0]["layout"]
+        self.assertEqual(balanced["mode"], "balance")
+        self.assertEqual(balanced["spans"]["field_6"], 6)
+        self.assertEqual(balanced["placeholder_spans"], [])
+
+    def test_manual_print_grid_widths_are_profile_safe(self) -> None:
+        field_ids = ["name", "age", "sex", "collected_at", "examination", "requesting"]
+        items = [{
+            "kind": "field_grid",
+            "id": "root/patient_information:0",
+            "field_ids": field_ids,
+            "items": [],
+        }]
+        raw_preference = {
+            "grids": {
+                "root/patient_information:0": {
+                    "field_ids": field_ids,
+                    "mode": "manual",
+                    "spans": {"name": 4, "age": 2, "sex": 2},
+                }
+            }
+        }
+        safe_preference = filter_print_layout_preference_for_items(
+            raw_preference,
+            items,
+            field_grid_units=6,
+        )
+        apply_print_layout_preference(items, safe_preference, field_grid_units=6)
+        layout = items[0]["layout"]
+        self.assertEqual(layout["mode"], "manual")
+        self.assertEqual(layout["spans"]["name"], 4)
+        self.assertEqual(layout["spans"]["age"], 2)
+
+        changed_items = [{
+            "kind": "field_grid",
+            "id": "root/patient_information:0",
+            "field_ids": ["name", "age", "sex", "new_field"],
+            "items": [],
+        }]
+        apply_print_layout_preference(changed_items, safe_preference, field_grid_units=6)
+        self.assertEqual(changed_items[0]["layout"]["mode"], "preserve")
+
+    def test_user_print_layout_preference_is_personal_and_profile_scoped(self) -> None:
+        engine = create_engine("sqlite://")
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine)
+        try:
+            with Session() as session:
+                user = User(
+                    email="layout@example.test",
+                    login_id="layout_user",
+                    full_name="Layout User",
+                    role="medtech",
+                    status="active",
+                )
+                session.add(user)
+                session.commit()
+                preference = save_user_print_layout_preference(
+                    session,
+                    user,
+                    form_id=8,
+                    template_id="legacy_landscape",
+                    paper_size="a5",
+                    preference={
+                        "grids": {
+                            "root/patient:0": {
+                                "field_ids": ["name", "age", "sex", "exam"],
+                                "mode": "manual",
+                                "spans": {"name": 4, "age": 2, "sex": 2, "exam": 2},
+                            }
+                        }
+                    },
+                )
+                self.assertEqual(preference["grids"]["root/patient:0"]["mode"], "manual")
+                session.refresh(user)
+                saved = user_print_layout_preference(
+                    user,
+                    form_id=8,
+                    template_id="legacy_landscape",
+                    paper_size="a5",
+                )
+                self.assertEqual(saved["grids"]["root/patient:0"]["spans"]["name"], 4)
+                self.assertEqual(
+                    user_print_layout_preference(
+                        user,
+                        form_id=8,
+                        template_id="modern_landscape",
+                        paper_size="a5",
+                    )["grids"],
+                    {},
+                )
+        finally:
+            engine.dispose()
 
     def test_print_temporal_values_are_nontechnical(self) -> None:
         self.assertEqual(format_print_temporal_value("date", "2026-07-16"), "07/16/2026")

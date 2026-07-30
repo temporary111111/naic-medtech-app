@@ -54,11 +54,19 @@
     </section>
     {% elif item.kind == "field_grid" %}
     {% set grid_items = item["items"] or [] %}
-    {% set grid_remainder = (grid_items | length) % field_grid_columns %}
-    {% set grid_placeholder_count = (field_grid_columns - grid_remainder) % field_grid_columns %}
-    <div class="print-field-grid">
+    {% set grid_layout = item["layout"] or {} %}
+    {% set grid_units = grid_layout.units or (field_grid_columns * 2) %}
+    {% if grid_layout %}
+      {% set grid_placeholder_spans = grid_layout.placeholder_spans or [] %}
+    {% else %}
+      {% set grid_remainder = (grid_items | length) % field_grid_columns %}
+      {% set grid_placeholder_count = (field_grid_columns - grid_remainder) % field_grid_columns %}
+      {% set grid_placeholder_spans = [2] * grid_placeholder_count %}
+    {% endif %}
+    <div class="print-field-grid print-layout-grid" data-print-layout-grid data-grid-id="{{ grid_layout.id or item.id or '' }}" data-grid-units="{{ grid_units }}" data-grid-mode="{{ grid_layout.mode or 'preserve' }}" style="--print-grid-units: {{ grid_units }};">
       {% for field in grid_items %}
-      <article class="print-grid-cell">
+      {% set field_span = grid_layout.spans[field.id] if grid_layout.spans and field.id in grid_layout.spans else 2 %}
+      <article class="print-grid-cell" data-print-grid-cell data-field-id="{{ field.id }}" data-base-span="2" data-print-span="{{ field_span }}" style="--print-grid-span: {{ field_span }};">
         <div class="print-grid-cell-head">
           <strong>{{ field.name }}</strong>
         </div>
@@ -70,8 +78,8 @@
         {% endif %}
       </article>
       {% endfor %}
-      {% for _ in range(grid_placeholder_count) %}
-      <article class="print-grid-cell print-grid-cell--placeholder" aria-hidden="true"></article>
+      {% for placeholder_span in grid_placeholder_spans %}
+      <article class="print-grid-cell print-grid-cell--placeholder" aria-hidden="true" style="--print-grid-span: {{ placeholder_span }};"></article>
       {% endfor %}
     </div>
     {% elif item.kind == "field" %}

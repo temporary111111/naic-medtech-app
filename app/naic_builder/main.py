@@ -116,6 +116,7 @@ from .services import (
     move_container,
     move_form,
     normalize_print_profile,
+    filter_print_layout_preference_for_items,
     print_orientation_options,
     print_paper_size_options,
     print_style_options,
@@ -133,6 +134,7 @@ from .services import (
     save_signatory_stamp_image,
     save_user_avatar,
     save_user_print_preferences,
+    save_user_print_layout_preference,
     store_record_image_asset,
     update_user_admin_details,
     update_user_status,
@@ -140,6 +142,7 @@ from .services import (
     update_record,
     update_form,
     user_print_preferences,
+    user_print_layout_preference,
     void_completed_record,
 )
 
@@ -1011,6 +1014,12 @@ def render_record_print_page(
     back_to_history = request.query_params.get("from") == "history"
     history_return_url = safe_records_history_return(request.query_params.get("return_to"))
     history_query = records_history_query(history_return_url) if back_to_history else ""
+    layout_preference = user_print_layout_preference(
+        current_user,
+        form_id=record.form_id,
+        template_id=profile["template_id"],
+        paper_size=profile["paper_size"],
+    )
 
     return templates.TemplateResponse(
         request=request,
@@ -1034,6 +1043,7 @@ def render_record_print_page(
                 orientation=profile["orientation"],
                 text_size=profile["text_size"],
                 paper_size=profile["paper_size"],
+                print_layout_preference=layout_preference,
             ),
         },
     )
@@ -1679,6 +1689,54 @@ async def save_record_print_options(
     if history_return_url:
         query["return_to"] = history_return_url
     return redirect_for_html(f"/records/{record_id}/print?{urlencode(query)}")
+
+
+@app.post("/records/{record_id}/print-layout")
+async def save_record_print_layout(
+    record_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> JSONResponse:
+    record = get_record_or_none(session, record_id)
+    if record is None or record.status == "deleted":
+        raise HTTPException(status_code=404, detail="Record not found.")
+    if record.status != "completed":
+        raise HTTPException(status_code=400, detail="Complete the record before saving its print layout.")
+
+    user = get_user_or_none(session, current_user_id(request) or 0)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Sign in to save a print layout.")
+
+    try:
+        payload = await request.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid print layout payload.") from exc
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Invalid print layout payload.")
+
+    profile = normalize_print_profile(
+        template_id=payload.get("template_id"),
+        paper_size=payload.get("paper_size"),
+    )
+    document = build_record_print_document(
+        record,
+        template_id=profile["template_id"],
+        paper_size=profile["paper_size"],
+    )
+    preference = filter_print_layout_preference_for_items(
+        payload.get("layout"),
+        document["items"],
+        field_grid_units=int(document["template"]["field_grid_units"]),
+    )
+    saved = save_user_print_layout_preference(
+        session,
+        user,
+        form_id=record.form_id,
+        template_id=profile["template_id"],
+        paper_size=profile["paper_size"],
+        preference=preference,
+    )
+    return JSONResponse({"layout": saved, "message": "Print layout saved for this profile."})
 
 
 @app.get("/forms", response_class=HTMLResponse)

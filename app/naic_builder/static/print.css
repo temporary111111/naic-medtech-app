@@ -2012,6 +2012,136 @@ body {
   }
 }
 
+/* Layout-aware grids use a six-unit landscape or four-unit portrait track.
+   The grid background draws stable borders even when cells span and reflow. */
+.print-field-grid.print-layout-grid {
+  grid-template-columns: repeat(var(--print-grid-units), minmax(0, 1fr)) !important;
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--line-soft);
+}
+
+.print-field-grid.print-layout-grid > .print-grid-cell,
+.print-field-grid.print-layout-grid > .print-grid-cell:nth-child(-n + 2),
+.print-field-grid.print-layout-grid > .print-grid-cell:nth-child(-n + 3),
+.print-field-grid.print-layout-grid > .print-grid-cell:nth-child(odd),
+.print-field-grid.print-layout-grid > .print-grid-cell:nth-child(3n + 1) {
+  grid-column: span var(--print-grid-span, 2);
+  border: 0;
+  background: var(--paper);
+}
+
+.print-field-grid.print-layout-grid > .print-grid-cell--placeholder {
+  min-height: 100%;
+}
+
+.print-layout-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 16px;
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto 12px;
+  padding: 11px 13px;
+  border: 1px solid #bcc6c2;
+  border-radius: 6px;
+  background: #f7faf8;
+  box-shadow: 0 5px 16px rgba(26, 39, 32, 0.1);
+}
+
+.print-layout-editor-copy {
+  display: grid;
+  gap: 2px;
+  align-content: center;
+}
+
+.print-layout-editor-copy strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.print-layout-editor-copy span,
+.print-layout-editor-status {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.print-layout-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 6px;
+}
+
+.print-layout-editor-actions button {
+  min-height: 30px;
+  padding: 5px 9px;
+  border: 1px solid #aebbb5;
+  border-radius: 4px;
+  color: #1e2b25;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+  background: #fff;
+  cursor: pointer;
+}
+
+.print-layout-editor-actions button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.print-layout-editor-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.print-layout-editor-actions button.is-primary {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  background: var(--accent);
+}
+
+.print-layout-editor-status {
+  grid-column: 1 / -1;
+  min-height: 15px;
+  margin: -2px 0 0;
+}
+
+.print-layout-editor-status[data-status="error"] {
+  color: #a33131;
+}
+
+body.is-layout-editing .print-layout-grid {
+  outline: 1px dashed rgba(30, 93, 82, 0.48);
+  outline-offset: 3px;
+}
+
+body.is-layout-editing .print-layout-grid.is-layout-active {
+  outline: 2px solid var(--accent);
+}
+
+body.is-layout-editing .print-layout-grid > .print-grid-cell:not(.print-grid-cell--placeholder) {
+  position: relative;
+  cursor: col-resize;
+}
+
+body.is-layout-editing .print-layout-grid > .print-grid-cell:not(.print-grid-cell--placeholder)::after {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  right: -4px;
+  bottom: 0;
+  width: 8px;
+  content: "";
+}
+
+body.is-layout-resizing,
+body.is-layout-resizing * {
+  cursor: col-resize !important;
+  user-select: none;
+}
+
 @media print {
   html,
   body {
@@ -2024,6 +2154,15 @@ body {
   .print-command-bar,
   .print-settings-dialog {
     display: none;
+  }
+
+  .print-layout-editor {
+    display: none;
+  }
+
+  body.is-layout-editing .print-layout-grid,
+  body.is-layout-editing .print-layout-grid.is-layout-active {
+    outline: 0;
   }
 
   .print-shell,

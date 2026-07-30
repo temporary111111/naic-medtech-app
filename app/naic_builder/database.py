@@ -301,6 +301,7 @@ def ensure_runtime_schema() -> None:
             "print_template_id": "VARCHAR(80) NOT NULL DEFAULT 'modern_portrait'",
             "print_text_size": "VARCHAR(40) NOT NULL DEFAULT 'standard'",
             "print_paper_size": "VARCHAR(40) NOT NULL DEFAULT 'a4'",
+            "print_layout_preferences_json": "TEXT NOT NULL DEFAULT '{}'",
         }
         for column_name, column_type in avatar_columns.items():
             if column_name not in user_columns:

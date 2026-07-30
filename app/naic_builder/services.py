@@ -138,6 +138,8 @@ DEFAULT_PRINT_TEMPLATE_ID = "modern_portrait"
 DEFAULT_PRINT_TEXT_SIZE = "standard"
 DEFAULT_PRINT_PAPER_SIZE = "a4"
 PRINT_PROFILE_VERSION = 2
+PRINT_LAYOUT_PREFERENCE_VERSION = 1
+PRINT_LAYOUT_MODES = {"preserve", "balance", "manual"}
 PRINT_TEXT_SIZE_DETAILS = {
     "standard": {"id": "standard", "label": "Standard"},
     "large": {"id": "large", "label": "Large"},
@@ -922,6 +924,7 @@ def print_presentation_details(
     is_landscape = profile["orientation"] == "landscape"
     page_width_mm = paper_size_details["height_mm"] if is_landscape else paper_size_details["width_mm"]
     page_height_mm = paper_size_details["width_mm"] if is_landscape else paper_size_details["height_mm"]
+    field_grid_columns = 3 if is_landscape else 2
     details.update(
         {
             "paper_size_label": paper_size_details["label"],
@@ -930,7 +933,8 @@ def print_presentation_details(
             "page_dimensions_label": paper_size_details["dimensions_label"],
             "page_width_mm": page_width_mm,
             "page_height_mm": page_height_mm,
-            "field_grid_columns": 3 if is_landscape else 2,
+            "field_grid_columns": field_grid_columns,
+            "field_grid_units": field_grid_columns * 2,
         }
     )
     details["text_size_label"] = PRINT_TEXT_SIZE_DETAILS[profile["text_size"]]["label"]
@@ -1220,6 +1224,114 @@ def save_user_print_preferences(
     user.print_paper_size = profile["paper_size"]
     save_user(session, user)
     return user_print_preferences(user)
+
+
+def print_layout_profile_key(form_id: int, template_id: Any, paper_size: Any) -> str:
+    return ":".join(
+        [
+            str(max(0, int(form_id or 0))),
+            normalize_print_template_id(template_id),
+            normalize_print_paper_size(paper_size),
+        ]
+    )
+
+
+def normalize_print_layout_mode(value: Any) -> str:
+    mode = compact_text(value).lower()
+    return mode if mode in PRINT_LAYOUT_MODES else "preserve"
+
+
+def normalize_print_layout_preference(value: Any) -> dict[str, Any]:
+    raw_preference = value if isinstance(value, dict) else {}
+    raw_grids = raw_preference.get("grids") if isinstance(raw_preference.get("grids"), dict) else {}
+    grids: dict[str, dict[str, Any]] = {}
+
+    for raw_grid_id, raw_grid in raw_grids.items():
+        grid_id = compact_text(raw_grid_id)
+        if not grid_id or len(grid_id) > 480 or not isinstance(raw_grid, dict):
+            continue
+        field_ids: list[str] = []
+        for raw_field_id in normalize_items(raw_grid.get("field_ids")):
+            field_id = compact_text(raw_field_id)
+            if field_id and field_id not in field_ids:
+                field_ids.append(field_id)
+        if not field_ids:
+            continue
+
+        raw_spans = raw_grid.get("spans") if isinstance(raw_grid.get("spans"), dict) else {}
+        spans: dict[str, int] = {}
+        for field_id in field_ids:
+            try:
+                span = int(raw_spans.get(field_id) or 0)
+            except (TypeError, ValueError):
+                span = 0
+            if 1 <= span <= 12:
+                spans[field_id] = span
+
+        grids[grid_id] = {
+            "field_ids": field_ids,
+            "mode": normalize_print_layout_mode(raw_grid.get("mode")),
+            "spans": spans,
+        }
+
+    return {"version": PRINT_LAYOUT_PREFERENCE_VERSION, "grids": grids}
+
+
+def user_print_layout_preferences(user: User | None) -> dict[str, dict[str, Any]]:
+    raw_preferences = (
+        load_json_object(user.print_layout_preferences_json)
+        if user is not None
+        else {}
+    )
+    raw_profiles = raw_preferences.get("profiles") if isinstance(raw_preferences.get("profiles"), dict) else {}
+    profiles: dict[str, dict[str, Any]] = {}
+    for raw_key, raw_preference in raw_profiles.items():
+        profile_key = compact_text(raw_key)
+        preference = normalize_print_layout_preference(raw_preference)
+        if profile_key and preference["grids"]:
+            profiles[profile_key] = preference
+    return profiles
+
+
+def user_print_layout_preference(
+    user: User | None,
+    *,
+    form_id: int,
+    template_id: Any,
+    paper_size: Any,
+) -> dict[str, Any]:
+    profile_key = print_layout_profile_key(form_id, template_id, paper_size)
+    return user_print_layout_preferences(user).get(
+        profile_key,
+        normalize_print_layout_preference({}),
+    )
+
+
+def save_user_print_layout_preference(
+    session: Session,
+    user: User,
+    *,
+    form_id: int,
+    template_id: Any,
+    paper_size: Any,
+    preference: Any,
+) -> dict[str, Any]:
+    profile_key = print_layout_profile_key(form_id, template_id, paper_size)
+    profiles = user_print_layout_preferences(user)
+    normalized_preference = normalize_print_layout_preference(preference)
+    if normalized_preference["grids"]:
+        profiles[profile_key] = normalized_preference
+    else:
+        profiles.pop(profile_key, None)
+    user.print_layout_preferences_json = json.dumps(
+        {
+            "version": PRINT_LAYOUT_PREFERENCE_VERSION,
+            "profiles": profiles,
+        },
+        ensure_ascii=False,
+    )
+    save_user(session, user)
+    return normalized_preference
 
 
 def get_or_create_clinic_profile(session: Session) -> ClinicProfile:
@@ -4438,17 +4550,35 @@ def is_compact_grid_field_item(item: dict[str, Any]) -> bool:
     return compact_text(display.get("kind")) != "image"
 
 
-def compact_print_field_runs(items: list[dict[str, Any]], print_config: dict[str, Any]) -> list[dict[str, Any]]:
+def print_layout_grid_id(layout_path: str, grid_index: int) -> str:
+    return f"{compact_text(layout_path) or 'root'}:{max(0, grid_index)}"
+
+
+def compact_print_field_runs(
+    items: list[dict[str, Any]],
+    print_config: dict[str, Any],
+    *,
+    layout_path: str = "root",
+) -> list[dict[str, Any]]:
     if normalize_print_result_layout(print_config.get("result_layout")) != "compact_grid":
         return items
 
     compacted: list[dict[str, Any]] = []
     run: list[dict[str, Any]] = []
+    grid_index = 0
 
     def flush_run() -> None:
-        nonlocal run
+        nonlocal run, grid_index
         if len(run) >= 4:
-            compacted.append({"kind": "field_grid", "items": run})
+            compacted.append(
+                {
+                    "kind": "field_grid",
+                    "id": print_layout_grid_id(layout_path, grid_index),
+                    "field_ids": [compact_text(item.get("id")) for item in run],
+                    "items": run,
+                }
+            )
+            grid_index += 1
         else:
             compacted.extend(run)
         run = []
@@ -4471,18 +4601,20 @@ def build_print_items(
     record_id: int,
     print_config: dict[str, Any] | None = None,
     container_depth: int = 0,
+    layout_path: str = "root",
 ) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     config = print_config if isinstance(print_config, dict) else normalize_print_config({})
     hide_empty_fields = normalize_boolean_setting(config.get("hide_empty_fields"), default=False)
 
-    for block in blocks:
+    for block_index, block in enumerate(blocks):
         if not isinstance(block, dict):
             continue
         kind = compact_text(block.get("kind"))
         props = block.get("props") if isinstance(block.get("props"), dict) else {}
 
         if kind == "container":
+            block_id = compact_text(block.get("id")) or f"container_{block_index}"
             child_items = build_print_items(
                 normalize_items(block.get("children")),
                 values,
@@ -4490,6 +4622,7 @@ def build_print_items(
                 record_id=record_id,
                 print_config=config,
                 container_depth=container_depth + 1,
+                layout_path=f"{layout_path}/{block_id}",
             )
             if hide_empty_fields and not child_items:
                 continue
@@ -4562,7 +4695,169 @@ def build_print_items(
             )
             continue
 
-    return compact_print_field_runs(items, config)
+    return compact_print_field_runs(items, config, layout_path=layout_path)
+
+
+def print_layout_allowed_spans(field_grid_units: int) -> set[int]:
+    units = max(2, int(field_grid_units or 0))
+    if units <= 4:
+        return {2, units}
+    return {2, units // 2, max(2, units - 2), units}
+
+
+def balanced_print_grid_spans(field_ids: list[str], field_grid_units: int) -> dict[str, int]:
+    units = max(2, int(field_grid_units or 0))
+    base_span = 2
+    spans = {field_id: base_span for field_id in field_ids}
+    current_row: list[str] = []
+    used_units = 0
+
+    for field_id in field_ids:
+        if used_units + base_span > units:
+            current_row = []
+            used_units = 0
+        current_row.append(field_id)
+        used_units += base_span
+
+    if len(current_row) == 1:
+        spans[current_row[0]] = units
+    elif len(current_row) == 2 and used_units < units and units % 2 == 0:
+        for field_id in current_row:
+            spans[field_id] = units // 2
+    return spans
+
+
+def print_grid_placeholder_spans(
+    field_ids: list[str],
+    spans: dict[str, int],
+    *,
+    field_grid_units: int,
+    preserve_grid_cells: bool,
+) -> list[int]:
+    units = max(2, int(field_grid_units or 0))
+    used_units = 0
+    for field_id in field_ids:
+        span = int(spans.get(field_id) or 2)
+        if used_units + span > units:
+            used_units = 0
+        used_units += span
+        if used_units == units:
+            used_units = 0
+    if not used_units:
+        return []
+
+    remaining_units = units - used_units
+    if preserve_grid_cells and remaining_units % 2 == 0:
+        return [2] * (remaining_units // 2)
+    return [remaining_units]
+
+
+def normalized_print_grid_layout(
+    grid_item: dict[str, Any],
+    preference: dict[str, Any],
+    *,
+    field_grid_units: int,
+) -> dict[str, Any]:
+    field_ids = [compact_text(field_id) for field_id in normalize_items(grid_item.get("field_ids"))]
+    field_ids = [field_id for field_id in field_ids if field_id]
+    grid_id = compact_text(grid_item.get("id"))
+    raw_grids = preference.get("grids") if isinstance(preference.get("grids"), dict) else {}
+    raw_layout = raw_grids.get(grid_id) if isinstance(raw_grids.get(grid_id), dict) else {}
+    raw_field_ids = [compact_text(field_id) for field_id in normalize_items(raw_layout.get("field_ids"))]
+    is_matching_grid = bool(grid_id and field_ids and raw_field_ids == field_ids)
+    mode = normalize_print_layout_mode(raw_layout.get("mode")) if is_matching_grid else "preserve"
+    allowed_spans = print_layout_allowed_spans(field_grid_units)
+    spans = {field_id: 2 for field_id in field_ids}
+
+    if mode == "balance":
+        spans = balanced_print_grid_spans(field_ids, field_grid_units)
+    elif mode == "manual":
+        raw_spans = raw_layout.get("spans") if isinstance(raw_layout.get("spans"), dict) else {}
+        for field_id in field_ids:
+            try:
+                span = int(raw_spans.get(field_id) or 2)
+            except (TypeError, ValueError):
+                span = 2
+            spans[field_id] = span if span in allowed_spans else 2
+
+    return {
+        "id": grid_id,
+        "field_ids": field_ids,
+        "mode": mode,
+        "spans": spans,
+        "units": field_grid_units,
+        "allowed_spans": sorted(allowed_spans),
+        "placeholder_spans": print_grid_placeholder_spans(
+            field_ids,
+            spans,
+            field_grid_units=field_grid_units,
+            preserve_grid_cells=mode == "preserve",
+        ),
+    }
+
+
+def apply_print_layout_preference(
+    items: list[dict[str, Any]],
+    preference: dict[str, Any] | None,
+    *,
+    field_grid_units: int,
+) -> list[dict[str, Any]]:
+    normalized_preference = normalize_print_layout_preference(preference)
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        if compact_text(item.get("kind")) == "field_grid":
+            item["layout"] = normalized_print_grid_layout(
+                item,
+                normalized_preference,
+                field_grid_units=field_grid_units,
+            )
+            continue
+        child_items = item.get("items")
+        if isinstance(child_items, list):
+            apply_print_layout_preference(
+                child_items,
+                normalized_preference,
+                field_grid_units=field_grid_units,
+            )
+    return items
+
+
+def filter_print_layout_preference_for_items(
+    preference: Any,
+    items: list[dict[str, Any]],
+    *,
+    field_grid_units: int,
+) -> dict[str, Any]:
+    normalized_preference = normalize_print_layout_preference(preference)
+    valid_grids: dict[str, dict[str, Any]] = {}
+
+    def collect(item_list: list[dict[str, Any]]) -> None:
+        for item in item_list:
+            if not isinstance(item, dict):
+                continue
+            if compact_text(item.get("kind")) == "field_grid":
+                layout = normalized_print_grid_layout(
+                    item,
+                    normalized_preference,
+                    field_grid_units=field_grid_units,
+                )
+                if layout["mode"] != "preserve":
+                    valid_grids[layout["id"]] = {
+                        "field_ids": layout["field_ids"],
+                        "mode": layout["mode"],
+                        "spans": layout["spans"] if layout["mode"] == "manual" else {},
+                    }
+                continue
+            child_items = item.get("items")
+            if isinstance(child_items, list):
+                collect(child_items)
+
+    collect(items)
+    return {
+        "version": PRINT_LAYOUT_PREFERENCE_VERSION,
+        "grids": valid_grids,
+    }
 
 
 def build_print_summary_items(
@@ -4987,6 +5282,7 @@ def build_record_print_document(
     orientation: Any = "",
     text_size: Any = "",
     paper_size: Any = "",
+    print_layout_preference: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     serialized = serialize_record(record, include_entry_schema=True)
     entry_schema = serialized.get("entry_schema") or {}
@@ -5022,18 +5318,30 @@ def build_record_print_document(
     )
     prepared_by_name = compact_text(updated_by.get("full_name")) or ""
 
+    presentation = print_presentation_details(
+        print_config.get("template_id"),
+        print_config.get("text_size"),
+        paper_size=print_config.get("paper_size"),
+    )
+    print_items = build_print_items(
+        normalize_items(entry_schema.get("blocks")),
+        values,
+        asset_by_field,
+        record_id=serialized["id"],
+        print_config=print_config,
+    )
+    apply_print_layout_preference(
+        print_items,
+        print_layout_preference,
+        field_grid_units=int(presentation["field_grid_units"]),
+    )
+
     document = {
         "record": serialized,
         "clinic": build_print_clinic_profile(clinic_profile, logo_url=clinic_logo_url),
         "print_config": print_config,
         "print_accent_ink": print_accent_ink,
-        "template": {
-            **print_presentation_details(
-                print_config.get("template_id"),
-                print_config.get("text_size"),
-                paper_size=print_config.get("paper_size"),
-            ),
-        },
+        "template": presentation,
         "title": report_title,
         "status": serialized["status"],
         "display_title": serialized["display_title"],
@@ -5062,13 +5370,7 @@ def build_record_print_document(
             prepared_by_name=prepared_by_name,
             signatories=normalize_items(serialized.get("signatories")),
         ),
-        "items": build_print_items(
-            normalize_items(entry_schema.get("blocks")),
-            values,
-            asset_by_field,
-            record_id=serialized["id"],
-            print_config=print_config,
-        ),
+        "items": print_items,
     }
     document["fit_estimate"] = estimate_print_page_fit(document)
     return document
