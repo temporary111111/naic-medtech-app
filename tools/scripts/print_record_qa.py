@@ -308,7 +308,7 @@ def qa_record_print(slug: str, *, actor_user_id: int | None, keep_records: bool)
     html_text = html.unescape(response.text)
     required_tokens = [
         "print-page",
-        "print-fit-badge",
+        "print-active-profile",
         compact_text(result.get("record_key")),
         compact_text(result.get("form_name")),
         "Analyzed by:",

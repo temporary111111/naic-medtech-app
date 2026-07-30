@@ -32,6 +32,18 @@ def normal_range_properties(normal_min: str, normal_max: str) -> dict[str, str |
     }
 
 
+def normal_range_with_unit_properties(
+    normal_min: str,
+    normal_max: str,
+    unit: str,
+) -> dict[str, str | bool | None]:
+    return {
+        **normal_range_properties(normal_min, normal_max),
+        "unit": unit,
+        "unit_hint": unit,
+    }
+
+
 def exclusive_upper_limit_properties(normal_max: str) -> dict[str, str | bool | None]:
     return {
         "normal_max": normal_max,
@@ -110,14 +122,14 @@ FORM_DEFAULT_OVERRIDES = {
     },
     "blood_gas_analysis": {
         "numeric_ranges": {
-            "blood_gas_value_abg.ph": {"normal_min": "7.35", "normal_max": "7.45"},
-            "blood_gas_value_abg.po2": {"normal_min": "80", "normal_max": "105"},
-            "blood_gas_value_abg.pco2": {"normal_min": "35", "normal_max": "45"},
-            "calculated_values_oximetry.so2": {"normal_min": "95", "normal_max": "100"},
-            "calculated_values_acid_base_status.hco3": {"normal_min": "22", "normal_max": "28"},
-            "calculated_values_acid_base_status.be_ecf": {"normal_min": "-2", "normal_max": "2"},
-            "calculated_values_acid_base_status.po2_a_a": {"normal_min": "5", "normal_max": "10"},
-            "calculated_values_acid_base_status.tco2": {"normal_min": "23", "normal_max": "29"},
+            "blood_gas_value_abg.ph": normal_range_properties("7.35", "7.45"),
+            "blood_gas_value_abg.po2": normal_range_properties("80", "105"),
+            "blood_gas_value_abg.pco2": normal_range_properties("35.0", "45.0"),
+            "calculated_values_oximetry.so2": normal_range_properties("95", "100"),
+            "calculated_values_acid_base_status.hco3": normal_range_properties("22", "28"),
+            "calculated_values_acid_base_status.be_ecf": normal_range_properties("-2", "+2"),
+            "calculated_values_acid_base_status.po2_a_a": normal_range_properties("5", "10"),
+            "calculated_values_acid_base_status.tco2": normal_range_properties("23", "29"),
         },
         "section_container_layout": [
             {
@@ -159,23 +171,23 @@ FORM_DEFAULT_OVERRIDES = {
             "name": "Hematology Details",
         },
         "field_property_overrides": {
-            "rbc_count_m": {"normal_min": "4.6", "normal_max": "6.2", "unit": "x10^12/L"},
-            "rbc_count_f": {"normal_min": "4.2", "normal_max": "5.4", "unit": "x10^12/L"},
-            "wbc_count": {"normal_min": "5.0", "normal_max": "10.0", "unit": "x10^9/L"},
-            "hemoglobin_m": {"normal_min": "140", "normal_max": "180", "unit": "g/L"},
-            "hemoglobin_f": {"normal_min": "120", "normal_max": "160", "unit": "g/L"},
-            "hematocrit_m": {"normal_min": "0.40", "normal_max": "0.54", "unit": "/L"},
-            "hematocrit_f": {"normal_min": "0.37", "normal_max": "0.42", "unit": "/L"},
-            "platelet_count": {"normal_min": "150", "normal_max": "450", "unit": "x10^9/L"},
-            "clotting_time": {"normal_min": "1", "normal_max": "6", "unit": "minutes"},
-            "bleeding_time": {"normal_min": "1", "normal_max": "6", "unit": "minutes"},
-            "segmenters": {"normal_min": "0.50", "normal_max": "0.70"},
-            "lymphocytes": {"normal_min": "0.25", "normal_max": "0.40"},
-            "monocytes": {"normal_min": "0.03", "normal_max": "0.08"},
-            "eosinophils": {"normal_min": "0.01", "normal_max": "0.04"},
-            "stab": {"normal_min": "0", "normal_max": "0.05"},
-            "e_s_r_m": {"normal_min": "0", "normal_max": "10", "unit": "mm/hr"},
-            "e_s_r_f": {"normal_min": "0", "normal_max": "20", "unit": "mm/hr"},
+            "rbc_count_m": normal_range_with_unit_properties("4.6", "6.2", "x10^12/L"),
+            "rbc_count_f": normal_range_with_unit_properties("4.2", "5.4", "x10^12/L"),
+            "wbc_count": normal_range_with_unit_properties("5.0", "10.0", "x10^9/L"),
+            "hemoglobin_m": normal_range_with_unit_properties("140", "180", "g/L"),
+            "hemoglobin_f": normal_range_with_unit_properties("120", "160", "g/L"),
+            "hematocrit_m": normal_range_with_unit_properties("0.40", "0.54", "/L"),
+            "hematocrit_f": normal_range_with_unit_properties("0.37", "0.42", "/L"),
+            "platelet_count": normal_range_with_unit_properties("150", "450", "x10^9/L"),
+            "clotting_time": normal_range_with_unit_properties("1", "6", "minutes"),
+            "bleeding_time": normal_range_with_unit_properties("1", "6", "minutes"),
+            "segmenters": normal_range_properties("0.50", "0.70"),
+            "lymphocytes": normal_range_properties("0.25", "0.40"),
+            "monocytes": normal_range_properties("0.03", "0.08"),
+            "eosinophils": normal_range_properties("0.01", "0.04"),
+            "stab": normal_range_properties("0", "0.05"),
+            "e_s_r_m": normal_range_with_unit_properties("0", "10", "mm/hr"),
+            "e_s_r_f": normal_range_with_unit_properties("0", "20", "mm/hr"),
         },
         "root_field_group_layout": [
             {

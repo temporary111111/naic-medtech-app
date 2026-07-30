@@ -281,37 +281,58 @@ DEFAULT_EXAMINATION_IN_PATIENT_INFO_META_KEY = "default_examination_in_patient_i
 BLOOD_BANK_FORM_KEY = "blood_bank"
 DEFAULT_BLOOD_BANK_DEFAULTS_META_KEY = "default_blood_bank_defaults_v1"
 BLOOD_GAS_ANALYSIS_FORM_KEY = "blood_gas_analysis"
-DEFAULT_BLOOD_GAS_LAYOUT_META_KEY = "default_blood_gas_layout_v1"
+DEFAULT_BLOOD_GAS_LAYOUT_META_KEY = "default_blood_gas_layout_v2"
 BLOOD_GAS_NUMERIC_RANGES = {
     "ph": ("7.35", "7.45"),
     "po2": ("80", "105"),
-    "pco2": ("35", "45"),
+    "pco2": ("35.0", "45.0"),
     "so2": ("95", "100"),
     "hco3": ("22", "28"),
-    "be_ecf": ("-2", "2"),
+    "be_ecf": ("-2", "+2"),
     "po2_a_a": ("5", "10"),
     "tco2": ("23", "29"),
 }
 HEMATOLOGY_FORM_KEY = "hematology"
-DEFAULT_HEMATOLOGY_LAYOUT_META_KEY = "default_hematology_layout_v1"
+DEFAULT_HEMATOLOGY_LAYOUT_META_KEY = "default_hematology_layout_v2"
+
+
+def normal_range_field_defaults(
+    normal_min: str,
+    normal_max: str,
+    *,
+    unit: str | None = None,
+) -> dict[str, str | None]:
+    defaults: dict[str, str | None] = {
+        "normal_min": normal_min,
+        "normal_max": normal_max,
+        # The printed normal value must follow future Form Builder range edits.
+        "reference_text": None,
+        "normal_value": None,
+    }
+    if unit:
+        defaults["unit"] = unit
+        defaults["unit_hint"] = unit
+    return defaults
+
+
 HEMATOLOGY_FIELD_DEFAULTS = {
-    "rbc_count_m": {"normal_min": "4.6", "normal_max": "6.2", "unit": "x10^12/L"},
-    "rbc_count_f": {"normal_min": "4.2", "normal_max": "5.4", "unit": "x10^12/L"},
-    "wbc_count": {"normal_min": "5.0", "normal_max": "10.0", "unit": "x10^9/L"},
-    "hemoglobin_m": {"normal_min": "140", "normal_max": "180", "unit": "g/L"},
-    "hemoglobin_f": {"normal_min": "120", "normal_max": "160", "unit": "g/L"},
-    "hematocrit_m": {"normal_min": "0.40", "normal_max": "0.54", "unit": "/L"},
-    "hematocrit_f": {"normal_min": "0.37", "normal_max": "0.42", "unit": "/L"},
-    "platelet_count": {"normal_min": "150", "normal_max": "450", "unit": "x10^9/L"},
-    "clotting_time": {"normal_min": "1", "normal_max": "6", "unit": "minutes"},
-    "bleeding_time": {"normal_min": "1", "normal_max": "6", "unit": "minutes"},
-    "segmenters": {"normal_min": "0.50", "normal_max": "0.70"},
-    "lymphocytes": {"normal_min": "0.25", "normal_max": "0.40"},
-    "monocytes": {"normal_min": "0.03", "normal_max": "0.08"},
-    "eosinophils": {"normal_min": "0.01", "normal_max": "0.04"},
-    "stab": {"normal_min": "0", "normal_max": "0.05"},
-    "e_s_r_m": {"normal_min": "0", "normal_max": "10", "unit": "mm/hr"},
-    "e_s_r_f": {"normal_min": "0", "normal_max": "20", "unit": "mm/hr"},
+    "rbc_count_m": normal_range_field_defaults("4.6", "6.2", unit="x10^12/L"),
+    "rbc_count_f": normal_range_field_defaults("4.2", "5.4", unit="x10^12/L"),
+    "wbc_count": normal_range_field_defaults("5.0", "10.0", unit="x10^9/L"),
+    "hemoglobin_m": normal_range_field_defaults("140", "180", unit="g/L"),
+    "hemoglobin_f": normal_range_field_defaults("120", "160", unit="g/L"),
+    "hematocrit_m": normal_range_field_defaults("0.40", "0.54", unit="/L"),
+    "hematocrit_f": normal_range_field_defaults("0.37", "0.42", unit="/L"),
+    "platelet_count": normal_range_field_defaults("150", "450", unit="x10^9/L"),
+    "clotting_time": normal_range_field_defaults("1", "6", unit="minutes"),
+    "bleeding_time": normal_range_field_defaults("1", "6", unit="minutes"),
+    "segmenters": normal_range_field_defaults("0.50", "0.70"),
+    "lymphocytes": normal_range_field_defaults("0.25", "0.40"),
+    "monocytes": normal_range_field_defaults("0.03", "0.08"),
+    "eosinophils": normal_range_field_defaults("0.01", "0.04"),
+    "stab": normal_range_field_defaults("0", "0.05"),
+    "e_s_r_m": normal_range_field_defaults("0", "10", unit="mm/hr"),
+    "e_s_r_f": normal_range_field_defaults("0", "20", unit="mm/hr"),
 }
 HEMATOLOGY_DIFFERENTIAL_FIELD_KEYS = (
     "segmenters",
@@ -2283,6 +2304,10 @@ def configure_blood_gas_numeric_ranges(block_schema: dict[str, Any]) -> bool:
         if compact_text(props.get("normal_max")) != normal_max:
             props["normal_max"] = normal_max
             changed = True
+        for property_name in ("reference_text", "normal_value"):
+            if property_name in props:
+                props.pop(property_name)
+                changed = True
         field["props"] = props
     return changed
 
@@ -4494,7 +4519,13 @@ def build_print_items(
                 record_id=record_id,
                 print_config=config,
             )
-            if hide_empty_fields and bool(item.get("display", {}).get("is_empty")):
+            display = item.get("display") if isinstance(item.get("display"), dict) else {}
+            optional_empty_image = (
+                compact_text(props.get("data_type")) == "image"
+                and not normalize_boolean_setting(props.get("required"), default=False)
+                and bool(display.get("is_empty"))
+            )
+            if optional_empty_image or (hide_empty_fields and bool(display.get("is_empty"))):
                 continue
             items.append(item)
             continue

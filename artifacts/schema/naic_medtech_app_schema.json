@@ -2,7 +2,7 @@
   "schema_name": "NAIC Medtech App Schema",
   "schema_version": "1.0.5",
   "source_workbook": "NAIC MEDTECH SYSTEM DATA.xlsx",
-  "generated_at_utc": "2026-07-30T17:36:56.151032+00:00",
+  "generated_at_utc": "2026-07-30T17:50:25.884724+00:00",
   "normalization_rules": [
     "Shared patient/request metadata was moved into a reusable common field set.",
     "Medical Technologist and Pathologist are modeled as configurable print signatories, not ordinary result fields.",
@@ -5018,7 +5018,6 @@
                         "sheet_row": 12,
                         "raw_input_type": "Manual Entry"
                       },
-                      "normal_value": "7.35-7.45",
                       "normal_min": "7.35",
                       "normal_max": "7.45"
                     },
@@ -5035,7 +5034,6 @@
                         "raw_input_type": "Manual Entry"
                       },
                       "unit_hint": "mmHg",
-                      "normal_value": "80-105 mmHg",
                       "normal_min": "80",
                       "normal_max": "105"
                     },
@@ -5052,9 +5050,8 @@
                         "raw_input_type": "Manual Entry"
                       },
                       "unit_hint": "mmHg",
-                      "normal_value": "35.0-45.0 mmHg",
-                      "normal_min": "35",
-                      "normal_max": "45"
+                      "normal_min": "35.0",
+                      "normal_max": "45.0"
                     }
                   ],
                   "source": {
@@ -5109,7 +5106,6 @@
                         "raw_input_type": "Manual Entry"
                       },
                       "unit_hint": "%",
-                      "normal_value": "95-100 %",
                       "normal_min": "95",
                       "normal_max": "100"
                     }
@@ -5141,7 +5137,6 @@
                         "raw_input_type": "Manual Entry"
                       },
                       "unit_hint": "mmol/L",
-                      "normal_value": "22-28 mmol/L",
                       "normal_min": "22",
                       "normal_max": "28"
                     },
@@ -5158,9 +5153,8 @@
                         "raw_input_type": "Manual Entry"
                       },
                       "unit_hint": "mmol/L",
-                      "normal_value": "-2 to +2 mmol/L",
                       "normal_min": "-2",
-                      "normal_max": "2"
+                      "normal_max": "+2"
                     },
                     {
                       "id": "blood_gas_analysis.blood_gas_analysis.calculated_values_acid_base_status.po2_a_a",
@@ -5175,7 +5169,6 @@
                         "raw_input_type": "Manual Entry"
                       },
                       "unit_hint": "mmHg",
-                      "normal_value": "5-10 mmHg",
                       "normal_min": "5",
                       "normal_max": "10"
                     },
@@ -5192,7 +5185,6 @@
                         "raw_input_type": "Manual Entry"
                       },
                       "unit_hint": "mmol/L",
-                      "normal_value": "23-29 mmol/L",
                       "normal_min": "23",
                       "normal_max": "29"
                     }
@@ -5294,8 +5286,7 @@
                     "sheet_row": 12,
                     "raw_input_type": "Manual Entry"
                   },
-                  "unit_hint": "/L",
-                  "normal_value": "4.6 - 6.2 X 1012/L",
+                  "unit_hint": "x10^12/L",
                   "normal_min": "4.6",
                   "normal_max": "6.2",
                   "unit": "x10^12/L"
@@ -5312,8 +5303,7 @@
                     "sheet_row": 13,
                     "raw_input_type": "Manual Entry"
                   },
-                  "unit_hint": "/L",
-                  "normal_value": "4.2 - 5.4 X 1012/L",
+                  "unit_hint": "x10^12/L",
                   "normal_min": "4.2",
                   "normal_max": "5.4",
                   "unit": "x10^12/L"
@@ -5330,8 +5320,7 @@
                     "sheet_row": 14,
                     "raw_input_type": "Manual Entry"
                   },
-                  "unit_hint": "/L",
-                  "normal_value": "5.0 - 10.0 X 109/L",
+                  "unit_hint": "x10^9/L",
                   "normal_min": "5.0",
                   "normal_max": "10.0",
                   "unit": "x10^9/L"
@@ -5349,7 +5338,6 @@
                     "raw_input_type": "Manual Entry"
                   },
                   "unit_hint": "g/L",
-                  "normal_value": "140-180 g/L",
                   "normal_min": "140",
                   "normal_max": "180",
                   "unit": "g/L"
@@ -5367,7 +5355,6 @@
                     "raw_input_type": "Manual Entry"
                   },
                   "unit_hint": "g/L",
-                  "normal_value": "120 - 160 g/L",
                   "normal_min": "120",
                   "normal_max": "160",
                   "unit": "g/L"
@@ -5385,7 +5372,6 @@
                     "raw_input_type": "Manual Entry"
                   },
                   "unit_hint": "/L",
-                  "normal_value": "0.40-0.54 /L",
                   "normal_min": "0.40",
                   "normal_max": "0.54",
                   "unit": "/L"
@@ -5403,7 +5389,6 @@
                     "raw_input_type": "Manual Entry"
                   },
                   "unit_hint": "/L",
-                  "normal_value": "0.37 - 0.42 /L",
                   "normal_min": "0.37",
                   "normal_max": "0.42",
                   "unit": "/L"
@@ -5420,8 +5405,7 @@
                     "sheet_row": 19,
                     "raw_input_type": "Manual Entry"
                   },
-                  "unit_hint": "/L",
-                  "normal_value": "150 - 450 X 109/L",
+                  "unit_hint": "x10^9/L",
                   "normal_min": "150",
                   "normal_max": "450",
                   "unit": "x10^9/L"
@@ -5439,7 +5423,6 @@
                     "raw_input_type": "Manual Entry"
                   },
                   "unit_hint": "minutes",
-                  "normal_value": "1 - 6 minutes",
                   "normal_min": "1",
                   "normal_max": "6",
                   "unit": "minutes"
@@ -5457,7 +5440,6 @@
                     "raw_input_type": "Manual Entry"
                   },
                   "unit_hint": "minutes",
-                  "normal_value": "1 - 6 minutes",
                   "normal_min": "1",
                   "normal_max": "6",
                   "unit": "minutes"
@@ -5547,7 +5529,6 @@
                         "sheet_row": 24,
                         "raw_input_type": "Manual Entry"
                       },
-                      "normal_value": "0.50 - 0.70",
                       "normal_min": "0.50",
                       "normal_max": "0.70"
                     },
@@ -5563,7 +5544,6 @@
                         "sheet_row": 25,
                         "raw_input_type": "Manual Entry"
                       },
-                      "normal_value": "0.25 - 0.40",
                       "normal_min": "0.25",
                       "normal_max": "0.40"
                     },
@@ -5579,7 +5559,6 @@
                         "sheet_row": 26,
                         "raw_input_type": "Manual Entry"
                       },
-                      "normal_value": "0.03 - 0.08",
                       "normal_min": "0.03",
                       "normal_max": "0.08"
                     },
@@ -5595,7 +5574,6 @@
                         "sheet_row": 27,
                         "raw_input_type": "Manual Entry"
                       },
-                      "normal_value": "0.01 - 0.04",
                       "normal_min": "0.01",
                       "normal_max": "0.04"
                     },
@@ -5611,7 +5589,6 @@
                         "sheet_row": 28,
                         "raw_input_type": "Manual Entry"
                       },
-                      "normal_value": "0 - 0.05",
                       "normal_min": "0",
                       "normal_max": "0.05"
                     },
@@ -5628,7 +5605,6 @@
                         "raw_input_type": "Manual Entry"
                       },
                       "unit_hint": "mm/hr",
-                      "normal_value": "0 - 10 mm/hr",
                       "normal_min": "0",
                       "normal_max": "10",
                       "unit": "mm/hr"
@@ -5646,7 +5622,6 @@
                         "raw_input_type": "Manual Entry"
                       },
                       "unit_hint": "mm/hr",
-                      "normal_value": "0 - 20 mm/hr",
                       "normal_min": "0",
                       "normal_max": "20",
                       "unit": "mm/hr"

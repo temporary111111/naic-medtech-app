@@ -276,6 +276,18 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                 self.assertEqual(result_image["props"]["control"], "input")
                 self.assertEqual(result_image["props"]["data_type"], "image")
                 self.assertFalse(result_image["props"].get("required", False))
+
+                printed_covid_items = build_print_items(
+                    schemas["covid_19_antigen_rapid_test"]["blocks"],
+                    values={},
+                    asset_by_field={},
+                    record_id=1,
+                )
+                covid_detail_items = printed_covid_items[-1]["items"]
+                self.assertNotIn(
+                    "Result Image",
+                    [item["name"] for item in covid_detail_items if item["kind"] == "field"],
+                )
         finally:
             engine.dispose()
 
@@ -355,7 +367,11 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(fields["ph"]["props"]["normal_min"], "7.35")
         self.assertEqual(fields["ph"]["props"]["normal_max"], "7.45")
         self.assertEqual(fields["be_ecf"]["props"]["normal_min"], "-2")
-        self.assertEqual(fields["be_ecf"]["props"]["normal_max"], "2")
+        self.assertEqual(fields["be_ecf"]["props"]["normal_max"], "+2")
+        self.assertNotIn("reference_text", fields["pco2"]["props"])
+        self.assertNotIn("normal_value", fields["pco2"]["props"])
+        self.assertEqual(build_print_reference(fields["pco2"]["props"]), "35.0 to 45.0 mmHg")
+        self.assertEqual(build_print_reference(fields["be_ecf"]["props"]), "-2 to +2 mmol/L")
         self.assertEqual(evaluate_print_abnormal(fields["ph"]["props"], "7.35"), (False, None))
         self.assertEqual(evaluate_print_abnormal(fields["ph"]["props"], "7.46"), (True, "high"))
         self.assertEqual(evaluate_print_abnormal(fields["be_ecf"]["props"], "-2.1"), (True, "low"))
@@ -425,6 +441,10 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(fields["rbc_count_m"]["props"]["normal_min"], "4.6")
         self.assertEqual(fields["rbc_count_m"]["props"]["normal_max"], "6.2")
         self.assertEqual(fields["rbc_count_m"]["props"]["unit"], "x10^12/L")
+        self.assertEqual(fields["rbc_count_m"]["props"]["unit_hint"], "x10^12/L")
+        self.assertNotIn("reference_text", fields["rbc_count_m"]["props"])
+        self.assertNotIn("normal_value", fields["rbc_count_m"]["props"])
+        self.assertEqual(build_print_reference(fields["rbc_count_m"]["props"]), "4.6 to 6.2 x10^12/L")
         self.assertEqual(fields["wbc_count"]["props"]["unit"], "x10^9/L")
         self.assertEqual(fields["e_s_r_f"]["props"]["normal_max"], "20")
         self.assertEqual(evaluate_print_abnormal(fields["rbc_count_m"]["props"], "4.5"), (True, "low"))
