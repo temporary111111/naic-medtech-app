@@ -28,7 +28,20 @@
 
 {% macro render_print_items(items, field_grid_columns=2) %}
   {% for item in items %}
-    {% if item.kind == "section" %}
+    {% if item.kind == "container_run" %}
+    {% set container_items = item["items"] or [] %}
+    {% set container_layout = item["layout"] or {} %}
+    {% set container_units = container_layout.units or (field_grid_columns * 2) %}
+    {% set containers_are_grid = container_layout.presentation == "grid" %}
+    <div class="print-container-run{% if containers_are_grid %} print-layout-grid{% endif %}" data-print-layout-grid data-layout-kind="container_run" data-layout-presentation="{{ container_layout.presentation or 'flow' }}" data-default-presentation="flow" data-default-mode="flow" data-grid-id="{{ container_layout.id or item.id or '' }}" data-grid-units="{{ container_units }}" data-grid-mode="{{ container_layout.mode or 'flow' }}"{% if containers_are_grid %} style="--print-grid-units: {{ container_units }};"{% endif %}>
+      {% for container in container_items %}
+      {% set container_span = container_layout.spans[container.id] if container_layout.spans and container.id in container_layout.spans else 2 %}
+      <article class="print-container-run-item" data-print-grid-cell data-container-id="{{ container.id }}" data-original-index="{{ container.get('_print_layout_original_index', loop.index0) }}" data-base-span="2" data-print-span="{{ container_span }}"{% if containers_are_grid %} style="--print-grid-span: {{ container_span }};"{% endif %}>
+        {{ render_print_items([container], field_grid_columns) }}
+      </article>
+      {% endfor %}
+    </div>
+    {% elif item.kind == "section" %}
     {% set child_items = item["items"] or [] %}
     <section class="print-section print-container-depth-{{ item.container_depth | default(0) }}{% if item.show_title %} has-title{% else %} is-title-hidden{% endif %}">
       {% if item.show_title %}
@@ -63,10 +76,10 @@
       {% set grid_placeholder_count = (field_grid_columns - grid_remainder) % field_grid_columns %}
       {% set grid_placeholder_spans = [2] * grid_placeholder_count %}
     {% endif %}
-    <div class="print-field-grid print-layout-grid" data-print-layout-grid data-grid-id="{{ grid_layout.id or item.id or '' }}" data-grid-units="{{ grid_units }}" data-grid-mode="{{ grid_layout.mode or 'preserve' }}" style="--print-grid-units: {{ grid_units }};">
+    <div class="print-field-grid print-layout-grid" data-print-layout-grid data-layout-kind="field_grid" data-layout-presentation="grid" data-default-presentation="grid" data-default-mode="preserve" data-grid-id="{{ grid_layout.id or item.id or '' }}" data-grid-units="{{ grid_units }}" data-grid-mode="{{ grid_layout.mode or 'preserve' }}" style="--print-grid-units: {{ grid_units }};">
       {% for field in grid_items %}
       {% set field_span = grid_layout.spans[field.id] if grid_layout.spans and field.id in grid_layout.spans else 2 %}
-      <article class="print-grid-cell" data-print-grid-cell data-field-id="{{ field.id }}" data-base-span="2" data-print-span="{{ field_span }}" style="--print-grid-span: {{ field_span }};">
+      <article class="print-grid-cell" data-print-grid-cell data-field-id="{{ field.id }}" data-original-index="{{ field.get('_print_layout_original_index', loop.index0) }}" data-base-span="2" data-print-span="{{ field_span }}" style="--print-grid-span: {{ field_span }};">
         <div class="print-grid-cell-head">
           <strong>{{ field.name }}</strong>
         </div>
@@ -81,6 +94,32 @@
       {% for placeholder_span in grid_placeholder_spans %}
       <article class="print-grid-cell print-grid-cell--placeholder" aria-hidden="true" style="--print-grid-span: {{ placeholder_span }};"></article>
       {% endfor %}
+    </div>
+    {% elif item.kind == "field_run" %}
+    {% set run_items = item["items"] or [] %}
+    {% set run_layout = item["layout"] or {} %}
+    {% set run_units = run_layout.units or (field_grid_columns * 2) %}
+    {% set run_is_grid = run_layout.presentation == "grid" %}
+    <div class="print-field-run{% if run_is_grid %} print-layout-grid{% endif %}" data-print-layout-grid data-layout-kind="field_run" data-layout-presentation="{{ run_layout.presentation or 'rows' }}" data-default-presentation="rows" data-default-mode="rows" data-grid-id="{{ run_layout.id or item.id or '' }}" data-grid-units="{{ run_units }}" data-grid-mode="{{ run_layout.mode or 'rows' }}"{% if run_is_grid %} style="--print-grid-units: {{ run_units }};"{% endif %}>
+      {% for field in run_items %}
+      {% set field_span = run_layout.spans[field.id] if run_layout.spans and field.id in run_layout.spans else 2 %}
+      <article class="print-row" data-print-grid-cell data-field-id="{{ field.id }}" data-original-index="{{ field.get('_print_layout_original_index', loop.index0) }}" data-base-span="2" data-print-span="{{ field_span }}"{% if run_is_grid %} style="--print-grid-span: {{ field_span }};"{% endif %}>
+        <div class="print-row-name">
+          <strong>{{ field.name }}</strong>
+          {% if field.reference_text %}
+          <span class="{% if field.is_abnormal %}is-abnormal{% endif %}">Normal values: {{ field.reference_text }}</span>
+          {% endif %}
+        </div>
+        <div class="print-row-result">
+          {{ render_print_field_result(field) }}
+        </div>
+      </article>
+      {% endfor %}
+      {% if run_is_grid %}
+        {% for placeholder_span in run_layout.placeholder_spans or [] %}
+        <article class="print-row print-field-run-placeholder" aria-hidden="true" style="--print-grid-span: {{ placeholder_span }};"></article>
+        {% endfor %}
+      {% endif %}
     </div>
     {% elif item.kind == "field" %}
     <article class="print-row">

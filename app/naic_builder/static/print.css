@@ -473,6 +473,7 @@ body {
 
 .print-command-back,
 .print-active-profile,
+.print-layout-command,
 .print-more-menu summary {
   display: inline-flex;
   align-items: center;
@@ -935,6 +936,8 @@ body {
 .print-table-block,
 .print-note,
 .print-divider-block,
+.print-container-run-item,
+.print-field-run,
 .print-row {
   break-inside: avoid;
   page-break-inside: avoid;
@@ -978,6 +981,19 @@ body {
   gap: 0;
 }
 
+.print-container-run {
+  display: block;
+}
+
+.print-container-run-item {
+  min-width: 0;
+}
+
+.print-field-run {
+  display: grid;
+  gap: 0;
+}
+
 .print-row {
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(140px, 1fr);
@@ -989,12 +1005,18 @@ body {
 }
 
 .print-items > .print-row:first-child,
+.print-items > .print-field-run:first-child > .print-row:first-child,
 .print-body > .print-row:first-child,
+.print-body > .print-field-run:first-child > .print-row:first-child,
 .print-section > .print-items > .print-row:first-child {
   border-top: 1px solid var(--line);
 }
 
 .print-group .print-row:first-child {
+  border-top: 0;
+}
+
+.print-group .print-field-run:first-child > .print-row:first-child {
   border-top: 0;
 }
 
@@ -1017,6 +1039,7 @@ body {
 }
 
 .print-section-head + .print-items > .print-row:first-child,
+.print-section-head + .print-items > .print-field-run:first-child > .print-row:first-child,
 .print-section-head + .print-items > .print-field-grid:first-child {
   border-top: 0;
 }
@@ -1075,6 +1098,8 @@ body {
 
 .print-body > .print-section,
 .print-body > .print-group,
+.print-body > .print-container-run > .print-container-run-item > .print-section,
+.print-body > .print-container-run > .print-container-run-item > .print-group,
 .print-body > .print-table-block,
 .print-body > .print-note,
 .print-body > .print-divider-block {
@@ -1302,6 +1327,8 @@ body {
 
 .print-density-comfortable .print-body > .print-section,
 .print-density-comfortable .print-body > .print-group,
+.print-density-comfortable .print-body > .print-container-run > .print-container-run-item > .print-section,
+.print-density-comfortable .print-body > .print-container-run > .print-container-run-item > .print-group,
 .print-density-comfortable .print-body > .print-table-block,
 .print-density-comfortable .print-body > .print-note,
 .print-density-comfortable .print-body > .print-divider-block {
@@ -1977,6 +2004,12 @@ body {
     width: 100%;
   }
 
+  .print-layout-command {
+    grid-column: 1;
+    grid-row: 3;
+    width: 100%;
+  }
+
   .print-more-menu {
     grid-column: 2;
     grid-row: 2;
@@ -1984,7 +2017,7 @@ body {
 
   .print-fit-notice {
     grid-column: 1 / -1;
-    grid-row: 3;
+    grid-row: 4;
     max-width: none;
   }
 
@@ -2014,7 +2047,9 @@ body {
 
 /* Layout-aware grids use a six-unit landscape or four-unit portrait track.
    The grid background draws stable borders even when cells span and reflow. */
-.print-field-grid.print-layout-grid {
+.print-field-grid.print-layout-grid,
+.print-field-run.print-layout-grid,
+.print-container-run.print-layout-grid {
   grid-template-columns: repeat(var(--print-grid-units), minmax(0, 1fr)) !important;
   gap: 1px;
   overflow: hidden;
@@ -2036,17 +2071,47 @@ body {
   min-height: 100%;
 }
 
+.print-field-run.print-layout-grid > .print-row,
+.print-field-run.print-layout-grid > .print-field-run-placeholder {
+  grid-column: span var(--print-grid-span, 2);
+  border: 0;
+  background: var(--paper);
+}
+
+.print-field-run.print-layout-grid > .print-row {
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 4px;
+}
+
+.print-field-run.print-layout-grid > .print-field-run-placeholder {
+  min-height: 100%;
+}
+
+.print-container-run.print-layout-grid > .print-container-run-item {
+  grid-column: span var(--print-grid-span, 2);
+  min-width: 0;
+}
+
+.print-container-run.print-layout-grid > .print-container-run-item > .print-section,
+.print-container-run.print-layout-grid > .print-container-run-item > .print-group {
+  margin-top: 0 !important;
+}
+
 .print-layout-editor {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px 16px;
+  align-items: center;
+  gap: 5px 12px;
   width: min(1180px, calc(100% - 32px));
-  margin: 0 auto 12px;
-  padding: 11px 13px;
+  margin: 0 auto 8px;
+  padding: 7px 10px;
   border: 1px solid #bcc6c2;
-  border-radius: 6px;
+  border-radius: 5px;
   background: #f7faf8;
-  box-shadow: 0 5px 16px rgba(26, 39, 32, 0.1);
+}
+
+.print-layout-editor[hidden] {
+  display: none !important;
 }
 
 .print-layout-editor-copy {
@@ -2057,13 +2122,13 @@ body {
 
 .print-layout-editor-copy strong {
   color: var(--ink);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .print-layout-editor-copy span,
 .print-layout-editor-status {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1.35;
 }
 
@@ -2075,13 +2140,13 @@ body {
 }
 
 .print-layout-editor-actions button {
-  min-height: 30px;
-  padding: 5px 9px;
+  min-height: 27px;
+  padding: 4px 8px;
   border: 1px solid #aebbb5;
   border-radius: 4px;
   color: #1e2b25;
   font: inherit;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 750;
   background: #fff;
   cursor: pointer;
@@ -2104,36 +2169,45 @@ body {
 
 .print-layout-editor-status {
   grid-column: 1 / -1;
-  min-height: 15px;
-  margin: -2px 0 0;
+  margin: 0;
+}
+
+.print-layout-editor-status:empty {
+  display: none;
 }
 
 .print-layout-editor-status[data-status="error"] {
   color: #a33131;
 }
 
-body.is-layout-editing .print-layout-grid {
+body.is-layout-editing [data-print-layout-grid] {
   outline: 1px dashed rgba(30, 93, 82, 0.48);
   outline-offset: 3px;
 }
 
-body.is-layout-editing .print-layout-grid.is-layout-active {
+body.is-layout-editing [data-print-layout-grid].is-layout-active {
   outline: 2px solid var(--accent);
 }
 
-body.is-layout-editing .print-layout-grid > .print-grid-cell:not(.print-grid-cell--placeholder) {
+body.is-layout-editing [data-print-layout-grid] > [data-print-grid-cell] {
   position: relative;
   cursor: col-resize;
 }
 
-body.is-layout-editing .print-layout-grid > .print-grid-cell:not(.print-grid-cell--placeholder)::after {
+body.is-layout-editing [data-print-layout-grid] > [data-print-grid-cell]::after {
   position: absolute;
   z-index: 2;
   top: 0;
-  right: -4px;
+  right: 0;
   bottom: 0;
-  width: 8px;
+  width: 4px;
+  background: rgba(30, 93, 82, 0.3);
   content: "";
+}
+
+body.is-layout-editing [data-print-grid-cell].is-layout-cell-active {
+  outline: 2px solid color-mix(in srgb, var(--accent) 72%, #fff 28%);
+  outline-offset: -2px;
 }
 
 body.is-layout-resizing,
@@ -2160,8 +2234,12 @@ body.is-layout-resizing * {
     display: none;
   }
 
-  body.is-layout-editing .print-layout-grid,
-  body.is-layout-editing .print-layout-grid.is-layout-active {
+  body.is-layout-editing [data-print-layout-grid],
+  body.is-layout-editing [data-print-layout-grid].is-layout-active {
+    outline: 0;
+  }
+
+  body.is-layout-editing [data-print-grid-cell].is-layout-cell-active {
     outline: 0;
   }
 
@@ -2321,6 +2399,8 @@ body.is-layout-resizing * {
 
   .print-body > .print-section,
   .print-body > .print-group,
+  .print-body > .print-container-run > .print-container-run-item > .print-section,
+  .print-body > .print-container-run > .print-container-run-item > .print-group,
   .print-body > .print-table-block,
   .print-body > .print-note,
   .print-body > .print-divider-block {
@@ -2405,6 +2485,8 @@ body.is-layout-resizing * {
 
   .print-density-comfortable .print-body > .print-section,
   .print-density-comfortable .print-body > .print-group,
+  .print-density-comfortable .print-body > .print-container-run > .print-container-run-item > .print-section,
+  .print-density-comfortable .print-body > .print-container-run > .print-container-run-item > .print-group,
   .print-density-comfortable .print-body > .print-table-block,
   .print-density-comfortable .print-body > .print-note,
   .print-density-comfortable .print-body > .print-divider-block {
@@ -2905,6 +2987,8 @@ body.is-layout-resizing * {
 
   .print-template-legacy-landscape.print-paper-a5 .print-body > .print-section,
   .print-template-legacy-landscape.print-paper-a5 .print-body > .print-group,
+  .print-template-legacy-landscape.print-paper-a5 .print-body > .print-container-run > .print-container-run-item > .print-section,
+  .print-template-legacy-landscape.print-paper-a5 .print-body > .print-container-run > .print-container-run-item > .print-group,
   .print-template-legacy-landscape.print-paper-a5 .print-body > .print-table-block,
   .print-template-legacy-landscape.print-paper-a5 .print-body > .print-note,
   .print-template-legacy-landscape.print-paper-a5 .print-body > .print-divider-block {

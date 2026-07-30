@@ -333,13 +333,34 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                 "show_nested_container_titles": True,
             },
         )
-        printed_sections = {item["name"]: item for item in printed if item["kind"] == "section"}
+        printed_sections = {
+            item["name"]: item
+            for top_level_item in printed
+            for item in (
+                top_level_item["items"]
+                if top_level_item["kind"] == "container_run"
+                else [top_level_item]
+            )
+            if item["kind"] == "section"
+        }
+
+        def print_item_names(items):
+            names = []
+            for item in items:
+                if item["kind"] == "field_run":
+                    names.extend(child["name"] for child in item["items"])
+                elif item["kind"] == "container_run":
+                    names.extend(print_item_names(item["items"]))
+                else:
+                    names.append(item["name"])
+            return names
+
         self.assertEqual(
-            [item["name"] for item in printed_sections["Blood Gas Values"]["items"]],
+            print_item_names(printed_sections["Blood Gas Values"]["items"]),
             ["ABG", "NOTE"],
         )
         self.assertEqual(
-            [item["name"] for item in printed_sections["Calculated Values"]["items"]],
+            print_item_names(printed_sections["Calculated Values"]["items"]),
             ["Oximetry", "Acid-Base Status"],
         )
         preview = build_form_print_preview_document(
@@ -1068,7 +1089,8 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                 "show_nested_container_titles": True,
             },
         )
-        self.assertEqual(printed[0]["kind"], "field")
+        self.assertEqual(printed[0]["kind"], "field_run")
+        self.assertEqual(printed[0]["items"][0]["kind"], "field")
         self.assertEqual(printed[1]["kind"], "section")
         self.assertEqual(printed[1]["items"][0]["kind"], "group")
 
@@ -1625,6 +1647,273 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         }]
         apply_print_layout_preference(changed_items, safe_preference, field_grid_units=6)
         self.assertEqual(changed_items[0]["layout"]["mode"], "preserve")
+
+    def test_short_field_runs_keep_rows_until_a_user_arranges_them_as_a_grid(self) -> None:
+        blocks = [
+            {
+                "kind": "field",
+                "id": field_id,
+                "name": field_id.replace("_", " ").title(),
+                "props": {"data_type": "text"},
+            }
+            for field_id in ("case_number", "requesting_physician", "room")
+        ]
+        items = build_print_items(
+            blocks,
+            {},
+            {},
+            record_id=1,
+            print_config={"result_layout": "rows"},
+        )
+
+        self.assertEqual(items[0]["kind"], "field_run")
+        self.assertEqual(items[0]["id"], "root:run:0")
+        self.assertEqual(items[0]["field_ids"], ["case_number", "requesting_physician", "room"])
+
+        apply_print_layout_preference(items, {}, field_grid_units=6)
+        self.assertEqual(items[0]["layout"]["mode"], "rows")
+        self.assertEqual(items[0]["layout"]["presentation"], "rows")
+
+        preference = {
+            "grids": {
+                "root:run:0": {
+                    "field_ids": ["case_number", "requesting_physician", "room"],
+                    "mode": "manual",
+                    "spans": {"case_number": 4, "requesting_physician": 2, "room": 6},
+                }
+            }
+        }
+        safe_preference = filter_print_layout_preference_for_items(
+            preference,
+            items,
+            field_grid_units=6,
+        )
+        apply_print_layout_preference(items, safe_preference, field_grid_units=6)
+        self.assertEqual(items[0]["layout"]["mode"], "manual")
+        self.assertEqual(items[0]["layout"]["presentation"], "grid")
+        self.assertEqual(items[0]["layout"]["spans"]["case_number"], 4)
+
+        changed_items = [{
+            "kind": "field_run",
+            "id": "root:run:0",
+            "field_ids": ["case_number", "requesting_physician", "new_field"],
+            "items": [],
+        }]
+        apply_print_layout_preference(changed_items, safe_preference, field_grid_units=6)
+        self.assertEqual(changed_items[0]["layout"]["mode"], "rows")
+        self.assertEqual(changed_items[0]["layout"]["presentation"], "rows")
+
+    def test_field_run_template_preserves_rows_until_grid_presentation_is_selected(self) -> None:
+        environment = Environment(loader=FileSystemLoader(ROOT / "app" / "naic_builder" / "templates"))
+        macro = environment.get_template("records/_print_document.html").module.render_print_page
+        field = {
+            "id": "case_number",
+            "name": "CASE NUMBER",
+            "unit_hint": "",
+            "reference_text": "",
+            "display": {"kind": "text", "text": "1"},
+            "is_abnormal": False,
+        }
+        document = {
+            "items": [{
+                "kind": "field_run",
+                "id": "root:run:0",
+                "items": [field],
+                "layout": {
+                    "id": "root:run:0",
+                    "mode": "rows",
+                    "presentation": "rows",
+                    "units": 4,
+                    "spans": {"case_number": 2},
+                },
+            }],
+            "clinic": {},
+            "template": {"field_grid_columns": 2},
+            "print_config": {
+                "show_logo": False,
+                "show_clinic_info": False,
+                "show_status": False,
+                "show_summary": False,
+                "show_signatures": False,
+            },
+            "report_title": "Blood Bank",
+            "form_name": "Blood Bank",
+            "form_path_label": "Blood Bank",
+            "status": "completed",
+            "summary_items": [],
+            "signatures": [],
+        }
+
+        row_html = macro(document)
+        self.assertIn('class="print-field-run"', row_html)
+        self.assertNotIn('class="print-field-run print-layout-grid"', row_html)
+        self.assertIn('data-layout-presentation="rows"', row_html)
+
+        document["items"][0]["layout"].update({
+            "mode": "manual",
+            "presentation": "grid",
+            "placeholder_spans": [2],
+        })
+        grid_html = macro(document)
+        self.assertIn('class="print-field-run print-layout-grid"', grid_html)
+        self.assertIn('class="print-row print-field-run-placeholder"', grid_html)
+
+    def test_adjacent_containers_are_a_flow_first_layout_group(self) -> None:
+        items = [{
+            "kind": "container_run",
+            "id": "root:containers:0",
+            "container_ids": ["root/patient_information", "root/blood_bank_details"],
+            "items": [],
+        }]
+
+        apply_print_layout_preference(items, {}, field_grid_units=6)
+        self.assertEqual(items[0]["layout"]["mode"], "flow")
+        self.assertEqual(items[0]["layout"]["presentation"], "flow")
+
+        preference = {
+            "containers": {
+                "root:containers:0": {
+                    "container_ids": ["root/patient_information", "root/blood_bank_details"],
+                    "mode": "manual",
+                    "spans": {
+                        "root/patient_information": 3,
+                        "root/blood_bank_details": 3,
+                    },
+                }
+            }
+        }
+        safe_preference = filter_print_layout_preference_for_items(
+            preference,
+            items,
+            field_grid_units=6,
+        )
+        self.assertEqual(safe_preference["containers"]["root:containers:0"]["mode"], "manual")
+        apply_print_layout_preference(items, safe_preference, field_grid_units=6)
+        self.assertEqual(items[0]["layout"]["presentation"], "grid")
+        self.assertEqual(items[0]["layout"]["spans"]["root/patient_information"], 3)
+
+        changed_items = [{
+            "kind": "container_run",
+            "id": "root:containers:0",
+            "container_ids": ["root/patient_information", "root/new_details"],
+            "items": [],
+        }]
+        apply_print_layout_preference(changed_items, safe_preference, field_grid_units=6)
+        self.assertEqual(changed_items[0]["layout"]["mode"], "flow")
+
+    def test_print_layout_order_is_saved_without_forcing_a_row_group_into_grid_mode(self) -> None:
+        items = [{
+            "kind": "field_run",
+            "id": "root:run:0",
+            "field_ids": ["case_number", "requesting_physician", "room"],
+            "items": [
+                {"kind": "field", "id": "case_number"},
+                {"kind": "field", "id": "requesting_physician"},
+                {"kind": "field", "id": "room"},
+            ],
+        }]
+        preference = {
+            "grids": {
+                "root:run:0": {
+                    "field_ids": ["case_number", "requesting_physician", "room"],
+                    "mode": "rows",
+                    "order": ["room", "case_number", "requesting_physician"],
+                }
+            }
+        }
+
+        safe_preference = filter_print_layout_preference_for_items(
+            preference,
+            items,
+            field_grid_units=4,
+        )
+        self.assertEqual(
+            safe_preference["grids"]["root:run:0"]["order"],
+            ["room", "case_number", "requesting_physician"],
+        )
+        apply_print_layout_preference(items, safe_preference, field_grid_units=4)
+        self.assertEqual(items[0]["layout"]["mode"], "rows")
+        self.assertEqual(
+            [item["id"] for item in items[0]["items"]],
+            ["room", "case_number", "requesting_physician"],
+        )
+        self.assertEqual(
+            [item["_print_layout_original_index"] for item in items[0]["items"]],
+            [2, 0, 1],
+        )
+
+    def test_container_run_template_stacks_by_default_and_supports_grid_presentation(self) -> None:
+        environment = Environment(loader=FileSystemLoader(ROOT / "app" / "naic_builder" / "templates"))
+        macro = environment.get_template("records/_print_document.html").module.render_print_page
+        document = {
+            "items": [{
+                "kind": "container_run",
+                "id": "root:containers:0",
+                "items": [
+                    {
+                        "kind": "section",
+                        "id": "root/patient_information",
+                        "name": "PATIENT INFORMATION",
+                        "container_depth": 0,
+                        "show_title": True,
+                        "items": [],
+                    },
+                    {
+                        "kind": "section",
+                        "id": "root/blood_bank_details",
+                        "name": "BLOOD BANK DETAILS",
+                        "container_depth": 0,
+                        "show_title": True,
+                        "items": [],
+                    },
+                ],
+                "layout": {
+                    "id": "root:containers:0",
+                    "mode": "flow",
+                    "presentation": "flow",
+                    "units": 4,
+                    "spans": {},
+                },
+            }],
+            "clinic": {},
+            "template": {"field_grid_columns": 2},
+            "print_config": {
+                "show_logo": False,
+                "show_clinic_info": False,
+                "show_status": False,
+                "show_summary": False,
+                "show_signatures": False,
+            },
+            "report_title": "Blood Bank",
+            "form_name": "Blood Bank",
+            "form_path_label": "Blood Bank",
+            "status": "completed",
+            "summary_items": [],
+            "signatures": [],
+        }
+
+        flow_html = macro(document)
+        self.assertIn('class="print-container-run"', flow_html)
+        self.assertNotIn('class="print-container-run print-layout-grid"', flow_html)
+        self.assertIn('data-layout-presentation="flow"', flow_html)
+
+        document["items"][0]["layout"].update({
+            "mode": "manual",
+            "presentation": "grid",
+            "spans": {
+                "root/patient_information": 2,
+                "root/blood_bank_details": 2,
+            },
+        })
+        grid_html = macro(document)
+        self.assertIn('class="print-container-run print-layout-grid"', grid_html)
+        self.assertEqual(grid_html.count('data-container-id="root/'), 2)
+
+        editor_source = (ROOT / "app" / "naic_builder" / "templates" / "records" / "print.html").read_text(encoding="utf-8")
+        stylesheet = (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8")
+        self.assertIn("cell.dataset.containerId", editor_source)
+        self.assertIn("containers[gridId]", editor_source)
+        self.assertIn(".print-container-run.print-layout-grid", stylesheet)
 
     def test_user_print_layout_preference_is_personal_and_profile_scoped(self) -> None:
         engine = create_engine("sqlite://")
