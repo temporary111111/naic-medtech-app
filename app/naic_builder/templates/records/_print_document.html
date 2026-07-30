@@ -26,7 +26,7 @@
   </span>
 {% endmacro %}
 
-{% macro render_print_items(items) %}
+{% macro render_print_items(items, field_grid_columns=2) %}
   {% for item in items %}
     {% if item.kind == "section" %}
     {% set child_items = item["items"] or [] %}
@@ -37,7 +37,7 @@
       </header>
       {% endif %}
       <div class="print-items">
-        {{ render_print_items(child_items) }}
+        {{ render_print_items(child_items, field_grid_columns) }}
       </div>
     </section>
     {% elif item.kind == "group" %}
@@ -49,11 +49,13 @@
       </header>
       {% endif %}
       <div class="print-items">
-        {{ render_print_items(child_items) }}
+        {{ render_print_items(child_items, field_grid_columns) }}
       </div>
     </section>
     {% elif item.kind == "field_grid" %}
     {% set grid_items = item["items"] or [] %}
+    {% set grid_remainder = (grid_items | length) % field_grid_columns %}
+    {% set grid_placeholder_count = (field_grid_columns - grid_remainder) % field_grid_columns %}
     <div class="print-field-grid">
       {% for field in grid_items %}
       <article class="print-grid-cell">
@@ -67,6 +69,9 @@
         <small class="{% if field.is_abnormal %}is-abnormal{% endif %}">Normal values: {{ field.reference_text }}</small>
         {% endif %}
       </article>
+      {% endfor %}
+      {% for _ in range(grid_placeholder_count) %}
+      <article class="print-grid-cell print-grid-cell--placeholder" aria-hidden="true"></article>
       {% endfor %}
     </div>
     {% elif item.kind == "field" %}
@@ -130,6 +135,8 @@
   {% set doc_items = document["items"] or [] %}
   {% set clinic = document["clinic"] or {} %}
   {% set print_config = document["print_config"] or {} %}
+  {% set presentation = document["template"] or {} %}
+  {% set field_grid_columns = presentation.field_grid_columns or 2 %}
   <section class="print-page">
     {% if print_config.style == "legacy" %}
     <header class="print-legacy-header{% if not print_config.show_logo %} no-logo{% endif %}{% if not print_config.show_clinic_info %} no-clinic-info{% endif %}">
@@ -212,7 +219,7 @@
     {% endif %}
 
     <section class="print-body">
-      {{ render_print_items(doc_items) }}
+      {{ render_print_items(doc_items, field_grid_columns) }}
     </section>
 
     {% set signature_items = document.signatures or [] %}

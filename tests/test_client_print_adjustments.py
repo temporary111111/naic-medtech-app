@@ -364,6 +364,8 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(modern_landscape["page_size"], "A4")
         self.assertEqual(modern_landscape["page_width_mm"], 297)
         self.assertEqual(modern_landscape["page_height_mm"], 210)
+        self.assertEqual(modern_landscape["field_grid_columns"], 3)
+        self.assertEqual(print_presentation_details("modern_portrait")["field_grid_columns"], 2)
         self.assertEqual(normalize_print_paper_size("legal"), "legal")
         self.assertEqual(normalize_print_paper_size("letter"), "letter")
         self.assertEqual(normalize_print_paper_size("a5"), "a5")
@@ -685,6 +687,38 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertNotIn('class="print-exam-head"', legacy_html)
         self.assertLess(legacy_html.index('src="/settings/clinic/logo"'), legacy_html.index("Blood Bank"))
         self.assertLess(legacy_html.index("Blood Bank"), legacy_html.index("Naic, Cavite"))
+
+    def test_print_grid_completes_partial_rows_with_structural_cells(self) -> None:
+        environment = Environment(loader=FileSystemLoader(ROOT / "app" / "naic_builder" / "templates"))
+        macro = environment.get_template("records/_print_document.html").module.render_print_page
+        field = {
+            "kind": "field",
+            "name": "Field",
+            "unit_hint": "",
+            "reference_text": "",
+            "display": {"kind": "text", "text": "Value"},
+            "is_abnormal": False,
+        }
+        html = macro({
+            "items": [{"kind": "field_grid", "items": [field] * 7}],
+            "clinic": {},
+            "template": {"field_grid_columns": 3},
+            "print_config": {
+                "show_logo": False,
+                "show_clinic_info": False,
+                "show_status": False,
+                "show_summary": False,
+                "show_signatures": False,
+            },
+            "report_title": "Blood Bank",
+            "form_name": "Blood Bank",
+            "form_path_label": "Blood Bank",
+            "status": "completed",
+            "summary_items": [],
+            "signatures": [],
+        })
+        self.assertEqual(html.count('class="print-grid-cell print-grid-cell--placeholder"'), 2)
+        self.assertEqual(html.count('aria-hidden="true"'), 2)
 
     def test_print_temporal_values_are_nontechnical(self) -> None:
         self.assertEqual(format_print_temporal_value("date", "2026-07-16"), "07/16/2026")

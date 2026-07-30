@@ -664,6 +664,7 @@ def print_presentation_details(
             "page_dimensions_label": paper_size_details["dimensions_label"],
             "page_width_mm": page_width_mm,
             "page_height_mm": page_height_mm,
+            "field_grid_columns": 3 if is_landscape else 2,
         }
     )
     details["text_size_label"] = PRINT_TEXT_SIZE_DETAILS[profile["text_size"]]["label"]
