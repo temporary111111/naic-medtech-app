@@ -34,10 +34,12 @@ from naic_builder.services import (
     build_print_summary_items,
     build_signatory_snapshot,
     default_signatory_slots,
+    default_patient_info_legacy_group,
     estimate_print_page_fit,
     ensure_client_signatory_defaults,
     ensure_default_pathologist_stamp,
     ensure_form_version_storage_documents,
+    evaluate_print_abnormal,
     format_print_temporal_value,
     list_record_completion_issues,
     normalize_print_paper_size,
@@ -63,6 +65,57 @@ def tearDownModule() -> None:
 
 
 class ClientPrintAdjustmentTests(unittest.TestCase):
+    def test_shared_patient_information_defaults_are_consistent(self) -> None:
+        fields = {field["key"]: field for field in default_patient_info_legacy_group()["fields"]}
+        self.assertEqual(fields["age"]["data_type"], "number")
+        self.assertEqual(fields["date_or_datetime"]["name"], "Date & Time")
+        self.assertEqual(fields["date_or_datetime"]["data_type"], "datetime")
+        self.assertEqual(fields["case_number"]["data_type"], "number")
+
+        builder_source = (ROOT / "app" / "naic_builder" / "static" / "app.js").read_text(encoding="utf-8")
+        self.assertIn('{ key: "age", name: "Age", dataType: "number", required: false },', builder_source)
+        self.assertIn('{ key: "date_or_datetime", name: "Date & Time", dataType: "datetime", required: false },', builder_source)
+        self.assertIn('{ key: "case_number", name: "Case Number", dataType: "number", required: true },', builder_source)
+
+    def test_blood_bank_seed_uses_approved_container_names(self) -> None:
+        schema = json.loads(
+            (ROOT / "artifacts" / "schema" / "naic_medtech_app_schema.json").read_text(encoding="utf-8")
+        )
+        blood_bank = next(
+            form
+            for group in schema["groups"]
+            for form in group["forms"]
+            if form["key"] == "blood_bank"
+        )
+
+        block_schema = build_block_storage_document_from_legacy_storage(blood_bank)
+        containers = [block for block in block_schema["blocks"] if block["kind"] == "container"]
+        self.assertEqual(
+            [container["name"] for container in containers],
+            ["Patient Information", "Blood Bank Details", "Crossmatching Details"],
+        )
+        patient_info = containers[0]
+        patient_fields = {child["props"]["key"]: child for child in patient_info["children"]}
+        self.assertEqual(patient_fields["age"]["props"]["data_type"], "number")
+        self.assertEqual(patient_fields["date_or_datetime"]["name"], "Date & Time")
+        self.assertEqual(patient_fields["date_or_datetime"]["props"]["data_type"], "datetime")
+        self.assertEqual(patient_fields["case_number"]["props"]["data_type"], "number")
+        self.assertTrue(patient_fields["case_number"]["props"]["required"])
+        crossmatching = containers[-1]
+        remarks = next(child for child in crossmatching["children"] if child["props"]["key"] == "remarks")
+        self.assertEqual(
+            evaluate_print_abnormal(remarks["props"], "COMPATIBLE"),
+            (False, None),
+        )
+        self.assertEqual(
+            evaluate_print_abnormal(remarks["props"], "INCOMPATIBLE"),
+            (True, "abnormal"),
+        )
+        self.assertEqual(
+            next(child["name"] for child in crossmatching["children"] if child["kind"] == "container"),
+            "Vital Signs",
+        )
+
     def test_top_level_builder_actions_keep_fields_and_containers_flexible(self) -> None:
         source = (ROOT / "app" / "naic_builder" / "static" / "app.js").read_text(encoding="utf-8")
 

@@ -18,7 +18,40 @@ APP_SCHEMA_OUTPUT_PATH = OUT_DIR / "naic_medtech_app_schema.json"
 MARKDOWN_OUTPUT_PATH = OUT_DIR / "naic_medtech_structure.md"
 HTML_OUTPUT_PATH = OUT_DIR / "naic_medtech_structure.html"
 DIAGRAM_HTML_OUTPUT_PATH = OUT_DIR / "naic_medtech_tree_diagram.html"
-APP_SCHEMA_VERSION = "1.0.1"
+APP_SCHEMA_VERSION = "1.0.5"
+
+
+# These are reviewed application defaults, not source-workbook corrections. Keep
+# them declarative so each approved form can retain its own clear builder layout.
+FORM_DEFAULT_OVERRIDES = {
+    "blood_bank": {
+        "patient_field_overrides": {
+            "age": {
+                "data_type": "number",
+            },
+            "date_or_datetime": {
+                "name": "Date & Time",
+                "data_type": "datetime",
+            },
+            "case_number": {
+                "data_type": "number",
+            },
+        },
+        "root_fields_container": {
+            "key": "details",
+            "name": "Blood Bank Details",
+        },
+        "section_names": {
+            "type_of_crossmatching": "Crossmatching Details",
+        },
+        "field_group_names": {
+            "vital_signs": "Vital Signs",
+        },
+        "normal_choice_options": {
+            "type_of_crossmatching.remarks": ["COMPATIBLE"],
+        },
+    },
+}
 
 
 FORM_SPECS = [
@@ -268,7 +301,7 @@ COMMON_FIELD_SET = {
     "name": "Default Lab Request Metadata",
     "notes": [
         "These shared fields were excluded from the visual tree and moved into one reusable app field set.",
-        "The workbook varies between Date and Date/Time, so that field is represented conservatively as date_or_datetime.",
+        "The workbook varies between Date and Date/Time, so the app uses one Date & Time field.",
     ],
     "fields": [
         {
@@ -285,7 +318,7 @@ COMMON_FIELD_SET = {
             "name": "Age",
             "order": 2,
             "control": "input",
-            "data_type": "text",
+            "data_type": "number",
         },
         {
             "id": "default_lab_request.sex",
@@ -299,10 +332,10 @@ COMMON_FIELD_SET = {
         {
             "id": "default_lab_request.date_or_datetime",
             "key": "date_or_datetime",
-            "name": "Date / Date-Time",
+            "name": "Date & Time",
             "order": 4,
             "control": "input",
-            "data_type": "date_or_datetime",
+            "data_type": "datetime",
         },
         {
             "id": "default_lab_request.requesting_physician",
@@ -331,7 +364,7 @@ COMMON_FIELD_SET = {
             "name": "Case Number",
             "order": 7,
             "control": "input",
-            "data_type": "text",
+            "data_type": "number",
         },
     ],
 }
@@ -989,12 +1022,115 @@ def build_app_section(section: dict[str, object], form_id: str, order: int) -> d
     return app_section
 
 
+def build_explicit_patient_info_group(
+    app_form: dict[str, object],
+    field_overrides: dict[str, object],
+) -> dict[str, object]:
+    form_id = str(app_form["id"])
+    fields: list[dict[str, object]] = []
+
+    for order, base_field in enumerate(COMMON_FIELD_SET["fields"], start=1):
+        key = str(base_field["key"])
+        override = field_overrides.get(key)
+        override = override if isinstance(override, dict) else {}
+        field_id = f"{form_id}.patient_information.{key}"
+        field: dict[str, object] = {
+            "id": field_id,
+            "key": key,
+            "name": str(override.get("name") or base_field["name"]),
+            "kind": "field",
+            "order": order,
+            "control": str(override.get("control") or base_field["control"]),
+            "data_type": str(override.get("data_type") or base_field["data_type"]),
+            "required": key in {"name", "case_number"},
+            "source": {
+                "common_field_set_id": COMMON_FIELD_SET["id"],
+                "common_field_id": base_field["id"],
+            },
+        }
+        options = base_field.get("options")
+        if isinstance(options, list):
+            field["options"] = build_app_options(
+                [str(option["name"]) for option in options if isinstance(option, dict)],
+                field_id,
+            )
+        fields.append(field)
+
+    return {
+        "id": f"{form_id}.patient_information",
+        "key": "patient_information",
+        "name": "Patient Information",
+        "kind": "field_group",
+        "order": 1,
+        "source": {"common_field_set_id": COMMON_FIELD_SET["id"]},
+        "fields": fields,
+    }
+
+
+def apply_form_default_overrides(app_form: dict[str, object]) -> dict[str, object]:
+    overrides = FORM_DEFAULT_OVERRIDES.get(str(app_form.get("key") or ""), {})
+    if not overrides:
+        return app_form
+
+    root_container = overrides.get("root_fields_container")
+    fields = app_form.get("fields")
+    if isinstance(root_container, dict) and isinstance(fields, list) and fields:
+        root_key = str(root_container.get("key") or "details")
+        root_order = 2 if isinstance(overrides.get("patient_field_overrides"), dict) else 1
+        app_form["fields"] = [
+            {
+                "id": f"{app_form['id']}.{root_key}",
+                "key": root_key,
+                "name": str(root_container.get("name") or "Form Details"),
+                "kind": "field_group",
+                "order": root_order,
+                "source": {"normalized_from": "approved_default_container"},
+                "fields": fields,
+            }
+        ]
+
+    patient_field_overrides = overrides.get("patient_field_overrides")
+    if isinstance(patient_field_overrides, dict):
+        app_form["fields"] = [
+            build_explicit_patient_info_group(app_form, patient_field_overrides),
+            *app_form["fields"],
+        ]
+
+    section_names = overrides.get("section_names")
+    field_group_names = overrides.get("field_group_names")
+    normal_choice_options = overrides.get("normal_choice_options")
+    for section in app_form.get("sections") or []:
+        if not isinstance(section, dict):
+            continue
+        section_key = str(section.get("key") or "")
+        if isinstance(section_names, dict) and section_key in section_names:
+            section["name"] = str(section_names[section_key])
+        for field in section.get("fields") or []:
+            if not isinstance(field, dict):
+                continue
+            field_key = str(field.get("key") or "")
+            if isinstance(field_group_names, dict) and field_key in field_group_names:
+                field["name"] = str(field_group_names[field_key])
+            option_path = f"{section_key}.{field_key}"
+            normal_names = (
+                normal_choice_options.get(option_path)
+                if isinstance(normal_choice_options, dict)
+                else None
+            )
+            if isinstance(normal_names, list):
+                for option in field.get("options") or []:
+                    if isinstance(option, dict):
+                        option["is_normal"] = str(option.get("name") or "") in normal_names
+
+    return app_form
+
+
 def build_app_form(form: dict[str, object], group_id: str, order: int) -> dict[str, object]:
     form_key = slugify(str(form["name"]))
     form_id = f"{group_id}.{form_key}"
     used_field_keys: set[str] = set()
 
-    return {
+    app_form = {
         "id": form_id,
         "key": form_key,
         "name": form["name"],
@@ -1013,6 +1149,7 @@ def build_app_form(form: dict[str, object], group_id: str, order: int) -> dict[s
             for section_order, section in enumerate(form.get("sections", []), start=1)
         ],
     }
+    return apply_form_default_overrides(app_form)
 
 
 def build_app_group(node: dict[str, object], order: int) -> dict[str, object]:

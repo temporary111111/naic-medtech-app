@@ -152,7 +152,7 @@ const DEFAULT_PRINT_SUMMARY_ITEMS = [
 ];
 const DEFAULT_PATIENT_INFO_FIELDS = [
   { key: "name", name: "Name", dataType: "text", required: true },
-  { key: "age", name: "Age", dataType: "text", required: false },
+  { key: "age", name: "Age", dataType: "number", required: false },
   {
     key: "sex",
     name: "Sex",
@@ -161,7 +161,7 @@ const DEFAULT_PATIENT_INFO_FIELDS = [
     options: ["Male", "Female"],
     required: false,
   },
-  { key: "date_or_datetime", name: "Date / Date-Time", dataType: "datetime", required: false },
+  { key: "date_or_datetime", name: "Date & Time", dataType: "datetime", required: false },
   {
     key: "requesting_physician",
     name: "Requesting Physician",
@@ -178,7 +178,7 @@ const DEFAULT_PATIENT_INFO_FIELDS = [
     options: DEFAULT_PATIENT_ROOM_OPTIONS,
     required: false,
   },
-  { key: "case_number", name: "Case Number", dataType: "text", required: true },
+  { key: "case_number", name: "Case Number", dataType: "number", required: true },
 ];
 
 const initialFormSlug = document.body?.dataset?.initialFormSlug || "";

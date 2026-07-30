@@ -1,6 +1,6 @@
 {
   "schema_name": "NAIC Medtech App Schema",
-  "schema_version": "1.0.1",
+  "schema_version": "1.0.5",
   "source_workbook": "NAIC MEDTECH SYSTEM DATA.xlsx",
   "generated_at_utc": "2026-04-30T05:08:34.280530+00:00",
   "normalization_rules": [
@@ -36,7 +36,7 @@
           "name": "Age",
           "order": 2,
           "control": "input",
-          "data_type": "text"
+          "data_type": "number"
         },
         {
           "id": "default_lab_request.sex",
@@ -63,10 +63,10 @@
         {
           "id": "default_lab_request.date_or_datetime",
           "key": "date_or_datetime",
-          "name": "Date / Date-Time",
+          "name": "Date & Time",
           "order": 4,
           "control": "input",
-          "data_type": "date_or_datetime"
+          "data_type": "datetime"
         },
         {
           "id": "default_lab_request.requesting_physician",
@@ -394,7 +394,7 @@
           "name": "Case Number",
           "order": 7,
           "control": "input",
-          "data_type": "text"
+          "data_type": "number"
         }
       ]
     }
@@ -3800,317 +3800,757 @@
           },
           "fields": [
             {
-              "id": "blood_bank.blood_bank.examination",
-              "key": "examination",
-              "name": "Examination",
-              "kind": "field",
+              "id": "blood_bank.blood_bank.patient_information",
+              "key": "patient_information",
+              "name": "Patient Information",
+              "kind": "field_group",
               "order": 1,
-              "control": "select",
-              "data_type": "enum",
               "source": {
-                "sheet_row": 7,
-                "raw_input_type": "Predefined Selection"
+                "common_field_set_id": "default_lab_request"
               },
-              "options": [
+              "fields": [
                 {
-                  "id": "blood_bank.blood_bank.examination.crossmatching",
-                  "key": "crossmatching",
-                  "name": "CROSSMATCHING",
-                  "order": 1
+                  "id": "blood_bank.blood_bank.patient_information.name",
+                  "key": "name",
+                  "name": "Name",
+                  "kind": "field",
+                  "order": 1,
+                  "control": "input",
+                  "data_type": "text",
+                  "required": true,
+                  "source": {
+                    "common_field_set_id": "default_lab_request",
+                    "common_field_id": "default_lab_request.name"
+                  }
+                },
+                {
+                  "id": "blood_bank.blood_bank.patient_information.age",
+                  "key": "age",
+                  "name": "Age",
+                  "kind": "field",
+                  "order": 2,
+                  "control": "input",
+                  "data_type": "number",
+                  "required": false,
+                  "source": {
+                    "common_field_set_id": "default_lab_request",
+                    "common_field_id": "default_lab_request.age"
+                  }
+                },
+                {
+                  "id": "blood_bank.blood_bank.patient_information.sex",
+                  "key": "sex",
+                  "name": "Sex",
+                  "kind": "field",
+                  "order": 3,
+                  "control": "select",
+                  "data_type": "enum",
+                  "required": false,
+                  "source": {
+                    "common_field_set_id": "default_lab_request",
+                    "common_field_id": "default_lab_request.sex"
+                  },
+                  "options": [
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.sex.male",
+                      "key": "male",
+                      "name": "Male",
+                      "order": 1
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.sex.female",
+                      "key": "female",
+                      "name": "Female",
+                      "order": 2
+                    }
+                  ]
+                },
+                {
+                  "id": "blood_bank.blood_bank.patient_information.date_or_datetime",
+                  "key": "date_or_datetime",
+                  "name": "Date & Time",
+                  "kind": "field",
+                  "order": 4,
+                  "control": "input",
+                  "data_type": "datetime",
+                  "required": false,
+                  "source": {
+                    "common_field_set_id": "default_lab_request",
+                    "common_field_id": "default_lab_request.date_or_datetime"
+                  }
+                },
+                {
+                  "id": "blood_bank.blood_bank.patient_information.requesting_physician",
+                  "key": "requesting_physician",
+                  "name": "Requesting Physician",
+                  "kind": "field",
+                  "order": 5,
+                  "control": "select",
+                  "data_type": "enum",
+                  "required": false,
+                  "source": {
+                    "common_field_set_id": "default_lab_request",
+                    "common_field_id": "default_lab_request.requesting_physician"
+                  },
+                  "options": [
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_raul_villar",
+                      "key": "dr_raul_villar",
+                      "name": "DR. RAUL VILLAR",
+                      "order": 1
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_lavinia_beltijar",
+                      "key": "dr_lavinia_beltijar",
+                      "name": "DR. LAVINIA BELTIJAR",
+                      "order": 2
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_melwani_garrido",
+                      "key": "dr_melwani_garrido",
+                      "name": "DR. MELWANI GARRIDO",
+                      "order": 3
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_marianida_sisante",
+                      "key": "dr_marianida_sisante",
+                      "name": "DR. MARIANIDA SISANTE",
+                      "order": 4
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_leona_carmen_sisante",
+                      "key": "dr_leona_carmen_sisante",
+                      "name": "DR. LEONA CARMEN SISANTE",
+                      "order": 5
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_alma_lowena_anacay",
+                      "key": "dr_alma_lowena_anacay",
+                      "name": "DR. ALMA LOWENA ANACAY",
+                      "order": 6
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_maribenz_angon",
+                      "key": "dr_maribenz_angon",
+                      "name": "DR. MARIBENZ ANGON",
+                      "order": 7
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_nelson_pipit",
+                      "key": "dr_nelson_pipit",
+                      "name": "DR. NELSON PIPIT",
+                      "order": 8
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_elenita_sisayan",
+                      "key": "dr_elenita_sisayan",
+                      "name": "DR. ELENITA SISAYAN",
+                      "order": 9
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_gielzen_joi_sisayan",
+                      "key": "dr_gielzen_joi_sisayan",
+                      "name": "DR. GIELZEN JOI SISAYAN",
+                      "order": 10
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_perlita_castro",
+                      "key": "dr_perlita_castro",
+                      "name": "DR. PERLITA CASTRO",
+                      "order": 11
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_bayani_pasco",
+                      "key": "dr_bayani_pasco",
+                      "name": "DR. BAYANI PASCO",
+                      "order": 12
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_dexter_schroth",
+                      "key": "dr_dexter_schroth",
+                      "name": "DR. DEXTER SCHROTH",
+                      "order": 13
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_jaymee_schroth",
+                      "key": "dr_jaymee_schroth",
+                      "name": "DR. JAYMEE SCHROTH",
+                      "order": 14
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_aiko_salorsano",
+                      "key": "dr_aiko_salorsano",
+                      "name": "DR. AIKO SALORSANO",
+                      "order": 15
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_lucila_obillo",
+                      "key": "dr_lucila_obillo",
+                      "name": "DR. LUCILA OBILLO",
+                      "order": 16
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_noel_obillo",
+                      "key": "dr_noel_obillo",
+                      "name": "DR. NOEL OBILLO",
+                      "order": 17
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_arnel_milay",
+                      "key": "dr_arnel_milay",
+                      "name": "DR. ARNEL MILAY",
+                      "order": 18
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_canarie_joy_esguerra",
+                      "key": "dr_canarie_joy_esguerra",
+                      "name": "DR. CANARIE JOY ESGUERRA",
+                      "order": 19
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_elizabeth_panganiban",
+                      "key": "dr_elizabeth_panganiban",
+                      "name": "DR. ELIZABETH PANGANIBAN",
+                      "order": 20
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_donnaliza_cruz",
+                      "key": "dr_donnaliza_cruz",
+                      "name": "DR. DONNALIZA CRUZ",
+                      "order": 21
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_cherrie_ann_angon",
+                      "key": "dr_cherrie_ann_angon",
+                      "name": "DR. CHERRIE ANN ANGON",
+                      "order": 22
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_hanna_trissia_sumabong",
+                      "key": "dr_hanna_trissia_sumabong",
+                      "name": "DR. HANNA TRISSIA SUMABONG",
+                      "order": 23
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_jerica_cristel_esguerra",
+                      "key": "dr_jerica_cristel_esguerra",
+                      "name": "DR. JERICA CRISTEL ESGUERRA",
+                      "order": 24
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_kenneth_javier",
+                      "key": "dr_kenneth_javier",
+                      "name": "DR. KENNETH JAVIER",
+                      "order": 25
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_veronica_alerta",
+                      "key": "dr_veronica_alerta",
+                      "name": "DR. VERONICA ALERTA",
+                      "order": 26
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_angela_fernando",
+                      "key": "dr_angela_fernando",
+                      "name": "DR. ANGELA FERNANDO",
+                      "order": 27
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_lyssel_saracanlao",
+                      "key": "dr_lyssel_saracanlao",
+                      "name": "DR. LYSSEL SARACANLAO",
+                      "order": 28
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.requesting_physician.dr_idgee_gabriel_bondoc",
+                      "key": "dr_idgee_gabriel_bondoc",
+                      "name": "DR. IDGEE GABRIEL BONDOC",
+                      "order": 29
+                    }
+                  ]
+                },
+                {
+                  "id": "blood_bank.blood_bank.patient_information.room",
+                  "key": "room",
+                  "name": "Room",
+                  "kind": "field",
+                  "order": 6,
+                  "control": "select",
+                  "data_type": "enum",
+                  "required": false,
+                  "source": {
+                    "common_field_set_id": "default_lab_request",
+                    "common_field_id": "default_lab_request.room"
+                  },
+                  "options": [
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.st_thomas",
+                      "key": "st_thomas",
+                      "name": "ST. THOMAS",
+                      "order": 1
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.st_andrew",
+                      "key": "st_andrew",
+                      "name": "ST. ANDREW",
+                      "order": 2
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.st_joseph",
+                      "key": "st_joseph",
+                      "name": "ST. JOSEPH",
+                      "order": 3
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.st_francis",
+                      "key": "st_francis",
+                      "name": "ST. FRANCIS",
+                      "order": 4
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.st_timothy",
+                      "key": "st_timothy",
+                      "name": "ST. TIMOTHY",
+                      "order": 5
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.st_paul",
+                      "key": "st_paul",
+                      "name": "ST. PAUL",
+                      "order": 6
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.st_john",
+                      "key": "st_john",
+                      "name": "ST. JOHN",
+                      "order": 7
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.st_gabriel",
+                      "key": "st_gabriel",
+                      "name": "ST. GABRIEL",
+                      "order": 8
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.st_anthony",
+                      "key": "st_anthony",
+                      "name": "ST. ANTHONY",
+                      "order": 9
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.st_peter",
+                      "key": "st_peter",
+                      "name": "ST. PETER",
+                      "order": 10
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.st_matthew",
+                      "key": "st_matthew",
+                      "name": "ST. MATTHEW",
+                      "order": 11
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.st_dominic",
+                      "key": "st_dominic",
+                      "name": "ST. DOMINIC",
+                      "order": 12
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.st_augustine",
+                      "key": "st_augustine",
+                      "name": "ST. AUGUSTINE",
+                      "order": 13
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.st_james",
+                      "key": "st_james",
+                      "name": "ST. JAMES",
+                      "order": 14
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.st_michael",
+                      "key": "st_michael",
+                      "name": "ST. MICHAEL",
+                      "order": 15
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.st_luke",
+                      "key": "st_luke",
+                      "name": "ST. LUKE",
+                      "order": 16
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.st_louie",
+                      "key": "st_louie",
+                      "name": "ST. LOUIE",
+                      "order": 17
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.st_jude",
+                      "key": "st_jude",
+                      "name": "ST. JUDE",
+                      "order": 18
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.nicu",
+                      "key": "nicu",
+                      "name": "NICU",
+                      "order": 19
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.opd",
+                      "key": "opd",
+                      "name": "OPD",
+                      "order": 20
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_information.room.er",
+                      "key": "er",
+                      "name": "ER",
+                      "order": 21
+                    }
+                  ]
+                },
+                {
+                  "id": "blood_bank.blood_bank.patient_information.case_number",
+                  "key": "case_number",
+                  "name": "Case Number",
+                  "kind": "field",
+                  "order": 7,
+                  "control": "input",
+                  "data_type": "number",
+                  "required": true,
+                  "source": {
+                    "common_field_set_id": "default_lab_request",
+                    "common_field_id": "default_lab_request.case_number"
+                  }
                 }
               ]
             },
             {
-              "id": "blood_bank.blood_bank.patient_s_blood_type",
-              "key": "patient_s_blood_type",
-              "name": "PATIENT'S BLOOD TYPE",
-              "kind": "field",
+              "id": "blood_bank.blood_bank.details",
+              "key": "details",
+              "name": "Blood Bank Details",
+              "kind": "field_group",
               "order": 2,
-              "control": "select",
-              "data_type": "enum",
               "source": {
-                "sheet_row": 12,
-                "raw_input_type": "Predefined Selection"
+                "normalized_from": "approved_default_container"
               },
-              "options": [
+              "fields": [
                 {
-                  "id": "blood_bank.blood_bank.patient_s_blood_type.a_rh_positive",
-                  "key": "a_rh_positive",
-                  "name": "\"A\" rh POSITIVE",
-                  "order": 1
+                  "id": "blood_bank.blood_bank.examination",
+                  "key": "examination",
+                  "name": "Examination",
+                  "kind": "field",
+                  "order": 1,
+                  "control": "select",
+                  "data_type": "enum",
+                  "source": {
+                    "sheet_row": 7,
+                    "raw_input_type": "Predefined Selection"
+                  },
+                  "options": [
+                    {
+                      "id": "blood_bank.blood_bank.examination.crossmatching",
+                      "key": "crossmatching",
+                      "name": "CROSSMATCHING",
+                      "order": 1
+                    }
+                  ]
                 },
                 {
-                  "id": "blood_bank.blood_bank.patient_s_blood_type.b_rh_positive",
-                  "key": "b_rh_positive",
-                  "name": "\"B\" rh POSITIVE",
-                  "order": 2
+                  "id": "blood_bank.blood_bank.patient_s_blood_type",
+                  "key": "patient_s_blood_type",
+                  "name": "PATIENT'S BLOOD TYPE",
+                  "kind": "field",
+                  "order": 2,
+                  "control": "select",
+                  "data_type": "enum",
+                  "source": {
+                    "sheet_row": 12,
+                    "raw_input_type": "Predefined Selection"
+                  },
+                  "options": [
+                    {
+                      "id": "blood_bank.blood_bank.patient_s_blood_type.a_rh_positive",
+                      "key": "a_rh_positive",
+                      "name": "\"A\" rh POSITIVE",
+                      "order": 1
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_s_blood_type.b_rh_positive",
+                      "key": "b_rh_positive",
+                      "name": "\"B\" rh POSITIVE",
+                      "order": 2
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_s_blood_type.ab_rh_positive",
+                      "key": "ab_rh_positive",
+                      "name": "\"AB\" rh POSITIVE",
+                      "order": 3
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_s_blood_type.o_rh_positive",
+                      "key": "o_rh_positive",
+                      "name": "\"O\" rh POSITIVE",
+                      "order": 4
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_s_blood_type.a_rh_negative",
+                      "key": "a_rh_negative",
+                      "name": "\"A\" rh NEGATIVE",
+                      "order": 5
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_s_blood_type.b_rh_negative",
+                      "key": "b_rh_negative",
+                      "name": "\"B\" rh NEGATIVE",
+                      "order": 6
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_s_blood_type.o_rh_negative",
+                      "key": "o_rh_negative",
+                      "name": "\"O\" rh NEGATIVE",
+                      "order": 7
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.patient_s_blood_type.ab_rh_negative",
+                      "key": "ab_rh_negative",
+                      "name": "\"AB\" rh NEGATIVE",
+                      "order": 8
+                    }
+                  ]
                 },
                 {
-                  "id": "blood_bank.blood_bank.patient_s_blood_type.ab_rh_positive",
-                  "key": "ab_rh_positive",
-                  "name": "\"AB\" rh POSITIVE",
-                  "order": 3
+                  "id": "blood_bank.blood_bank.blood_component",
+                  "key": "blood_component",
+                  "name": "BLOOD COMPONENT",
+                  "kind": "field",
+                  "order": 3,
+                  "control": "select",
+                  "data_type": "enum",
+                  "source": {
+                    "sheet_row": 13,
+                    "raw_input_type": "Predefined Selection"
+                  },
+                  "options": [
+                    {
+                      "id": "blood_bank.blood_bank.blood_component.whole_blood",
+                      "key": "whole_blood",
+                      "name": "WHOLE BLOOD",
+                      "order": 1
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.blood_component.prbc",
+                      "key": "prbc",
+                      "name": "PRBC",
+                      "order": 2
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.blood_component.wb_to_prbc",
+                      "key": "wb_to_prbc",
+                      "name": "WB TO PRBC",
+                      "order": 3
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.blood_component.platelet_concentrate",
+                      "key": "platelet_concentrate",
+                      "name": "PLATELET CONCENTRATE",
+                      "order": 4
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.blood_component.fresh_frozen_plasma",
+                      "key": "fresh_frozen_plasma",
+                      "name": "FRESH FROZEN PLASMA",
+                      "order": 5
+                    }
+                  ]
                 },
                 {
-                  "id": "blood_bank.blood_bank.patient_s_blood_type.o_rh_positive",
-                  "key": "o_rh_positive",
-                  "name": "\"O\" rh POSITIVE",
-                  "order": 4
+                  "id": "blood_bank.blood_bank.donor_s_blood_type",
+                  "key": "donor_s_blood_type",
+                  "name": "DONOR'S BLOOD TYPE",
+                  "kind": "field",
+                  "order": 4,
+                  "control": "select",
+                  "data_type": "enum",
+                  "source": {
+                    "sheet_row": 14,
+                    "raw_input_type": "Predefined Selection"
+                  },
+                  "options": [
+                    {
+                      "id": "blood_bank.blood_bank.donor_s_blood_type.a_rh_positive",
+                      "key": "a_rh_positive",
+                      "name": "\"A\" rh POSITIVE",
+                      "order": 1
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.donor_s_blood_type.b_rh_positive",
+                      "key": "b_rh_positive",
+                      "name": "\"B\" rh POSITIVE",
+                      "order": 2
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.donor_s_blood_type.ab_rh_positive",
+                      "key": "ab_rh_positive",
+                      "name": "\"AB\" rh POSITIVE",
+                      "order": 3
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.donor_s_blood_type.o_rh_positive",
+                      "key": "o_rh_positive",
+                      "name": "\"O\" rh POSITIVE",
+                      "order": 4
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.donor_s_blood_type.a_rh_negative",
+                      "key": "a_rh_negative",
+                      "name": "\"A\" rh NEGATIVE",
+                      "order": 5
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.donor_s_blood_type.b_rh_negative",
+                      "key": "b_rh_negative",
+                      "name": "\"B\" rh NEGATIVE",
+                      "order": 6
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.donor_s_blood_type.o_rh_negative",
+                      "key": "o_rh_negative",
+                      "name": "\"O\" rh NEGATIVE",
+                      "order": 7
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.donor_s_blood_type.ab_rh_negative",
+                      "key": "ab_rh_negative",
+                      "name": "\"AB\" rh NEGATIVE",
+                      "order": 8
+                    }
+                  ]
                 },
                 {
-                  "id": "blood_bank.blood_bank.patient_s_blood_type.a_rh_negative",
-                  "key": "a_rh_negative",
-                  "name": "\"A\" rh NEGATIVE",
-                  "order": 5
+                  "id": "blood_bank.blood_bank.source_of_blood",
+                  "key": "source_of_blood",
+                  "name": "SOURCE OF BLOOD",
+                  "kind": "field",
+                  "order": 5,
+                  "control": "select",
+                  "data_type": "enum",
+                  "source": {
+                    "sheet_row": 15,
+                    "raw_input_type": "Predefined Selection"
+                  },
+                  "options": [
+                    {
+                      "id": "blood_bank.blood_bank.source_of_blood.prc_cavite_city",
+                      "key": "prc_cavite_city",
+                      "name": "PRC CAVITE CITY",
+                      "order": 1
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.source_of_blood.prc_dasmarinas",
+                      "key": "prc_dasmarinas",
+                      "name": "PRC DASMARINAS",
+                      "order": 2
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.source_of_blood.prc_silang",
+                      "key": "prc_silang",
+                      "name": "PRC SILANG",
+                      "order": 3
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.source_of_blood.prc_caloocan",
+                      "key": "prc_caloocan",
+                      "name": "PRC CALOOCAN",
+                      "order": 4
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.source_of_blood.pagamutan_ng_dasmarinas",
+                      "key": "pagamutan_ng_dasmarinas",
+                      "name": "PAGAMUTAN NG DASMARINAS",
+                      "order": 5
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.source_of_blood.geamh",
+                      "key": "geamh",
+                      "name": "GEAMH",
+                      "order": 6
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.source_of_blood.eacmed",
+                      "key": "eacmed",
+                      "name": "EACMED",
+                      "order": 7
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.source_of_blood.tsmc",
+                      "key": "tsmc",
+                      "name": "TSMC",
+                      "order": 8
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.source_of_blood.dlsumc",
+                      "key": "dlsumc",
+                      "name": "DLSUMC",
+                      "order": 9
+                    },
+                    {
+                      "id": "blood_bank.blood_bank.source_of_blood.gentrimed",
+                      "key": "gentrimed",
+                      "name": "GENTRIMED",
+                      "order": 10
+                    }
+                  ]
                 },
                 {
-                  "id": "blood_bank.blood_bank.patient_s_blood_type.b_rh_negative",
-                  "key": "b_rh_negative",
-                  "name": "\"B\" rh NEGATIVE",
-                  "order": 6
+                  "id": "blood_bank.blood_bank.serial_number",
+                  "key": "serial_number",
+                  "name": "SERIAL NUMBER",
+                  "kind": "field",
+                  "order": 6,
+                  "control": "input",
+                  "data_type": "text",
+                  "source": {
+                    "sheet_row": 16,
+                    "raw_input_type": "Manual Entry"
+                  }
                 },
                 {
-                  "id": "blood_bank.blood_bank.patient_s_blood_type.o_rh_negative",
-                  "key": "o_rh_negative",
-                  "name": "\"O\" rh NEGATIVE",
-                  "order": 7
+                  "id": "blood_bank.blood_bank.date_extracted",
+                  "key": "date_extracted",
+                  "name": "DATE EXTRACTED",
+                  "kind": "field",
+                  "order": 7,
+                  "control": "input",
+                  "data_type": "date",
+                  "source": {
+                    "sheet_row": 17,
+                    "raw_input_type": "Manual Entry"
+                  }
                 },
                 {
-                  "id": "blood_bank.blood_bank.patient_s_blood_type.ab_rh_negative",
-                  "key": "ab_rh_negative",
-                  "name": "\"AB\" rh NEGATIVE",
-                  "order": 8
+                  "id": "blood_bank.blood_bank.date_expiry",
+                  "key": "date_expiry",
+                  "name": "DATE EXPIRY",
+                  "kind": "field",
+                  "order": 8,
+                  "control": "input",
+                  "data_type": "date",
+                  "source": {
+                    "sheet_row": 18,
+                    "raw_input_type": "Manual Entry"
+                  }
                 }
               ]
-            },
-            {
-              "id": "blood_bank.blood_bank.blood_component",
-              "key": "blood_component",
-              "name": "BLOOD COMPONENT",
-              "kind": "field",
-              "order": 3,
-              "control": "select",
-              "data_type": "enum",
-              "source": {
-                "sheet_row": 13,
-                "raw_input_type": "Predefined Selection"
-              },
-              "options": [
-                {
-                  "id": "blood_bank.blood_bank.blood_component.whole_blood",
-                  "key": "whole_blood",
-                  "name": "WHOLE BLOOD",
-                  "order": 1
-                },
-                {
-                  "id": "blood_bank.blood_bank.blood_component.prbc",
-                  "key": "prbc",
-                  "name": "PRBC",
-                  "order": 2
-                },
-                {
-                  "id": "blood_bank.blood_bank.blood_component.wb_to_prbc",
-                  "key": "wb_to_prbc",
-                  "name": "WB TO PRBC",
-                  "order": 3
-                },
-                {
-                  "id": "blood_bank.blood_bank.blood_component.platelet_concentrate",
-                  "key": "platelet_concentrate",
-                  "name": "PLATELET CONCENTRATE",
-                  "order": 4
-                },
-                {
-                  "id": "blood_bank.blood_bank.blood_component.fresh_frozen_plasma",
-                  "key": "fresh_frozen_plasma",
-                  "name": "FRESH FROZEN PLASMA",
-                  "order": 5
-                }
-              ]
-            },
-            {
-              "id": "blood_bank.blood_bank.donor_s_blood_type",
-              "key": "donor_s_blood_type",
-              "name": "DONOR'S BLOOD TYPE",
-              "kind": "field",
-              "order": 4,
-              "control": "select",
-              "data_type": "enum",
-              "source": {
-                "sheet_row": 14,
-                "raw_input_type": "Predefined Selection"
-              },
-              "options": [
-                {
-                  "id": "blood_bank.blood_bank.donor_s_blood_type.a_rh_positive",
-                  "key": "a_rh_positive",
-                  "name": "\"A\" rh POSITIVE",
-                  "order": 1
-                },
-                {
-                  "id": "blood_bank.blood_bank.donor_s_blood_type.b_rh_positive",
-                  "key": "b_rh_positive",
-                  "name": "\"B\" rh POSITIVE",
-                  "order": 2
-                },
-                {
-                  "id": "blood_bank.blood_bank.donor_s_blood_type.ab_rh_positive",
-                  "key": "ab_rh_positive",
-                  "name": "\"AB\" rh POSITIVE",
-                  "order": 3
-                },
-                {
-                  "id": "blood_bank.blood_bank.donor_s_blood_type.o_rh_positive",
-                  "key": "o_rh_positive",
-                  "name": "\"O\" rh POSITIVE",
-                  "order": 4
-                },
-                {
-                  "id": "blood_bank.blood_bank.donor_s_blood_type.a_rh_negative",
-                  "key": "a_rh_negative",
-                  "name": "\"A\" rh NEGATIVE",
-                  "order": 5
-                },
-                {
-                  "id": "blood_bank.blood_bank.donor_s_blood_type.b_rh_negative",
-                  "key": "b_rh_negative",
-                  "name": "\"B\" rh NEGATIVE",
-                  "order": 6
-                },
-                {
-                  "id": "blood_bank.blood_bank.donor_s_blood_type.o_rh_negative",
-                  "key": "o_rh_negative",
-                  "name": "\"O\" rh NEGATIVE",
-                  "order": 7
-                },
-                {
-                  "id": "blood_bank.blood_bank.donor_s_blood_type.ab_rh_negative",
-                  "key": "ab_rh_negative",
-                  "name": "\"AB\" rh NEGATIVE",
-                  "order": 8
-                }
-              ]
-            },
-            {
-              "id": "blood_bank.blood_bank.source_of_blood",
-              "key": "source_of_blood",
-              "name": "SOURCE OF BLOOD",
-              "kind": "field",
-              "order": 5,
-              "control": "select",
-              "data_type": "enum",
-              "source": {
-                "sheet_row": 15,
-                "raw_input_type": "Predefined Selection"
-              },
-              "options": [
-                {
-                  "id": "blood_bank.blood_bank.source_of_blood.prc_cavite_city",
-                  "key": "prc_cavite_city",
-                  "name": "PRC CAVITE CITY",
-                  "order": 1
-                },
-                {
-                  "id": "blood_bank.blood_bank.source_of_blood.prc_dasmarinas",
-                  "key": "prc_dasmarinas",
-                  "name": "PRC DASMARINAS",
-                  "order": 2
-                },
-                {
-                  "id": "blood_bank.blood_bank.source_of_blood.prc_silang",
-                  "key": "prc_silang",
-                  "name": "PRC SILANG",
-                  "order": 3
-                },
-                {
-                  "id": "blood_bank.blood_bank.source_of_blood.prc_caloocan",
-                  "key": "prc_caloocan",
-                  "name": "PRC CALOOCAN",
-                  "order": 4
-                },
-                {
-                  "id": "blood_bank.blood_bank.source_of_blood.pagamutan_ng_dasmarinas",
-                  "key": "pagamutan_ng_dasmarinas",
-                  "name": "PAGAMUTAN NG DASMARINAS",
-                  "order": 5
-                },
-                {
-                  "id": "blood_bank.blood_bank.source_of_blood.geamh",
-                  "key": "geamh",
-                  "name": "GEAMH",
-                  "order": 6
-                },
-                {
-                  "id": "blood_bank.blood_bank.source_of_blood.eacmed",
-                  "key": "eacmed",
-                  "name": "EACMED",
-                  "order": 7
-                },
-                {
-                  "id": "blood_bank.blood_bank.source_of_blood.tsmc",
-                  "key": "tsmc",
-                  "name": "TSMC",
-                  "order": 8
-                },
-                {
-                  "id": "blood_bank.blood_bank.source_of_blood.dlsumc",
-                  "key": "dlsumc",
-                  "name": "DLSUMC",
-                  "order": 9
-                },
-                {
-                  "id": "blood_bank.blood_bank.source_of_blood.gentrimed",
-                  "key": "gentrimed",
-                  "name": "GENTRIMED",
-                  "order": 10
-                }
-              ]
-            },
-            {
-              "id": "blood_bank.blood_bank.serial_number",
-              "key": "serial_number",
-              "name": "SERIAL NUMBER",
-              "kind": "field",
-              "order": 6,
-              "control": "input",
-              "data_type": "text",
-              "source": {
-                "sheet_row": 16,
-                "raw_input_type": "Manual Entry"
-              }
-            },
-            {
-              "id": "blood_bank.blood_bank.date_extracted",
-              "key": "date_extracted",
-              "name": "DATE EXTRACTED",
-              "kind": "field",
-              "order": 7,
-              "control": "input",
-              "data_type": "date",
-              "source": {
-                "sheet_row": 17,
-                "raw_input_type": "Manual Entry"
-              }
-            },
-            {
-              "id": "blood_bank.blood_bank.date_expiry",
-              "key": "date_expiry",
-              "name": "DATE EXPIRY",
-              "kind": "field",
-              "order": 8,
-              "control": "input",
-              "data_type": "date",
-              "source": {
-                "sheet_row": 18,
-                "raw_input_type": "Manual Entry"
-              }
             }
           ],
           "sections": [
             {
               "id": "blood_bank.blood_bank.type_of_crossmatching",
               "key": "type_of_crossmatching",
-              "name": "TYPE OF CROSSMATCHING",
+              "name": "Crossmatching Details",
               "order": 1,
               "source": {
                 "sheet_row": 19
@@ -4173,20 +4613,22 @@
                       "id": "blood_bank.blood_bank.type_of_crossmatching.remarks.compatible",
                       "key": "compatible",
                       "name": "COMPATIBLE",
-                      "order": 1
+                      "order": 1,
+                      "is_normal": true
                     },
                     {
                       "id": "blood_bank.blood_bank.type_of_crossmatching.remarks.incompatible",
                       "key": "incompatible",
                       "name": "INCOMPATIBLE",
-                      "order": 2
+                      "order": 2,
+                      "is_normal": false
                     }
                   ]
                 },
                 {
                   "id": "blood_bank.blood_bank.type_of_crossmatching.vital_signs",
                   "key": "vital_signs",
-                  "name": "VITAL SIGNS",
+                  "name": "Vital Signs",
                   "kind": "field_group",
                   "order": 5,
                   "source": {
