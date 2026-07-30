@@ -96,6 +96,46 @@ FORM_DEFAULT_OVERRIDES = {
             },
         ],
     },
+    "hematology": {
+        "root_fields_container": {
+            "key": "details",
+            "name": "Hematology Details",
+        },
+        "field_property_overrides": {
+            "rbc_count_m": {"normal_min": "4.6", "normal_max": "6.2", "unit": "x10^12/L"},
+            "rbc_count_f": {"normal_min": "4.2", "normal_max": "5.4", "unit": "x10^12/L"},
+            "wbc_count": {"normal_min": "5.0", "normal_max": "10.0", "unit": "x10^9/L"},
+            "hemoglobin_m": {"normal_min": "140", "normal_max": "180", "unit": "g/L"},
+            "hemoglobin_f": {"normal_min": "120", "normal_max": "160", "unit": "g/L"},
+            "hematocrit_m": {"normal_min": "0.40", "normal_max": "0.54", "unit": "/L"},
+            "hematocrit_f": {"normal_min": "0.37", "normal_max": "0.42", "unit": "/L"},
+            "platelet_count": {"normal_min": "150", "normal_max": "450", "unit": "x10^9/L"},
+            "clotting_time": {"normal_min": "1", "normal_max": "6", "unit": "minutes"},
+            "bleeding_time": {"normal_min": "1", "normal_max": "6", "unit": "minutes"},
+            "segmenters": {"normal_min": "0.50", "normal_max": "0.70"},
+            "lymphocytes": {"normal_min": "0.25", "normal_max": "0.40"},
+            "monocytes": {"normal_min": "0.03", "normal_max": "0.08"},
+            "eosinophils": {"normal_min": "0.01", "normal_max": "0.04"},
+            "stab": {"normal_min": "0", "normal_max": "0.05"},
+            "e_s_r_m": {"normal_min": "0", "normal_max": "10", "unit": "mm/hr"},
+            "e_s_r_f": {"normal_min": "0", "normal_max": "20", "unit": "mm/hr"},
+        },
+        "root_field_group_layout": [
+            {
+                "key": "differential_count",
+                "name": "Differential Count",
+                "field_keys": [
+                    "segmenters",
+                    "lymphocytes",
+                    "monocytes",
+                    "eosinophils",
+                    "stab",
+                    "e_s_r_m",
+                    "e_s_r_f",
+                ],
+            },
+        ],
+    },
 }
 
 
@@ -1133,6 +1173,116 @@ def apply_numeric_range_overrides(
                     field[property_name] = str(value).strip()
 
 
+def apply_field_property_overrides(
+    app_form: dict[str, object],
+    field_property_overrides: dict[str, object],
+) -> None:
+    def apply_to_fields(fields: list[object]) -> None:
+        for field in fields:
+            if not isinstance(field, dict):
+                continue
+            field_key = str(field.get("key") or "")
+            overrides = field_property_overrides.get(field_key)
+            if isinstance(overrides, dict):
+                for property_name, value in overrides.items():
+                    if value is not None and str(value).strip():
+                        field[property_name] = str(value).strip()
+            children = field.get("fields")
+            if isinstance(children, list):
+                apply_to_fields(children)
+
+    root_fields = app_form.get("fields")
+    if isinstance(root_fields, list):
+        apply_to_fields(root_fields)
+    for section in app_form.get("sections") or []:
+        if not isinstance(section, dict):
+            continue
+        section_fields = section.get("fields")
+        if isinstance(section_fields, list):
+            apply_to_fields(section_fields)
+
+
+def apply_root_field_group_layout(
+    app_form: dict[str, object],
+    layout: list[object],
+) -> None:
+    root_fields = app_form.get("fields")
+    if not isinstance(root_fields, list) or len(root_fields) != 1:
+        return
+    root_container = root_fields[0]
+    if not isinstance(root_container, dict) or root_container.get("kind") != "field_group":
+        return
+    fields = root_container.get("fields")
+    if not isinstance(fields, list):
+        return
+
+    field_groups: list[tuple[dict[str, object], list[str]]] = []
+    assigned_field_keys: set[str] = set()
+    for raw_group in layout:
+        if not isinstance(raw_group, dict):
+            continue
+        key = str(raw_group.get("key") or "")
+        name = str(raw_group.get("name") or "")
+        field_keys = [str(value) for value in raw_group.get("field_keys") or [] if str(value)]
+        if not key or not name or not field_keys or assigned_field_keys.intersection(field_keys):
+            continue
+        field_groups.append((raw_group, field_keys))
+        assigned_field_keys.update(field_keys)
+
+    if not field_groups:
+        return
+
+    fields_by_key = {
+        str(field.get("key") or ""): field
+        for field in fields
+        if isinstance(field, dict)
+    }
+    if any(any(field_key not in fields_by_key for field_key in field_keys) for _, field_keys in field_groups):
+        return
+
+    group_for_field_key = {
+        field_key: raw_group
+        for raw_group, field_keys in field_groups
+        for field_key in field_keys
+    }
+    inserted_group_keys: set[str] = set()
+    nested_fields: list[dict[str, object]] = []
+    for field in fields:
+        if not isinstance(field, dict):
+            continue
+        field_key = str(field.get("key") or "")
+        raw_group = group_for_field_key.get(field_key)
+        if raw_group is None:
+            nested_fields.append(field)
+            continue
+
+        group_key = str(raw_group["key"])
+        if group_key in inserted_group_keys:
+            continue
+        inserted_group_keys.add(group_key)
+        group_fields = [fields_by_key[key] for key in next(keys for group, keys in field_groups if group is raw_group)]
+        nested_fields.append(
+            {
+                "id": f"{root_container['id']}.{group_key}",
+                "key": group_key,
+                "name": str(raw_group["name"]),
+                "kind": "field_group",
+                "order": len(nested_fields) + 1,
+                "source": {"normalized_from": "approved_default_container_layout"},
+                "fields": group_fields,
+            }
+        )
+
+    for order, field in enumerate(nested_fields, start=1):
+        field["order"] = order
+        child_fields = field.get("fields")
+        if isinstance(child_fields, list):
+            for child_order, child in enumerate(child_fields, start=1):
+                if isinstance(child, dict):
+                    child["order"] = child_order
+    root_container["fields"] = nested_fields
+
+
 def section_as_field_group(
     section: dict[str, object],
     *,
@@ -1269,6 +1419,14 @@ def apply_form_default_overrides(app_form: dict[str, object]) -> dict[str, objec
     numeric_ranges = overrides.get("numeric_ranges")
     if isinstance(numeric_ranges, dict):
         apply_numeric_range_overrides(app_form, numeric_ranges)
+
+    field_property_overrides = overrides.get("field_property_overrides")
+    if isinstance(field_property_overrides, dict):
+        apply_field_property_overrides(app_form, field_property_overrides)
+
+    root_field_group_layout = overrides.get("root_field_group_layout")
+    if isinstance(root_field_group_layout, list):
+        apply_root_field_group_layout(app_form, root_field_group_layout)
 
     section_container_layout = overrides.get("section_container_layout")
     if isinstance(section_container_layout, list):

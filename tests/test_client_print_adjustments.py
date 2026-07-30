@@ -40,6 +40,8 @@ from naic_builder.services import (
     ensure_blood_gas_analysis_defaults,
     ensure_default_blood_gas_analysis_layout,
     ensure_default_patient_info_fields,
+    ensure_default_hematology_layout,
+    ensure_hematology_defaults,
     ensure_reference_examination_in_patient_info,
     ensure_reference_seed,
     estimate_print_page_fit,
@@ -61,6 +63,7 @@ from naic_builder.services import (
     print_template_id_for,
     print_text_size_options,
     reference_form_slugs,
+    sample_print_value_for_field,
     save_user_print_preferences,
     save_clinic_profile,
     signatory_snapshots_for_print,
@@ -153,6 +156,7 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                 ensure_reference_seed(session)
                 self.assertEqual(ensure_default_patient_info_fields(session), len(reference_form_slugs()))
                 self.assertEqual(ensure_blood_gas_analysis_defaults(session), 1)
+                self.assertEqual(ensure_hematology_defaults(session), 1)
 
                 definitions = session.scalars(select(FormDefinition)).all()
                 self.assertEqual(len(definitions), len(reference_form_slugs()))
@@ -248,6 +252,79 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(evaluate_print_abnormal(fields["ph"]["props"], "7.35"), (False, None))
         self.assertEqual(evaluate_print_abnormal(fields["ph"]["props"], "7.46"), (True, "high"))
         self.assertEqual(evaluate_print_abnormal(fields["be_ecf"]["props"], "-2.1"), (True, "low"))
+
+    def test_hematology_defaults_use_approved_layout_and_ranges(self) -> None:
+        schema = json.loads(
+            (ROOT / "artifacts" / "schema" / "naic_medtech_app_schema.json").read_text(encoding="utf-8")
+        )
+        hematology = next(
+            form
+            for group in schema["groups"]
+            for form in group["forms"]
+            if form["key"] == "hematology"
+        )
+        block_schema = build_block_storage_document_from_legacy_storage(hematology)
+        ensure_reference_examination_in_patient_info(block_schema, reference_form_slugs())
+
+        self.assertTrue(ensure_default_hematology_layout(block_schema))
+        details = next(
+            block
+            for block in block_schema["blocks"]
+            if block["props"]["key"] == "details"
+        )
+        self.assertEqual(
+            [child["props"]["key"] for child in details["children"]],
+            [
+                "rbc_count_m",
+                "rbc_count_f",
+                "wbc_count",
+                "hemoglobin_m",
+                "hemoglobin_f",
+                "hematocrit_m",
+                "hematocrit_f",
+                "platelet_count",
+                "clotting_time",
+                "bleeding_time",
+                "blood_typing",
+                "differential_count",
+                "others",
+            ],
+        )
+        differential_count = next(
+            child for child in details["children"] if child["props"]["key"] == "differential_count"
+        )
+        self.assertEqual(
+            [child["props"]["key"] for child in differential_count["children"]],
+            [
+                "segmenters",
+                "lymphocytes",
+                "monocytes",
+                "eosinophils",
+                "stab",
+                "e_s_r_m",
+                "e_s_r_f",
+            ],
+        )
+
+        fields = {}
+
+        def collect_fields(blocks):
+            for block in blocks:
+                if block["kind"] == "field":
+                    fields[block["props"]["key"]] = block
+                collect_fields(block["children"])
+
+        collect_fields(block_schema["blocks"])
+        self.assertEqual(fields["rbc_count_m"]["props"]["normal_min"], "4.6")
+        self.assertEqual(fields["rbc_count_m"]["props"]["normal_max"], "6.2")
+        self.assertEqual(fields["rbc_count_m"]["props"]["unit"], "x10^12/L")
+        self.assertEqual(fields["wbc_count"]["props"]["unit"], "x10^9/L")
+        self.assertEqual(fields["e_s_r_f"]["props"]["normal_max"], "20")
+        self.assertEqual(evaluate_print_abnormal(fields["rbc_count_m"]["props"], "4.5"), (True, "low"))
+        self.assertEqual(evaluate_print_abnormal(fields["rbc_count_m"]["props"], "6.3"), (True, "high"))
+        self.assertEqual(evaluate_print_abnormal(fields["segmenters"]["props"], "0.50"), (False, None))
+        self.assertEqual(evaluate_print_abnormal(fields["segmenters"]["props"], "0.49"), (True, "low"))
+        self.assertEqual(sample_print_value_for_field(fields["clotting_time"]), "3.5")
 
     def test_print_containers_render_as_depth_aware_document_hierarchy(self) -> None:
         blocks = [

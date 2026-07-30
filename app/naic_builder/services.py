@@ -290,6 +290,51 @@ BLOOD_GAS_NUMERIC_RANGES = {
     "po2_a_a": ("5", "10"),
     "tco2": ("23", "29"),
 }
+HEMATOLOGY_FORM_KEY = "hematology"
+DEFAULT_HEMATOLOGY_LAYOUT_META_KEY = "default_hematology_layout_v1"
+HEMATOLOGY_FIELD_DEFAULTS = {
+    "rbc_count_m": {"normal_min": "4.6", "normal_max": "6.2", "unit": "x10^12/L"},
+    "rbc_count_f": {"normal_min": "4.2", "normal_max": "5.4", "unit": "x10^12/L"},
+    "wbc_count": {"normal_min": "5.0", "normal_max": "10.0", "unit": "x10^9/L"},
+    "hemoglobin_m": {"normal_min": "140", "normal_max": "180", "unit": "g/L"},
+    "hemoglobin_f": {"normal_min": "120", "normal_max": "160", "unit": "g/L"},
+    "hematocrit_m": {"normal_min": "0.40", "normal_max": "0.54", "unit": "/L"},
+    "hematocrit_f": {"normal_min": "0.37", "normal_max": "0.42", "unit": "/L"},
+    "platelet_count": {"normal_min": "150", "normal_max": "450", "unit": "x10^9/L"},
+    "clotting_time": {"normal_min": "1", "normal_max": "6", "unit": "minutes"},
+    "bleeding_time": {"normal_min": "1", "normal_max": "6", "unit": "minutes"},
+    "segmenters": {"normal_min": "0.50", "normal_max": "0.70"},
+    "lymphocytes": {"normal_min": "0.25", "normal_max": "0.40"},
+    "monocytes": {"normal_min": "0.03", "normal_max": "0.08"},
+    "eosinophils": {"normal_min": "0.01", "normal_max": "0.04"},
+    "stab": {"normal_min": "0", "normal_max": "0.05"},
+    "e_s_r_m": {"normal_min": "0", "normal_max": "10", "unit": "mm/hr"},
+    "e_s_r_f": {"normal_min": "0", "normal_max": "20", "unit": "mm/hr"},
+}
+HEMATOLOGY_DIFFERENTIAL_FIELD_KEYS = (
+    "segmenters",
+    "lymphocytes",
+    "monocytes",
+    "eosinophils",
+    "stab",
+    "e_s_r_m",
+    "e_s_r_f",
+)
+HEMATOLOGY_DETAIL_FIELD_KEYS = (
+    "rbc_count_m",
+    "rbc_count_f",
+    "wbc_count",
+    "hemoglobin_m",
+    "hemoglobin_f",
+    "hematocrit_m",
+    "hematocrit_f",
+    "platelet_count",
+    "clotting_time",
+    "bleeding_time",
+    "blood_typing",
+    *HEMATOLOGY_DIFFERENTIAL_FIELD_KEYS,
+    "others",
+)
 PATIENT_INFO_GROUP_KEY = "patient_information"
 PATIENT_INFO_GROUP_NAME = "Patient Information"
 PATIENT_INFO_PRIMARY_KEY = "name"
@@ -2035,6 +2080,122 @@ def configure_blood_gas_numeric_ranges(block_schema: dict[str, Any]) -> bool:
     return changed
 
 
+def configure_default_field_properties(
+    block_schema: dict[str, Any],
+    field_defaults: dict[str, dict[str, str]],
+) -> bool:
+    changed = False
+    for field_key, defaults in field_defaults.items():
+        match = find_field_with_parent(normalize_items(block_schema.get("blocks")), field_key)
+        if match is None:
+            continue
+        _, field = match
+        props = field.get("props") if isinstance(field.get("props"), dict) else {}
+        for property_name, expected_value in defaults.items():
+            if compact_text(props.get(property_name)) == expected_value:
+                continue
+            props[property_name] = expected_value
+            changed = True
+        field["props"] = props
+    return changed
+
+
+def ensure_default_hematology_layout(block_schema: dict[str, Any]) -> bool:
+    if not isinstance(block_schema, dict):
+        return False
+
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    if compact_text(meta.get("form_key")) != HEMATOLOGY_FORM_KEY:
+        return False
+    if meta.get(DEFAULT_HEMATOLOGY_LAYOUT_META_KEY) is True:
+        return False
+
+    changed = configure_default_field_properties(block_schema, HEMATOLOGY_FIELD_DEFAULTS)
+    blocks = normalize_items(block_schema.get("blocks"))
+    details = find_top_level_block_by_key(blocks, "details")
+    if details is None:
+        fields_by_key = {
+            compact_text((block.get("props") or {}).get("key")): block
+            for block in blocks
+            if isinstance(block, dict) and block.get("kind") == "field"
+        }
+        if any(field_key not in fields_by_key for field_key in HEMATOLOGY_DETAIL_FIELD_KEYS):
+            return changed
+        first_detail_index = min(
+            blocks.index(fields_by_key[field_key])
+            for field_key in HEMATOLOGY_DETAIL_FIELD_KEYS
+        )
+        details = {
+            "id": f"{meta['form_id']}.details",
+            "kind": "container",
+            "name": "Hematology Details",
+            "props": {
+                "key": "details",
+                "order": first_detail_index + 1,
+                "source": {"normalized_from": "approved_default_container_layout"},
+            },
+            "children": [fields_by_key[field_key] for field_key in HEMATOLOGY_DETAIL_FIELD_KEYS],
+        }
+        detail_field_ids = {id(field) for field in details["children"]}
+        blocks = [block for block in blocks if id(block) not in detail_field_ids]
+        blocks.insert(first_detail_index, details)
+        block_schema["blocks"] = blocks
+        resequence_block_orders(details["children"])
+        resequence_top_level_block_orders(blocks)
+        changed = True
+    detail_children = details.get("children") if isinstance(details.get("children"), list) else []
+    differential_count = next(
+        (
+            child
+            for child in detail_children
+            if isinstance(child, dict)
+            and compact_text((child.get("props") or {}).get("key")) == "differential_count"
+        ),
+        None,
+    )
+    if differential_count is None:
+        field_by_key = {
+            compact_text((child.get("props") or {}).get("key")): child
+            for child in detail_children
+            if isinstance(child, dict) and child.get("kind") == "field"
+        }
+        if any(field_key not in field_by_key for field_key in HEMATOLOGY_DIFFERENTIAL_FIELD_KEYS):
+            return changed
+
+        first_differential_index = min(
+            detail_children.index(field_by_key[field_key])
+            for field_key in HEMATOLOGY_DIFFERENTIAL_FIELD_KEYS
+        )
+        differential_count = {
+            "id": f"{meta['form_id']}.differential_count",
+            "kind": "container",
+            "name": "Differential Count",
+            "props": {
+                "key": "differential_count",
+                "order": first_differential_index + 1,
+                "source": {"normalized_from": "approved_default_container_layout"},
+            },
+            "children": [field_by_key[field_key] for field_key in HEMATOLOGY_DIFFERENTIAL_FIELD_KEYS],
+        }
+        differential_field_ids = {id(field) for field in differential_count["children"]}
+        new_children: list[dict[str, Any]] = []
+        for child in detail_children:
+            if id(child) in differential_field_ids:
+                if len(new_children) == first_differential_index:
+                    new_children.append(differential_count)
+                continue
+            new_children.append(child)
+        detail_children = new_children
+        details["children"] = detail_children
+        resequence_block_orders(differential_count["children"])
+        resequence_block_orders(detail_children)
+        changed = True
+
+    meta[DEFAULT_HEMATOLOGY_LAYOUT_META_KEY] = True
+    block_schema["meta"] = meta
+    return True
+
+
 def set_default_blood_gas_container(
     block: dict[str, Any],
     *,
@@ -3726,11 +3887,17 @@ def sample_print_value_for_field(block: dict[str, Any]) -> Any:
         return "34"
     if "sex" in label or "gender" in label:
         return "Male"
-    if "date" in label and "time" in label:
+    if data_type == "datetime":
         return "2026-04-29 09:30"
-    if "date" in label:
+    if data_type == "date":
         return "2026-04-29"
-    if "time" in label:
+    if data_type == "time":
+        return "09:30"
+    if data_type not in {"number", "enum"} and "date" in label and "time" in label:
+        return "2026-04-29 09:30"
+    if data_type not in {"number", "enum"} and "date" in label:
+        return "2026-04-29"
+    if data_type not in {"number", "enum"} and "time" in label:
         return "09:30"
     if "requesting" in label and "physician" in label:
         return "Dr. Reyes"
@@ -5503,6 +5670,57 @@ def ensure_blood_gas_analysis_defaults(session: Session) -> int:
             form_id=definition.id,
             version_number=next_version,
             summary="Applied approved Blood Gas Analysis defaults.",
+            block_storage_schema=stored_block_schema,
+            source="system",
+            is_current=True,
+        )
+    )
+    definition.updated_at = utc_now()
+    session.commit()
+    return 1
+
+
+def ensure_hematology_defaults(session: Session) -> int:
+    definition = session.scalar(
+        select(FormDefinition)
+        .where(FormDefinition.slug == HEMATOLOGY_FORM_KEY)
+        .options(
+            selectinload(FormDefinition.versions),
+            selectinload(FormDefinition.library_node),
+        )
+    )
+    if definition is None:
+        return 0
+
+    version = current_version(definition)
+    if version is None:
+        return 0
+
+    block_schema, _ = load_block_storage_document(version)
+    if not ensure_default_hematology_layout(block_schema):
+        return 0
+
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    form_order = int(
+        meta.get("form_order")
+        or (definition.library_node.node_order if definition.library_node is not None else 1)
+        or 1
+    )
+    stored_block_schema = build_block_storage_payload(
+        block_schema,
+        slug=definition.slug,
+        name=definition.name,
+        form_order=form_order,
+    )
+    for existing_version in definition.versions:
+        existing_version.is_current = False
+
+    next_version = max((existing_version.version_number for existing_version in definition.versions), default=0) + 1
+    session.add(
+        build_form_version_record(
+            form_id=definition.id,
+            version_number=next_version,
+            summary="Applied approved Hematology defaults.",
             block_storage_schema=stored_block_schema,
             source="system",
             is_current=True,
