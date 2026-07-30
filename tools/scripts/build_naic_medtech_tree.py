@@ -232,7 +232,7 @@ FORM_DEFAULT_OVERRIDES = {
                 "name": "Result Image",
                 "control": "input",
                 "data_type": "image",
-                "required": True,
+                "required": False,
             },
         ],
     },

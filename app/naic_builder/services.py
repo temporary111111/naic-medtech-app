@@ -364,7 +364,7 @@ PRO_TIME_APTT_CONTAINER_FIELD_DEFAULTS = {
 HIV_1_AND_2_TESTING_FORM_KEY = "hiv_1_and_2_testing"
 DEFAULT_HIV_1_AND_2_TESTING_DEFAULTS_META_KEY = "default_hiv_1_and_2_testing_defaults_v1"
 COVID_19_ANTIGEN_RAPID_TEST_FORM_KEY = "covid_19_antigen_rapid_test"
-DEFAULT_COVID_19_ANTIGEN_RAPID_TEST_DEFAULTS_META_KEY = "default_covid_19_antigen_rapid_test_defaults_v1"
+DEFAULT_COVID_19_ANTIGEN_RAPID_TEST_DEFAULTS_META_KEY = "default_covid_19_antigen_rapid_test_defaults_v2"
 MICROBIOLOGY_FORM_KEY = "microbiology"
 DEFAULT_MICROBIOLOGY_DEFAULTS_META_KEY = "default_microbiology_defaults_v1"
 CARDIACI_FORM_KEY = "cardiaci"
@@ -2694,7 +2694,7 @@ def ensure_default_covid_19_antigen_rapid_test_layout(block_schema: dict[str, An
         details_name="COVID 19 Antigen (Rapid Test) Details",
         detail_field_keys=("test_result",),
         normal_choice_options={"test_result": ("NEGATIVE",)},
-        result_image={"key": "result_image", "name": "Result Image", "required": True},
+        result_image={"key": "result_image", "name": "Result Image", "required": False},
     )
 
 

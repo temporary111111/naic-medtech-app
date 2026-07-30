@@ -272,7 +272,7 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                 self.assertEqual(result_image["name"], "Result Image")
                 self.assertEqual(result_image["props"]["control"], "input")
                 self.assertEqual(result_image["props"]["data_type"], "image")
-                self.assertTrue(result_image["props"]["required"])
+                self.assertFalse(result_image["props"].get("required", False))
         finally:
             engine.dispose()
 
