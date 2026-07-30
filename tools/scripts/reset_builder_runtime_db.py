@@ -14,12 +14,18 @@ from naic_builder.config import DB_PATH
 from naic_builder.database import SessionLocal, ensure_runtime_schema
 from naic_builder.services import (
     ensure_blood_gas_analysis_defaults,
+    ensure_blood_chemistry_female_defaults,
+    ensure_blood_chemistry_male_defaults,
+    ensure_cardiaci_defaults,
+    ensure_ogtt_defaults,
     ensure_covid_19_antigen_rapid_test_defaults,
     ensure_default_patient_info_fields,
+    ensure_fecalysis_defaults,
     ensure_hematology_defaults,
     ensure_hba1c_defaults,
     ensure_hiv_1_and_2_testing_defaults,
     ensure_microbiology_defaults,
+    ensure_serology_defaults,
     ensure_form_version_storage_documents,
     ensure_library_tree,
     ensure_pro_time_aptt_defaults,
@@ -43,6 +49,12 @@ def main() -> None:
         ensure_hiv_1_and_2_testing_defaults(session)
         ensure_covid_19_antigen_rapid_test_defaults(session)
         ensure_microbiology_defaults(session)
+        ensure_fecalysis_defaults(session)
+        ensure_blood_chemistry_male_defaults(session)
+        ensure_blood_chemistry_female_defaults(session)
+        ensure_serology_defaults(session)
+        ensure_cardiaci_defaults(session)
+        ensure_ogtt_defaults(session)
         ensure_library_tree(session)
 
     print(f"Reset runtime DB at: {DB_PATH}")

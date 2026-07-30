@@ -367,6 +367,159 @@ COVID_19_ANTIGEN_RAPID_TEST_FORM_KEY = "covid_19_antigen_rapid_test"
 DEFAULT_COVID_19_ANTIGEN_RAPID_TEST_DEFAULTS_META_KEY = "default_covid_19_antigen_rapid_test_defaults_v1"
 MICROBIOLOGY_FORM_KEY = "microbiology"
 DEFAULT_MICROBIOLOGY_DEFAULTS_META_KEY = "default_microbiology_defaults_v1"
+CARDIACI_FORM_KEY = "cardiaci"
+DEFAULT_CARDIACI_DEFAULTS_META_KEY = "default_cardiaci_defaults_v1"
+CARDIACI_FIELD_DEFAULTS = {
+    "ck_mb": {"normal_min": "0.0", "normal_max": "4.3", "reference_text": None, "normal_value": None},
+    "troponin_i": {"normal_min": "0.0", "normal_max": "0.02", "reference_text": None, "normal_value": None},
+    "bnp": {"normal_min": "0.0", "normal_max": "100", "reference_text": None, "normal_value": None},
+}
+OGTT_FORM_KEY = "ogtt"
+DEFAULT_OGTT_DEFAULTS_META_KEY = "default_ogtt_defaults_v1"
+OGTT_CONTAINER_FIELD_DEFAULTS = {
+    "50g_oral_glucose_tolerance": {
+        "1st_hour": {
+            "normal_max": "200",
+            "normal_max_inclusive": False,
+            "reference_text": None,
+            "normal_value": None,
+        },
+        "2nd_hour": {
+            "normal_max": "140",
+            "normal_max_inclusive": False,
+            "reference_text": None,
+            "normal_value": None,
+        },
+    },
+    "75g_oral_glucose_tolerance": {
+        "fasting_blood_sugar": {
+            "normal_min": "70.27",
+            "normal_max": "124.32",
+            "reference_text": None,
+            "normal_value": None,
+        },
+        "1st_hour": {
+            "normal_max": "200",
+            "normal_max_inclusive": False,
+            "reference_text": None,
+            "normal_value": None,
+        },
+        "2nd_hour": {
+            "normal_max": "140",
+            "normal_max_inclusive": False,
+            "reference_text": None,
+            "normal_value": None,
+        },
+    },
+    "100g_oral_glucose_tolerance": {
+        "fasting_blood_sugar": {
+            "normal_min": "70.27",
+            "normal_max": "124.32",
+            "reference_text": None,
+            "normal_value": None,
+        },
+        "1st_hour": {
+            "normal_max": "180",
+            "normal_max_inclusive": False,
+            "reference_text": None,
+            "normal_value": None,
+        },
+        "2nd_hour": {
+            "normal_max": "155",
+            "normal_max_inclusive": False,
+            "reference_text": None,
+            "normal_value": None,
+        },
+        "3rd_hour": {
+            "normal_max": "140",
+            "normal_max_inclusive": False,
+            "reference_text": None,
+            "normal_value": None,
+        },
+    },
+}
+FECALYSIS_FORM_KEY = "fecalysis"
+DEFAULT_FECALYSIS_DEFAULTS_META_KEY = "default_fecalysis_defaults_v1"
+FECALYSIS_NORMAL_CHOICE_OPTIONS = {
+    "fecal_occult_blood": ("NEGATIVE",),
+    "parasites": ("NO OVA NOR PARASITES SEEN",),
+}
+SEROLOGY_FORM_KEY = "serology"
+DEFAULT_SEROLOGY_DEFAULTS_META_KEY = "default_serology_defaults_v1"
+SEROLOGY_NORMAL_CHOICE_OPTIONS = {
+    "igm": ("NEGATIVE",),
+    "igg": ("NEGATIVE",),
+    "ns1ag": ("NEGATIVE",),
+    "anti_plasmodium_falcifarum": ("NEGATIVE",),
+    "anti_plasmodium_vivax": ("NEGATIVE",),
+    "hbsag_screening": ("NON-REACTIVE",),
+    "vdrl": ("NEGATIVE",),
+    "anti_hcv": ("NON-REACTIVE",),
+    "aso_titer": ("NEGATIVE <200 IU/ML",),
+}
+BLOOD_CHEMISTRY_MALE_FORM_KEY = "male"
+DEFAULT_BLOOD_CHEMISTRY_MALE_DEFAULTS_META_KEY = "default_blood_chemistry_male_defaults_v1"
+BLOOD_CHEMISTRY_FEMALE_FORM_KEY = "female"
+DEFAULT_BLOOD_CHEMISTRY_FEMALE_DEFAULTS_META_KEY = "default_blood_chemistry_female_defaults_v1"
+BLOOD_CHEMISTRY_RESULT_FIELD_KEYS = (
+    "fasting_blood_sugar",
+    "random_blood_sugar",
+    "hgt",
+    "blood_urea_nitrogen",
+    "creatinine",
+    "blood_uric_acid",
+    "sodium",
+    "potassium",
+    "chloride",
+    "ionized_calcium",
+    "cholesterol",
+    "triglyceride",
+    "hdl_cholesterol",
+    "ldl_cholesterol",
+    "vldl_cholesterol",
+    "sgot_ast",
+    "sgpt_alt",
+)
+BLOOD_CHEMISTRY_RANGES_BY_FORM_KEY = {
+    BLOOD_CHEMISTRY_MALE_FORM_KEY: {
+        "fasting_blood_sugar": ("70.27", "124.32"),
+        "random_blood_sugar": ("60", "140"),
+        "hgt": ("53", "103"),
+        "blood_urea_nitrogen": ("7.9", "20.2"),
+        "creatinine": ("0.5", "1.3"),
+        "blood_uric_acid": ("3.5", "7.2"),
+        "sodium": ("135", "148"),
+        "potassium": ("3.5", "5.3"),
+        "chloride": ("98", "107"),
+        "ionized_calcium": ("1.13", "1.32"),
+        "cholesterol": ("0", "200"),
+        "triglyceride": ("0", "150"),
+        "hdl_cholesterol": ("30", "85"),
+        "ldl_cholesterol": ("66", "178"),
+        "vldl_cholesterol": ("0", "40"),
+        "sgot_ast": ("0", "31"),
+        "sgpt_alt": ("0", "34"),
+    },
+    BLOOD_CHEMISTRY_FEMALE_FORM_KEY: {
+        "fasting_blood_sugar": ("70.27", "124.32"),
+        "random_blood_sugar": ("60", "140"),
+        "hgt": ("53", "103"),
+        "blood_urea_nitrogen": ("7.9", "20.2"),
+        "creatinine": ("0.4", "1.2"),
+        "blood_uric_acid": ("2.6", "6.0"),
+        "sodium": ("135", "148"),
+        "potassium": ("3.5", "5.3"),
+        "chloride": ("98", "107"),
+        "ionized_calcium": ("1.13", "1.32"),
+        "cholesterol": ("0", "200"),
+        "triglyceride": ("0", "150"),
+        "hdl_cholesterol": ("30", "85"),
+        "ldl_cholesterol": ("66", "178"),
+        "vldl_cholesterol": ("0", "40"),
+        "sgot_ast": ("0", "31"),
+        "sgpt_alt": ("0", "34"),
+    },
+}
 PATIENT_INFO_GROUP_KEY = "patient_information"
 PATIENT_INFO_GROUP_NAME = "Patient Information"
 PATIENT_INFO_PRIMARY_KEY = "name"
@@ -1386,6 +1539,10 @@ def normalize_field(field: dict[str, Any], parent_id: str, order: int, used_keys
     normal_max = compact_text(field.get("normal_max"))
     if normal_max:
         normalized["normal_max"] = normal_max
+    if normal_min and not normalize_boolean_setting(field.get("normal_min_inclusive"), default=True):
+        normalized["normal_min_inclusive"] = False
+    if normal_max and not normalize_boolean_setting(field.get("normal_max_inclusive"), default=True):
+        normalized["normal_max_inclusive"] = False
 
     if options:
         normalized["options"] = options
@@ -1823,6 +1980,10 @@ def legacy_field_to_block(field: dict[str, Any]) -> dict[str, Any]:
     normal_max = compact_text(field.get("normal_max"))
     if normal_max:
         props["normal_max"] = normal_max
+    if normal_min and not normalize_boolean_setting(field.get("normal_min_inclusive"), default=True):
+        props["normal_min_inclusive"] = False
+    if normal_max and not normalize_boolean_setting(field.get("normal_max_inclusive"), default=True):
+        props["normal_max_inclusive"] = False
 
     options = []
     for option in normalize_items(field.get("options")):
@@ -2002,6 +2163,18 @@ def find_field_with_parent(
     return None
 
 
+def find_fields_by_key(blocks: list[Any], field_key: str) -> list[dict[str, Any]]:
+    fields: list[dict[str, Any]] = []
+    for block in blocks:
+        if not isinstance(block, dict):
+            continue
+        props = block.get("props") if isinstance(block.get("props"), dict) else {}
+        if compact_text(block.get("kind")) == "field" and compact_text(props.get("key")) == field_key:
+            fields.append(block)
+        fields.extend(find_fields_by_key(normalize_items(block.get("children")), field_key))
+    return fields
+
+
 def patient_info_examination_insert_index(children: list[Any]) -> int:
     for index, child in enumerate(children):
         if not isinstance(child, dict):
@@ -2114,7 +2287,7 @@ def configure_blood_gas_numeric_ranges(block_schema: dict[str, Any]) -> bool:
 
 def configure_default_field_properties(
     block_schema: dict[str, Any],
-    field_defaults: dict[str, dict[str, str | None]],
+    field_defaults: dict[str, dict[str, Any]],
 ) -> bool:
     changed = False
     for field_key, defaults in field_defaults.items():
@@ -2129,6 +2302,12 @@ def configure_default_field_properties(
                     props.pop(property_name)
                     changed = True
                 continue
+            if isinstance(expected_value, bool):
+                if normalize_boolean_setting(props.get(property_name), default=True) == expected_value:
+                    continue
+                props[property_name] = expected_value
+                changed = True
+                continue
             if compact_text(props.get(property_name)) == expected_value:
                 continue
             props[property_name] = expected_value
@@ -2139,7 +2318,7 @@ def configure_default_field_properties(
 
 def configure_container_field_properties(
     block_schema: dict[str, Any],
-    container_field_defaults: dict[str, dict[str, dict[str, str | None]]],
+    container_field_defaults: dict[str, dict[str, dict[str, Any]]],
 ) -> bool:
     changed = False
     blocks = normalize_items(block_schema.get("blocks"))
@@ -2163,6 +2342,12 @@ def configure_container_field_properties(
                         props.pop(property_name)
                         changed = True
                     continue
+                if isinstance(expected_value, bool):
+                    if normalize_boolean_setting(props.get(property_name), default=True) == expected_value:
+                        continue
+                    props[property_name] = expected_value
+                    changed = True
+                    continue
                 if compact_text(props.get(property_name)) == expected_value:
                     continue
                 props[property_name] = expected_value
@@ -2177,21 +2362,21 @@ def configure_choice_field_normal_options(
 ) -> bool | None:
     fields: list[tuple[dict[str, Any], set[str]]] = []
     for field_key, normal_names in choice_field_defaults.items():
-        match = find_field_with_parent(normalize_items(block_schema.get("blocks")), field_key)
-        if match is None:
+        matching_fields = find_fields_by_key(normalize_items(block_schema.get("blocks")), field_key)
+        if not matching_fields:
             return None
-        _, field = match
-        props = field.get("props") if isinstance(field.get("props"), dict) else {}
-        options = normalize_items(props.get("options"))
         wanted_names = {compact_text(name) for name in normal_names if compact_text(name)}
-        option_names = {
-            compact_text(option.get("name"))
-            for option in options
-            if isinstance(option, dict) and compact_text(option.get("name"))
-        }
-        if not wanted_names or not wanted_names.issubset(option_names):
-            return None
-        fields.append((field, wanted_names))
+        for field in matching_fields:
+            props = field.get("props") if isinstance(field.get("props"), dict) else {}
+            options = normalize_items(props.get("options"))
+            option_names = {
+                compact_text(option.get("name"))
+                for option in options
+                if isinstance(option, dict) and compact_text(option.get("name"))
+            }
+            if not wanted_names or not wanted_names.issubset(option_names):
+                return None
+            fields.append((field, wanted_names))
 
     changed = False
     for field, wanted_names in fields:
@@ -2524,6 +2709,149 @@ def ensure_default_microbiology_layout(block_schema: dict[str, Any]) -> bool:
     )
 
 
+def ensure_default_blood_chemistry_layout(
+    block_schema: dict[str, Any],
+    *,
+    form_key: str,
+    meta_key: str,
+    details_name: str,
+) -> bool:
+    if not isinstance(block_schema, dict):
+        return False
+
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    if compact_text(meta.get("form_key")) != form_key:
+        return False
+    if meta.get(meta_key) is True:
+        return False
+
+    details, _ = ensure_default_top_level_container(
+        block_schema,
+        key="details",
+        name=details_name,
+        field_keys=BLOOD_CHEMISTRY_RESULT_FIELD_KEYS + ("others",),
+    )
+    if details is None:
+        return False
+
+    ranges = BLOOD_CHEMISTRY_RANGES_BY_FORM_KEY[form_key]
+    configure_container_field_properties(
+        block_schema,
+        {
+            "details": {
+                field_key: {
+                    "normal_min": normal_min,
+                    "normal_max": normal_max,
+                    "reference_text": None,
+                    "normal_value": None,
+                }
+                for field_key, (normal_min, normal_max) in ranges.items()
+            }
+        },
+    )
+    meta[meta_key] = True
+    block_schema["meta"] = meta
+    return True
+
+
+def ensure_default_blood_chemistry_male_layout(block_schema: dict[str, Any]) -> bool:
+    return ensure_default_blood_chemistry_layout(
+        block_schema,
+        form_key=BLOOD_CHEMISTRY_MALE_FORM_KEY,
+        meta_key=DEFAULT_BLOOD_CHEMISTRY_MALE_DEFAULTS_META_KEY,
+        details_name="Male Details",
+    )
+
+
+def ensure_default_blood_chemistry_female_layout(block_schema: dict[str, Any]) -> bool:
+    return ensure_default_blood_chemistry_layout(
+        block_schema,
+        form_key=BLOOD_CHEMISTRY_FEMALE_FORM_KEY,
+        meta_key=DEFAULT_BLOOD_CHEMISTRY_FEMALE_DEFAULTS_META_KEY,
+        details_name="Female Details",
+    )
+
+
+def ensure_default_serology_layout(block_schema: dict[str, Any]) -> bool:
+    if not isinstance(block_schema, dict):
+        return False
+
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    if compact_text(meta.get("form_key")) != SEROLOGY_FORM_KEY:
+        return False
+    if meta.get(DEFAULT_SEROLOGY_DEFAULTS_META_KEY) is True:
+        return False
+    if configure_choice_field_normal_options(block_schema, SEROLOGY_NORMAL_CHOICE_OPTIONS) is None:
+        return False
+
+    meta[DEFAULT_SEROLOGY_DEFAULTS_META_KEY] = True
+    block_schema["meta"] = meta
+    return True
+
+
+def ensure_default_fecalysis_layout(block_schema: dict[str, Any]) -> bool:
+    if not isinstance(block_schema, dict):
+        return False
+
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    if compact_text(meta.get("form_key")) != FECALYSIS_FORM_KEY:
+        return False
+    if meta.get(DEFAULT_FECALYSIS_DEFAULTS_META_KEY) is True:
+        return False
+    if configure_choice_field_normal_options(block_schema, FECALYSIS_NORMAL_CHOICE_OPTIONS) is None:
+        return False
+
+    meta[DEFAULT_FECALYSIS_DEFAULTS_META_KEY] = True
+    block_schema["meta"] = meta
+    return True
+
+
+def ensure_default_cardiaci_layout(block_schema: dict[str, Any]) -> bool:
+    if not isinstance(block_schema, dict):
+        return False
+
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    if compact_text(meta.get("form_key")) != CARDIACI_FORM_KEY:
+        return False
+    if meta.get(DEFAULT_CARDIACI_DEFAULTS_META_KEY) is True:
+        return False
+
+    details, _ = ensure_default_top_level_container(
+        block_schema,
+        key="details",
+        name="Cardiaci Details",
+        field_keys=("ck_mb", "troponin_i", "bnp"),
+    )
+    if details is None:
+        return False
+    configure_container_field_properties(block_schema, {"details": CARDIACI_FIELD_DEFAULTS})
+    meta[DEFAULT_CARDIACI_DEFAULTS_META_KEY] = True
+    block_schema["meta"] = meta
+    return True
+
+
+def ensure_default_ogtt_layout(block_schema: dict[str, Any]) -> bool:
+    if not isinstance(block_schema, dict):
+        return False
+
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    if compact_text(meta.get("form_key")) != OGTT_FORM_KEY:
+        return False
+    if meta.get(DEFAULT_OGTT_DEFAULTS_META_KEY) is True:
+        return False
+
+    blocks = normalize_items(block_schema.get("blocks"))
+    if any(
+        find_top_level_block_by_key(blocks, container_key) is None
+        for container_key in OGTT_CONTAINER_FIELD_DEFAULTS
+    ):
+        return False
+    configure_container_field_properties(block_schema, OGTT_CONTAINER_FIELD_DEFAULTS)
+    meta[DEFAULT_OGTT_DEFAULTS_META_KEY] = True
+    block_schema["meta"] = meta
+    return True
+
+
 def set_default_blood_gas_container(
     block: dict[str, Any],
     *,
@@ -2808,6 +3136,19 @@ def normalize_active_block_storage_node(node: dict[str, Any]) -> bool:
         elif "normal_max" in props:
             props.pop("normal_max", None)
             changed = True
+
+        for property_name, has_bound in (
+            ("normal_min_inclusive", bool(normal_min)),
+            ("normal_max_inclusive", bool(normal_max)),
+        ):
+            is_inclusive = normalize_boolean_setting(props.get(property_name), default=True)
+            if has_bound and not is_inclusive:
+                if props.get(property_name) is not False:
+                    props[property_name] = False
+                    changed = True
+            elif property_name in props:
+                props.pop(property_name, None)
+                changed = True
 
         if "options" in props:
             normalized_options = normalize_block_option_props(props.get("options"))
@@ -3800,12 +4141,16 @@ def build_print_reference(props: dict[str, Any]) -> str:
     normal_max = compact_text(props.get("normal_max"))
     unit_hint = compact_text(props.get("unit_hint") or props.get("unit"))
     unit_suffix = f" {unit_hint}" if unit_hint else ""
+    normal_min_operator = ">=" if normalize_boolean_setting(props.get("normal_min_inclusive"), default=True) else ">"
+    normal_max_operator = "<=" if normalize_boolean_setting(props.get("normal_max_inclusive"), default=True) else "<"
     if normal_min and normal_max:
+        if normal_min_operator != ">=" or normal_max_operator != "<=":
+            return f"{normal_min_operator} {normal_min} to {normal_max_operator} {normal_max}{unit_suffix}"
         return f"{normal_min} to {normal_max}{unit_suffix}"
     if normal_min:
-        return f">= {normal_min}{unit_suffix}"
+        return f"{normal_min_operator} {normal_min}{unit_suffix}"
     if normal_max:
-        return f"<= {normal_max}{unit_suffix}"
+        return f"{normal_max_operator} {normal_max}{unit_suffix}"
     return ""
 
 
@@ -3816,10 +4161,14 @@ def evaluate_numeric_abnormal(props: dict[str, Any], value: Any) -> tuple[bool, 
 
     normal_min = parse_numeric_answer(props.get("normal_min"))
     normal_max = parse_numeric_answer(props.get("normal_max"))
-    if normal_min is not None and numeric_value < normal_min:
-        return True, "low"
-    if normal_max is not None and numeric_value > normal_max:
-        return True, "high"
+    if normal_min is not None:
+        min_is_inclusive = normalize_boolean_setting(props.get("normal_min_inclusive"), default=True)
+        if numeric_value < normal_min or (not min_is_inclusive and numeric_value <= normal_min):
+            return True, "low"
+    if normal_max is not None:
+        max_is_inclusive = normalize_boolean_setting(props.get("normal_max_inclusive"), default=True)
+        if numeric_value > normal_max or (not max_is_inclusive and numeric_value >= normal_max):
+            return True, "high"
     return False, None
 
 
@@ -6210,6 +6559,60 @@ def ensure_microbiology_defaults(session: Session) -> int:
         form_key=MICROBIOLOGY_FORM_KEY,
         layout=ensure_default_microbiology_layout,
         summary="Applied approved Microbiology defaults.",
+    )
+
+
+def ensure_blood_chemistry_male_defaults(session: Session) -> int:
+    return ensure_qualitative_result_form_defaults(
+        session,
+        form_key=BLOOD_CHEMISTRY_MALE_FORM_KEY,
+        layout=ensure_default_blood_chemistry_male_layout,
+        summary="Applied approved Blood Chemistry Male defaults.",
+    )
+
+
+def ensure_blood_chemistry_female_defaults(session: Session) -> int:
+    return ensure_qualitative_result_form_defaults(
+        session,
+        form_key=BLOOD_CHEMISTRY_FEMALE_FORM_KEY,
+        layout=ensure_default_blood_chemistry_female_layout,
+        summary="Applied approved Blood Chemistry Female defaults.",
+    )
+
+
+def ensure_serology_defaults(session: Session) -> int:
+    return ensure_qualitative_result_form_defaults(
+        session,
+        form_key=SEROLOGY_FORM_KEY,
+        layout=ensure_default_serology_layout,
+        summary="Applied approved Serology defaults.",
+    )
+
+
+def ensure_fecalysis_defaults(session: Session) -> int:
+    return ensure_qualitative_result_form_defaults(
+        session,
+        form_key=FECALYSIS_FORM_KEY,
+        layout=ensure_default_fecalysis_layout,
+        summary="Applied approved Fecalysis defaults.",
+    )
+
+
+def ensure_cardiaci_defaults(session: Session) -> int:
+    return ensure_qualitative_result_form_defaults(
+        session,
+        form_key=CARDIACI_FORM_KEY,
+        layout=ensure_default_cardiaci_layout,
+        summary="Applied approved Cardiaci defaults.",
+    )
+
+
+def ensure_ogtt_defaults(session: Session) -> int:
+    return ensure_qualitative_result_form_defaults(
+        session,
+        form_key=OGTT_FORM_KEY,
+        layout=ensure_default_ogtt_layout,
+        summary="Applied approved OGTT defaults.",
     )
 
 

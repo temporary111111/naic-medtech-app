@@ -2,7 +2,7 @@
   "schema_name": "NAIC Medtech App Schema",
   "schema_version": "1.0.5",
   "source_workbook": "NAIC MEDTECH SYSTEM DATA.xlsx",
-  "generated_at_utc": "2026-04-30T05:08:34.280530+00:00",
+  "generated_at_utc": "2026-07-30T16:37:35.927164+00:00",
   "normalization_rules": [
     "Shared patient/request metadata was moved into a reusable common field set.",
     "Medical Technologist and Pathologist are modeled as configurable print signatories, not ordinary result fields.",
@@ -10,8 +10,7 @@
     "Known pseudo-option lists that actually represent child manual-entry fields were normalized into field groups.",
     "Manual-entry fields with strong numeric hints such as units or numeric normal ranges were normalized to data_type=\"number\".",
     "Manual-entry fields without strong type signals default to data_type=\"text\".",
-    "Standalone departments are represented as groups that contain exactly one form for a consistent app navigation model.",
-    "Shared patient fields with source dropdown options remain dropdowns in the reusable common field set."
+    "Standalone departments are represented as groups that contain exactly one form for a consistent app navigation model."
   ],
   "common_field_sets": [
     {
@@ -19,7 +18,7 @@
       "name": "Default Lab Request Metadata",
       "notes": [
         "These shared fields were excluded from the visual tree and moved into one reusable app field set.",
-        "The workbook varies between Date and Date/Time, so that field is represented conservatively as date_or_datetime."
+        "The workbook varies between Date and Date/Time, so the app uses one Date & Time field."
       ],
       "fields": [
         {
@@ -1772,13 +1771,15 @@
                       "id": "clinical_microscopy.fecalysis.macroscopic_finding.fecal_occult_blood.positive",
                       "key": "positive",
                       "name": "POSITIVE",
-                      "order": 1
+                      "order": 1,
+                      "is_normal": false
                     },
                     {
                       "id": "clinical_microscopy.fecalysis.macroscopic_finding.fecal_occult_blood.negative",
                       "key": "negative",
                       "name": "NEGATIVE",
-                      "order": 2
+                      "order": 2,
+                      "is_normal": true
                     }
                   ]
                 }
@@ -1955,19 +1956,22 @@
                       "id": "clinical_microscopy.fecalysis.microscopic_finding.parasites.ascaris_lumbricoides_ova",
                       "key": "ascaris_lumbricoides_ova",
                       "name": "ASCARIS LUMBRICOIDES OVA",
-                      "order": 1
+                      "order": 1,
+                      "is_normal": false
                     },
                     {
                       "id": "clinical_microscopy.fecalysis.microscopic_finding.parasites.trichuris_trichiura_ova",
                       "key": "trichuris_trichiura_ova",
                       "name": "TRICHURIS TRICHIURA OVA",
-                      "order": 2
+                      "order": 2,
+                      "is_normal": false
                     },
                     {
                       "id": "clinical_microscopy.fecalysis.microscopic_finding.parasites.no_ova_nor_parasites_seen",
                       "key": "no_ova_nor_parasites_seen",
                       "name": "NO OVA NOR PARASITES SEEN",
-                      "order": 3
+                      "order": 3,
+                      "is_normal": true
                     }
                   ]
                 },
@@ -2114,7 +2118,8 @@
                     "raw_input_type": "Manual Entry"
                   },
                   "unit_hint": "mg/dl",
-                  "normal_value": "< 200 mg/dl"
+                  "normal_max": "200",
+                  "normal_max_inclusive": false
                 },
                 {
                   "id": "blood_chemistry.ogtt.50g_oral_glucose_tolerance.2nd_hour",
@@ -2129,7 +2134,8 @@
                     "raw_input_type": "Manual Entry"
                   },
                   "unit_hint": "mg/dl",
-                  "normal_value": "< 140 mg/d"
+                  "normal_max": "140",
+                  "normal_max_inclusive": false
                 }
               ]
             },
@@ -2158,7 +2164,8 @@
                     "raw_input_type": "Manual Entry"
                   },
                   "unit_hint": "mg/dl",
-                  "normal_value": "70.27-124.32 mg/dl"
+                  "normal_min": "70.27",
+                  "normal_max": "124.32"
                 },
                 {
                   "id": "blood_chemistry.ogtt.75g_oral_glucose_tolerance.1st_hour",
@@ -2173,7 +2180,8 @@
                     "raw_input_type": "Manual Entry"
                   },
                   "unit_hint": "mg/dl",
-                  "normal_value": "< 200 mg/dl"
+                  "normal_max": "200",
+                  "normal_max_inclusive": false
                 },
                 {
                   "id": "blood_chemistry.ogtt.75g_oral_glucose_tolerance.2nd_hour",
@@ -2188,7 +2196,8 @@
                     "raw_input_type": "Manual Entry"
                   },
                   "unit_hint": "mg/dl",
-                  "normal_value": "< 140 mg/dl"
+                  "normal_max": "140",
+                  "normal_max_inclusive": false
                 }
               ]
             },
@@ -2217,7 +2226,8 @@
                     "raw_input_type": "Manual Entry"
                   },
                   "unit_hint": "mg/dl",
-                  "normal_value": "70.27-124.32 mg/dl"
+                  "normal_min": "70.27",
+                  "normal_max": "124.32"
                 },
                 {
                   "id": "blood_chemistry.ogtt.100g_oral_glucose_tolerance.1st_hour",
@@ -2232,7 +2242,8 @@
                     "raw_input_type": "Manual Entry"
                   },
                   "unit_hint": "mg/dl",
-                  "normal_value": "< 180 mg/dl"
+                  "normal_max": "180",
+                  "normal_max_inclusive": false
                 },
                 {
                   "id": "blood_chemistry.ogtt.100g_oral_glucose_tolerance.2nd_hour",
@@ -2247,7 +2258,8 @@
                     "raw_input_type": "Manual Entry"
                   },
                   "unit_hint": "mg/dl",
-                  "normal_value": "< 155 mg/dl"
+                  "normal_max": "155",
+                  "normal_max_inclusive": false
                 },
                 {
                   "id": "blood_chemistry.ogtt.100g_oral_glucose_tolerance.3rd_hour",
@@ -2262,7 +2274,8 @@
                     "raw_input_type": "Manual Entry"
                   },
                   "unit_hint": "mg/dl",
-                  "normal_value": "< 140 mg/dl"
+                  "normal_max": "140",
+                  "normal_max_inclusive": false
                 }
               ]
             },
@@ -2332,43 +2345,57 @@
           },
           "fields": [
             {
-              "id": "blood_chemistry.hba1c.examination",
-              "key": "examination",
-              "name": "Examination",
-              "kind": "field",
+              "id": "blood_chemistry.hba1c.details",
+              "key": "details",
+              "name": "HBA1C Details",
+              "kind": "field_group",
               "order": 1,
-              "control": "select",
-              "data_type": "enum",
               "source": {
-                "sheet_row": 7,
-                "raw_input_type": "Predefined Selection"
+                "normalized_from": "approved_default_container"
               },
-              "options": [
+              "fields": [
                 {
-                  "id": "blood_chemistry.hba1c.examination.hba1c_clover",
-                  "key": "hba1c_clover",
-                  "name": "HBA1C (CLOVER)",
-                  "order": 1
+                  "id": "blood_chemistry.hba1c.examination",
+                  "key": "examination",
+                  "name": "Examination",
+                  "kind": "field",
+                  "order": 1,
+                  "control": "select",
+                  "data_type": "enum",
+                  "source": {
+                    "sheet_row": 7,
+                    "raw_input_type": "Predefined Selection"
+                  },
+                  "options": [
+                    {
+                      "id": "blood_chemistry.hba1c.examination.hba1c_clover",
+                      "key": "hba1c_clover",
+                      "name": "HBA1C (CLOVER)",
+                      "order": 1
+                    }
+                  ]
+                },
+                {
+                  "id": "blood_chemistry.hba1c.result",
+                  "key": "result",
+                  "name": "Result",
+                  "kind": "field",
+                  "order": 2,
+                  "control": "input",
+                  "data_type": "number",
+                  "notes": [
+                    "NOTE: ALL RESULTS ABOVE OR BELOW NORMAL VALUE MAKE IT RED"
+                  ],
+                  "source": {
+                    "sheet_row": 12,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "%",
+                  "normal_min": "4.0",
+                  "normal_max": "5.6",
+                  "unit": "%"
                 }
               ]
-            },
-            {
-              "id": "blood_chemistry.hba1c.result",
-              "key": "result",
-              "name": "Result",
-              "kind": "field",
-              "order": 2,
-              "control": "input",
-              "data_type": "number",
-              "notes": [
-                "NOTE: ALL RESULTS ABOVE OR BELOW NORMAL VALUE MAKE IT RED"
-              ],
-              "source": {
-                "sheet_row": 12,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "%",
-              "normal_value": "NORMAL VALUE = 4.0 - 5.6 %"
             }
           ],
           "sections": []
@@ -2385,368 +2412,397 @@
           },
           "fields": [
             {
-              "id": "blood_chemistry.male.examination",
-              "key": "examination",
-              "name": "Examination",
-              "kind": "field",
+              "id": "blood_chemistry.male.details",
+              "key": "details",
+              "name": "Male Details",
+              "kind": "field_group",
               "order": 1,
-              "control": "select",
-              "data_type": "enum",
               "source": {
-                "sheet_row": 7,
-                "raw_input_type": "Predefined Selection"
+                "normalized_from": "approved_default_container"
               },
-              "options": [
+              "fields": [
                 {
-                  "id": "blood_chemistry.male.examination.chem_6",
-                  "key": "chem_6",
-                  "name": "CHEM 6",
-                  "order": 1
+                  "id": "blood_chemistry.male.examination",
+                  "key": "examination",
+                  "name": "Examination",
+                  "kind": "field",
+                  "order": 1,
+                  "control": "select",
+                  "data_type": "enum",
+                  "source": {
+                    "sheet_row": 7,
+                    "raw_input_type": "Predefined Selection"
+                  },
+                  "options": [
+                    {
+                      "id": "blood_chemistry.male.examination.chem_6",
+                      "key": "chem_6",
+                      "name": "CHEM 6",
+                      "order": 1
+                    },
+                    {
+                      "id": "blood_chemistry.male.examination.chem_4_lipid_profile",
+                      "key": "chem_4_lipid_profile",
+                      "name": "CHEM 4, LIPID PROFILE",
+                      "order": 2
+                    },
+                    {
+                      "id": "blood_chemistry.male.examination.chem_4_lipid_profile_ast_alt",
+                      "key": "chem_4_lipid_profile_ast_alt",
+                      "name": "CHEM 4, LIPID PROFILE, AST, ALT",
+                      "order": 3
+                    },
+                    {
+                      "id": "blood_chemistry.male.examination.lipid_profile",
+                      "key": "lipid_profile",
+                      "name": "LIPID PROFILE",
+                      "order": 4
+                    },
+                    {
+                      "id": "blood_chemistry.male.examination.fbs_lipid_profile",
+                      "key": "fbs_lipid_profile",
+                      "name": "FBS, LIPID PROFILE",
+                      "order": 5
+                    },
+                    {
+                      "id": "blood_chemistry.male.examination.fbs_bua_lipid_profile",
+                      "key": "fbs_bua_lipid_profile",
+                      "name": "FBS, BUA, LIPID PROFILE",
+                      "order": 6
+                    },
+                    {
+                      "id": "blood_chemistry.male.examination.bun_crea_serum_electrolytes",
+                      "key": "bun_crea_serum_electrolytes",
+                      "name": "BUN, CREA, SERUM ELECTROLYTES",
+                      "order": 7
+                    },
+                    {
+                      "id": "blood_chemistry.male.examination.chem_4_lipid_profile_ast_alt_serum_electrolytes",
+                      "key": "chem_4_lipid_profile_ast_alt_serum_electrolytes",
+                      "name": "CHEM 4, LIPID PROFILE, AST, ALT, SERUM ELECTROLYTES",
+                      "order": 8
+                    },
+                    {
+                      "id": "blood_chemistry.male.examination.bun_crea",
+                      "key": "bun_crea",
+                      "name": "BUN, CREA",
+                      "order": 9
+                    },
+                    {
+                      "id": "blood_chemistry.male.examination.bun_crea_bua_serum_electrolytes",
+                      "key": "bun_crea_bua_serum_electrolytes",
+                      "name": "BUN, CREA, BUA, SERUM ELECTROLYTES",
+                      "order": 10
+                    },
+                    {
+                      "id": "blood_chemistry.male.examination.serum_electrolytes",
+                      "key": "serum_electrolytes",
+                      "name": "SERUM ELECTROLYTES",
+                      "order": 11
+                    },
+                    {
+                      "id": "blood_chemistry.male.examination.chem_4_lipid_profile_serum_electrolytes",
+                      "key": "chem_4_lipid_profile_serum_electrolytes",
+                      "name": "CHEM 4, LIPID PROFILE, SERUM ELECTROLYTES",
+                      "order": 12
+                    }
+                  ]
                 },
                 {
-                  "id": "blood_chemistry.male.examination.chem_4_lipid_profile",
-                  "key": "chem_4_lipid_profile",
-                  "name": "CHEM 4, LIPID PROFILE",
-                  "order": 2
+                  "id": "blood_chemistry.male.fasting_blood_sugar",
+                  "key": "fasting_blood_sugar",
+                  "name": "FASTING BLOOD SUGAR",
+                  "kind": "field",
+                  "order": 2,
+                  "control": "input",
+                  "data_type": "number",
+                  "notes": [
+                    "NOTE: ALL RESULTS ABOVE OR BELOW NORMAL VALUE MAKE IT RED"
+                  ],
+                  "source": {
+                    "sheet_row": 12,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "70.27",
+                  "normal_max": "124.32"
                 },
                 {
-                  "id": "blood_chemistry.male.examination.chem_4_lipid_profile_ast_alt",
-                  "key": "chem_4_lipid_profile_ast_alt",
-                  "name": "CHEM 4, LIPID PROFILE, AST, ALT",
-                  "order": 3
+                  "id": "blood_chemistry.male.random_blood_sugar",
+                  "key": "random_blood_sugar",
+                  "name": "RANDOM BLOOD SUGAR",
+                  "kind": "field",
+                  "order": 3,
+                  "control": "input",
+                  "data_type": "number",
+                  "notes": [
+                    "note: pde po kaya na incase na magpplit po ng normal values pde nmin sya maedit, ty"
+                  ],
+                  "source": {
+                    "sheet_row": 13,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "60",
+                  "normal_max": "140"
                 },
                 {
-                  "id": "blood_chemistry.male.examination.lipid_profile",
-                  "key": "lipid_profile",
-                  "name": "LIPID PROFILE",
-                  "order": 4
+                  "id": "blood_chemistry.male.hgt",
+                  "key": "hgt",
+                  "name": "HGT",
+                  "kind": "field",
+                  "order": 4,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 14,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "53",
+                  "normal_max": "103"
                 },
                 {
-                  "id": "blood_chemistry.male.examination.fbs_lipid_profile",
-                  "key": "fbs_lipid_profile",
-                  "name": "FBS, LIPID PROFILE",
-                  "order": 5
+                  "id": "blood_chemistry.male.blood_urea_nitrogen",
+                  "key": "blood_urea_nitrogen",
+                  "name": "BLOOD UREA NITROGEN",
+                  "kind": "field",
+                  "order": 5,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 15,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "7.9",
+                  "normal_max": "20.2"
                 },
                 {
-                  "id": "blood_chemistry.male.examination.fbs_bua_lipid_profile",
-                  "key": "fbs_bua_lipid_profile",
-                  "name": "FBS, BUA, LIPID PROFILE",
-                  "order": 6
+                  "id": "blood_chemistry.male.creatinine",
+                  "key": "creatinine",
+                  "name": "CREATININE",
+                  "kind": "field",
+                  "order": 6,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 16,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "0.5",
+                  "normal_max": "1.3"
                 },
                 {
-                  "id": "blood_chemistry.male.examination.bun_crea_serum_electrolytes",
-                  "key": "bun_crea_serum_electrolytes",
-                  "name": "BUN, CREA, SERUM ELECTROLYTES",
-                  "order": 7
+                  "id": "blood_chemistry.male.blood_uric_acid",
+                  "key": "blood_uric_acid",
+                  "name": "BLOOD URIC ACID",
+                  "kind": "field",
+                  "order": 7,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 17,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "3.5",
+                  "normal_max": "7.2"
                 },
                 {
-                  "id": "blood_chemistry.male.examination.chem_4_lipid_profile_ast_alt_serum_electrolytes",
-                  "key": "chem_4_lipid_profile_ast_alt_serum_electrolytes",
-                  "name": "CHEM 4, LIPID PROFILE, AST, ALT, SERUM ELECTROLYTES",
-                  "order": 8
+                  "id": "blood_chemistry.male.sodium",
+                  "key": "sodium",
+                  "name": "SODIUM",
+                  "kind": "field",
+                  "order": 8,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 18,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mEq/L",
+                  "normal_min": "135",
+                  "normal_max": "148"
                 },
                 {
-                  "id": "blood_chemistry.male.examination.bun_crea",
-                  "key": "bun_crea",
-                  "name": "BUN, CREA",
-                  "order": 9
+                  "id": "blood_chemistry.male.potassium",
+                  "key": "potassium",
+                  "name": "POTASSIUM",
+                  "kind": "field",
+                  "order": 9,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 19,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mEq/L",
+                  "normal_min": "3.5",
+                  "normal_max": "5.3"
                 },
                 {
-                  "id": "blood_chemistry.male.examination.bun_crea_bua_serum_electrolytes",
-                  "key": "bun_crea_bua_serum_electrolytes",
-                  "name": "BUN, CREA, BUA, SERUM ELECTROLYTES",
-                  "order": 10
+                  "id": "blood_chemistry.male.chloride",
+                  "key": "chloride",
+                  "name": "CHLORIDE",
+                  "kind": "field",
+                  "order": 10,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 20,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mEq/L",
+                  "normal_min": "98",
+                  "normal_max": "107"
                 },
                 {
-                  "id": "blood_chemistry.male.examination.serum_electrolytes",
-                  "key": "serum_electrolytes",
-                  "name": "SERUM ELECTROLYTES",
-                  "order": 11
+                  "id": "blood_chemistry.male.ionized_calcium",
+                  "key": "ionized_calcium",
+                  "name": "IONIZED CALCIUM",
+                  "kind": "field",
+                  "order": 11,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 21,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mEq/L",
+                  "normal_min": "1.13",
+                  "normal_max": "1.32"
                 },
                 {
-                  "id": "blood_chemistry.male.examination.chem_4_lipid_profile_serum_electrolytes",
-                  "key": "chem_4_lipid_profile_serum_electrolytes",
-                  "name": "CHEM 4, LIPID PROFILE, SERUM ELECTROLYTES",
-                  "order": 12
+                  "id": "blood_chemistry.male.cholesterol",
+                  "key": "cholesterol",
+                  "name": "CHOLESTEROL",
+                  "kind": "field",
+                  "order": 12,
+                  "control": "input",
+                  "data_type": "number",
+                  "notes": [
+                    "NOTE: ALL RESULTS ABOVE OR BELOW NORMAL VALUE MAKE IT RED"
+                  ],
+                  "source": {
+                    "sheet_row": 23,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "0",
+                  "normal_max": "200"
+                },
+                {
+                  "id": "blood_chemistry.male.triglyceride",
+                  "key": "triglyceride",
+                  "name": "TRIGLYCERIDE",
+                  "kind": "field",
+                  "order": 13,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 24,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "0",
+                  "normal_max": "150"
+                },
+                {
+                  "id": "blood_chemistry.male.hdl_cholesterol",
+                  "key": "hdl_cholesterol",
+                  "name": "HDL CHOLESTEROL",
+                  "kind": "field",
+                  "order": 14,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 25,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "30",
+                  "normal_max": "85"
+                },
+                {
+                  "id": "blood_chemistry.male.ldl_cholesterol",
+                  "key": "ldl_cholesterol",
+                  "name": "LDL CHOLESTEROL",
+                  "kind": "field",
+                  "order": 15,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 26,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "66",
+                  "normal_max": "178"
+                },
+                {
+                  "id": "blood_chemistry.male.vldl_cholesterol",
+                  "key": "vldl_cholesterol",
+                  "name": "VLDL CHOLESTEROL",
+                  "kind": "field",
+                  "order": 16,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 27,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "0",
+                  "normal_max": "40"
+                },
+                {
+                  "id": "blood_chemistry.male.sgot_ast",
+                  "key": "sgot_ast",
+                  "name": "SGOT(AST)",
+                  "kind": "field",
+                  "order": 17,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 28,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "U/L",
+                  "normal_min": "0",
+                  "normal_max": "31"
+                },
+                {
+                  "id": "blood_chemistry.male.sgpt_alt",
+                  "key": "sgpt_alt",
+                  "name": "SGPT(ALT)",
+                  "kind": "field",
+                  "order": 18,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 29,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "U/L",
+                  "normal_min": "0",
+                  "normal_max": "34"
+                },
+                {
+                  "id": "blood_chemistry.male.others",
+                  "key": "others",
+                  "name": "OTHERS",
+                  "kind": "field",
+                  "order": 19,
+                  "control": "input",
+                  "data_type": "text",
+                  "source": {
+                    "sheet_row": 31,
+                    "raw_input_type": "Manual Entry"
+                  }
                 }
               ]
-            },
-            {
-              "id": "blood_chemistry.male.fasting_blood_sugar",
-              "key": "fasting_blood_sugar",
-              "name": "FASTING BLOOD SUGAR",
-              "kind": "field",
-              "order": 2,
-              "control": "input",
-              "data_type": "number",
-              "notes": [
-                "NOTE: ALL RESULTS ABOVE OR BELOW NORMAL VALUE MAKE IT RED"
-              ],
-              "source": {
-                "sheet_row": 12,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "70.27-124.32 mg/dL"
-            },
-            {
-              "id": "blood_chemistry.male.random_blood_sugar",
-              "key": "random_blood_sugar",
-              "name": "RANDOM BLOOD SUGAR",
-              "kind": "field",
-              "order": 3,
-              "control": "input",
-              "data_type": "number",
-              "notes": [
-                "note: pde po kaya na incase na magpplit po ng normal values pde nmin sya maedit, ty"
-              ],
-              "source": {
-                "sheet_row": 13,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "60 - 140 mg/dl"
-            },
-            {
-              "id": "blood_chemistry.male.hgt",
-              "key": "hgt",
-              "name": "HGT",
-              "kind": "field",
-              "order": 4,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 14,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "53 - 103 mg/dl"
-            },
-            {
-              "id": "blood_chemistry.male.blood_urea_nitrogen",
-              "key": "blood_urea_nitrogen",
-              "name": "BLOOD UREA NITROGEN",
-              "kind": "field",
-              "order": 5,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 15,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "7.9- 20.2 mg/dl"
-            },
-            {
-              "id": "blood_chemistry.male.creatinine",
-              "key": "creatinine",
-              "name": "CREATININE",
-              "kind": "field",
-              "order": 6,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 16,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "0.5-1.3 mg/dl"
-            },
-            {
-              "id": "blood_chemistry.male.blood_uric_acid",
-              "key": "blood_uric_acid",
-              "name": "BLOOD URIC ACID",
-              "kind": "field",
-              "order": 7,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 17,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "3.5 - 7.2 mg/dl"
-            },
-            {
-              "id": "blood_chemistry.male.sodium",
-              "key": "sodium",
-              "name": "SODIUM",
-              "kind": "field",
-              "order": 8,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 18,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mEq/L",
-              "normal_value": "135 - 148 mEq/L"
-            },
-            {
-              "id": "blood_chemistry.male.potassium",
-              "key": "potassium",
-              "name": "POTASSIUM",
-              "kind": "field",
-              "order": 9,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 19,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mEq/L",
-              "normal_value": "3.5 - 5.3 mEq/L"
-            },
-            {
-              "id": "blood_chemistry.male.chloride",
-              "key": "chloride",
-              "name": "CHLORIDE",
-              "kind": "field",
-              "order": 10,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 20,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mEq/L",
-              "normal_value": "98 - 107 mEq/L"
-            },
-            {
-              "id": "blood_chemistry.male.ionized_calcium",
-              "key": "ionized_calcium",
-              "name": "IONIZED CALCIUM",
-              "kind": "field",
-              "order": 11,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 21,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mEq/L",
-              "normal_value": "1.13-1.32 mEq/L"
-            },
-            {
-              "id": "blood_chemistry.male.cholesterol",
-              "key": "cholesterol",
-              "name": "CHOLESTEROL",
-              "kind": "field",
-              "order": 12,
-              "control": "input",
-              "data_type": "number",
-              "notes": [
-                "NOTE: ALL RESULTS ABOVE OR BELOW NORMAL VALUE MAKE IT RED"
-              ],
-              "source": {
-                "sheet_row": 23,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "0 - 200 mg/dl"
-            },
-            {
-              "id": "blood_chemistry.male.triglyceride",
-              "key": "triglyceride",
-              "name": "TRIGLYCERIDE",
-              "kind": "field",
-              "order": 13,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 24,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "0 - 150 mg/dl"
-            },
-            {
-              "id": "blood_chemistry.male.hdl_cholesterol",
-              "key": "hdl_cholesterol",
-              "name": "HDL CHOLESTEROL",
-              "kind": "field",
-              "order": 14,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 25,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "30 - 85 mg/dl"
-            },
-            {
-              "id": "blood_chemistry.male.ldl_cholesterol",
-              "key": "ldl_cholesterol",
-              "name": "LDL CHOLESTEROL",
-              "kind": "field",
-              "order": 15,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 26,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "66 - 178 mg/dl"
-            },
-            {
-              "id": "blood_chemistry.male.vldl_cholesterol",
-              "key": "vldl_cholesterol",
-              "name": "VLDL CHOLESTEROL",
-              "kind": "field",
-              "order": 16,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 27,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "0-40 mg/dl"
-            },
-            {
-              "id": "blood_chemistry.male.sgot_ast",
-              "key": "sgot_ast",
-              "name": "SGOT(AST)",
-              "kind": "field",
-              "order": 17,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 28,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "U/L",
-              "normal_value": "0 - 31 U/L"
-            },
-            {
-              "id": "blood_chemistry.male.sgpt_alt",
-              "key": "sgpt_alt",
-              "name": "SGPT(ALT)",
-              "kind": "field",
-              "order": 18,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 29,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "U/L",
-              "normal_value": "0 - 34 U/L"
-            },
-            {
-              "id": "blood_chemistry.male.others",
-              "key": "others",
-              "name": "OTHERS",
-              "kind": "field",
-              "order": 19,
-              "control": "input",
-              "data_type": "text",
-              "source": {
-                "sheet_row": 31,
-                "raw_input_type": "Manual Entry"
-              }
             }
           ],
           "sections": []
@@ -2763,365 +2819,394 @@
           },
           "fields": [
             {
-              "id": "blood_chemistry.female.examination",
-              "key": "examination",
-              "name": "Examination",
-              "kind": "field",
+              "id": "blood_chemistry.female.details",
+              "key": "details",
+              "name": "Female Details",
+              "kind": "field_group",
               "order": 1,
-              "control": "select",
-              "data_type": "enum",
               "source": {
-                "sheet_row": 7,
-                "raw_input_type": "Predefined Selection"
+                "normalized_from": "approved_default_container"
               },
-              "options": [
+              "fields": [
                 {
-                  "id": "blood_chemistry.female.examination.chem_6",
-                  "key": "chem_6",
-                  "name": "CHEM 6",
-                  "order": 1
+                  "id": "blood_chemistry.female.examination",
+                  "key": "examination",
+                  "name": "Examination",
+                  "kind": "field",
+                  "order": 1,
+                  "control": "select",
+                  "data_type": "enum",
+                  "source": {
+                    "sheet_row": 7,
+                    "raw_input_type": "Predefined Selection"
+                  },
+                  "options": [
+                    {
+                      "id": "blood_chemistry.female.examination.chem_6",
+                      "key": "chem_6",
+                      "name": "CHEM 6",
+                      "order": 1
+                    },
+                    {
+                      "id": "blood_chemistry.female.examination.chem_4_lipid_profile",
+                      "key": "chem_4_lipid_profile",
+                      "name": "CHEM 4, LIPID PROFILE",
+                      "order": 2
+                    },
+                    {
+                      "id": "blood_chemistry.female.examination.chem_4_lipid_profile_ast_alt",
+                      "key": "chem_4_lipid_profile_ast_alt",
+                      "name": "CHEM 4, LIPID PROFILE, AST, ALT",
+                      "order": 3
+                    },
+                    {
+                      "id": "blood_chemistry.female.examination.lipid_profile",
+                      "key": "lipid_profile",
+                      "name": "LIPID PROFILE",
+                      "order": 4
+                    },
+                    {
+                      "id": "blood_chemistry.female.examination.fbs_lipid_profile",
+                      "key": "fbs_lipid_profile",
+                      "name": "FBS, LIPID PROFILE",
+                      "order": 5
+                    },
+                    {
+                      "id": "blood_chemistry.female.examination.fbs_bua_lipid_profile",
+                      "key": "fbs_bua_lipid_profile",
+                      "name": "FBS, BUA, LIPID PROFILE",
+                      "order": 6
+                    },
+                    {
+                      "id": "blood_chemistry.female.examination.bun_crea_serum_electrolytes",
+                      "key": "bun_crea_serum_electrolytes",
+                      "name": "BUN, CREA, SERUM ELECTROLYTES",
+                      "order": 7
+                    },
+                    {
+                      "id": "blood_chemistry.female.examination.chem_4_lipid_profile_ast_alt_serum_electrolytes",
+                      "key": "chem_4_lipid_profile_ast_alt_serum_electrolytes",
+                      "name": "CHEM 4, LIPID PROFILE, AST, ALT, SERUM ELECTROLYTES",
+                      "order": 8
+                    },
+                    {
+                      "id": "blood_chemistry.female.examination.bun_crea",
+                      "key": "bun_crea",
+                      "name": "BUN, CREA",
+                      "order": 9
+                    },
+                    {
+                      "id": "blood_chemistry.female.examination.bun_crea_bua_serum_electrolytes",
+                      "key": "bun_crea_bua_serum_electrolytes",
+                      "name": "BUN, CREA, BUA, SERUM ELECTROLYTES",
+                      "order": 10
+                    },
+                    {
+                      "id": "blood_chemistry.female.examination.serum_electrolytes",
+                      "key": "serum_electrolytes",
+                      "name": "SERUM ELECTROLYTES",
+                      "order": 11
+                    },
+                    {
+                      "id": "blood_chemistry.female.examination.chem_4_lipid_profile_serum_electrolytes",
+                      "key": "chem_4_lipid_profile_serum_electrolytes",
+                      "name": "CHEM 4, LIPID PROFILE, SERUM ELECTROLYTES",
+                      "order": 12
+                    }
+                  ]
                 },
                 {
-                  "id": "blood_chemistry.female.examination.chem_4_lipid_profile",
-                  "key": "chem_4_lipid_profile",
-                  "name": "CHEM 4, LIPID PROFILE",
-                  "order": 2
+                  "id": "blood_chemistry.female.fasting_blood_sugar",
+                  "key": "fasting_blood_sugar",
+                  "name": "FASTING BLOOD SUGAR",
+                  "kind": "field",
+                  "order": 2,
+                  "control": "input",
+                  "data_type": "number",
+                  "notes": [
+                    "NOTE: ALL RESULTS ABOVE OR BELOW NORMAL VALUE MAKE IT RED"
+                  ],
+                  "source": {
+                    "sheet_row": 12,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "70.27",
+                  "normal_max": "124.32"
                 },
                 {
-                  "id": "blood_chemistry.female.examination.chem_4_lipid_profile_ast_alt",
-                  "key": "chem_4_lipid_profile_ast_alt",
-                  "name": "CHEM 4, LIPID PROFILE, AST, ALT",
-                  "order": 3
+                  "id": "blood_chemistry.female.random_blood_sugar",
+                  "key": "random_blood_sugar",
+                  "name": "RANDOM BLOOD SUGAR",
+                  "kind": "field",
+                  "order": 3,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 13,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "60",
+                  "normal_max": "140"
                 },
                 {
-                  "id": "blood_chemistry.female.examination.lipid_profile",
-                  "key": "lipid_profile",
-                  "name": "LIPID PROFILE",
-                  "order": 4
+                  "id": "blood_chemistry.female.hgt",
+                  "key": "hgt",
+                  "name": "HGT",
+                  "kind": "field",
+                  "order": 4,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 14,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "53",
+                  "normal_max": "103"
                 },
                 {
-                  "id": "blood_chemistry.female.examination.fbs_lipid_profile",
-                  "key": "fbs_lipid_profile",
-                  "name": "FBS, LIPID PROFILE",
-                  "order": 5
+                  "id": "blood_chemistry.female.blood_urea_nitrogen",
+                  "key": "blood_urea_nitrogen",
+                  "name": "BLOOD UREA NITROGEN",
+                  "kind": "field",
+                  "order": 5,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 15,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "7.9",
+                  "normal_max": "20.2"
                 },
                 {
-                  "id": "blood_chemistry.female.examination.fbs_bua_lipid_profile",
-                  "key": "fbs_bua_lipid_profile",
-                  "name": "FBS, BUA, LIPID PROFILE",
-                  "order": 6
+                  "id": "blood_chemistry.female.creatinine",
+                  "key": "creatinine",
+                  "name": "CREATININE",
+                  "kind": "field",
+                  "order": 6,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 16,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "0.4",
+                  "normal_max": "1.2"
                 },
                 {
-                  "id": "blood_chemistry.female.examination.bun_crea_serum_electrolytes",
-                  "key": "bun_crea_serum_electrolytes",
-                  "name": "BUN, CREA, SERUM ELECTROLYTES",
-                  "order": 7
+                  "id": "blood_chemistry.female.blood_uric_acid",
+                  "key": "blood_uric_acid",
+                  "name": "BLOOD URIC ACID",
+                  "kind": "field",
+                  "order": 7,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 17,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "2.6",
+                  "normal_max": "6.0"
                 },
                 {
-                  "id": "blood_chemistry.female.examination.chem_4_lipid_profile_ast_alt_serum_electrolytes",
-                  "key": "chem_4_lipid_profile_ast_alt_serum_electrolytes",
-                  "name": "CHEM 4, LIPID PROFILE, AST, ALT, SERUM ELECTROLYTES",
-                  "order": 8
+                  "id": "blood_chemistry.female.sodium",
+                  "key": "sodium",
+                  "name": "SODIUM",
+                  "kind": "field",
+                  "order": 8,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 18,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mEq/L",
+                  "normal_min": "135",
+                  "normal_max": "148"
                 },
                 {
-                  "id": "blood_chemistry.female.examination.bun_crea",
-                  "key": "bun_crea",
-                  "name": "BUN, CREA",
-                  "order": 9
+                  "id": "blood_chemistry.female.potassium",
+                  "key": "potassium",
+                  "name": "POTASSIUM",
+                  "kind": "field",
+                  "order": 9,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 19,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mEq/L",
+                  "normal_min": "3.5",
+                  "normal_max": "5.3"
                 },
                 {
-                  "id": "blood_chemistry.female.examination.bun_crea_bua_serum_electrolytes",
-                  "key": "bun_crea_bua_serum_electrolytes",
-                  "name": "BUN, CREA, BUA, SERUM ELECTROLYTES",
-                  "order": 10
+                  "id": "blood_chemistry.female.chloride",
+                  "key": "chloride",
+                  "name": "CHLORIDE",
+                  "kind": "field",
+                  "order": 10,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 20,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mEq/L",
+                  "normal_min": "98",
+                  "normal_max": "107"
                 },
                 {
-                  "id": "blood_chemistry.female.examination.serum_electrolytes",
-                  "key": "serum_electrolytes",
-                  "name": "SERUM ELECTROLYTES",
-                  "order": 11
+                  "id": "blood_chemistry.female.ionized_calcium",
+                  "key": "ionized_calcium",
+                  "name": "IONIZED CALCIUM",
+                  "kind": "field",
+                  "order": 11,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 21,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mEq/L",
+                  "normal_min": "1.13",
+                  "normal_max": "1.32"
                 },
                 {
-                  "id": "blood_chemistry.female.examination.chem_4_lipid_profile_serum_electrolytes",
-                  "key": "chem_4_lipid_profile_serum_electrolytes",
-                  "name": "CHEM 4, LIPID PROFILE, SERUM ELECTROLYTES",
-                  "order": 12
+                  "id": "blood_chemistry.female.cholesterol",
+                  "key": "cholesterol",
+                  "name": "CHOLESTEROL",
+                  "kind": "field",
+                  "order": 12,
+                  "control": "input",
+                  "data_type": "number",
+                  "notes": [
+                    "NOTE: ALL RESULTS ABOVE OR BELOW NORMAL VALUE MAKE IT RED"
+                  ],
+                  "source": {
+                    "sheet_row": 23,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "0",
+                  "normal_max": "200"
+                },
+                {
+                  "id": "blood_chemistry.female.triglyceride",
+                  "key": "triglyceride",
+                  "name": "TRIGLYCERIDE",
+                  "kind": "field",
+                  "order": 13,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 24,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "0",
+                  "normal_max": "150"
+                },
+                {
+                  "id": "blood_chemistry.female.hdl_cholesterol",
+                  "key": "hdl_cholesterol",
+                  "name": "HDL CHOLESTEROL",
+                  "kind": "field",
+                  "order": 14,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 25,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "30",
+                  "normal_max": "85"
+                },
+                {
+                  "id": "blood_chemistry.female.ldl_cholesterol",
+                  "key": "ldl_cholesterol",
+                  "name": "LDL CHOLESTEROL",
+                  "kind": "field",
+                  "order": 15,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 26,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "66",
+                  "normal_max": "178"
+                },
+                {
+                  "id": "blood_chemistry.female.vldl_cholesterol",
+                  "key": "vldl_cholesterol",
+                  "name": "VLDL CHOLESTEROL",
+                  "kind": "field",
+                  "order": 16,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 27,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "mg/dl",
+                  "normal_min": "0",
+                  "normal_max": "40"
+                },
+                {
+                  "id": "blood_chemistry.female.sgot_ast",
+                  "key": "sgot_ast",
+                  "name": "SGOT(AST)",
+                  "kind": "field",
+                  "order": 17,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 28,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "U/L",
+                  "normal_min": "0",
+                  "normal_max": "31"
+                },
+                {
+                  "id": "blood_chemistry.female.sgpt_alt",
+                  "key": "sgpt_alt",
+                  "name": "SGPT(ALT)",
+                  "kind": "field",
+                  "order": 18,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 29,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "U/L",
+                  "normal_min": "0",
+                  "normal_max": "34"
+                },
+                {
+                  "id": "blood_chemistry.female.others",
+                  "key": "others",
+                  "name": "OTHERS",
+                  "kind": "field",
+                  "order": 19,
+                  "control": "input",
+                  "data_type": "text",
+                  "source": {
+                    "sheet_row": 31,
+                    "raw_input_type": "Manual Entry"
+                  }
                 }
               ]
-            },
-            {
-              "id": "blood_chemistry.female.fasting_blood_sugar",
-              "key": "fasting_blood_sugar",
-              "name": "FASTING BLOOD SUGAR",
-              "kind": "field",
-              "order": 2,
-              "control": "input",
-              "data_type": "number",
-              "notes": [
-                "NOTE: ALL RESULTS ABOVE OR BELOW NORMAL VALUE MAKE IT RED"
-              ],
-              "source": {
-                "sheet_row": 12,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "70.27-124.32 mg/dL"
-            },
-            {
-              "id": "blood_chemistry.female.random_blood_sugar",
-              "key": "random_blood_sugar",
-              "name": "RANDOM BLOOD SUGAR",
-              "kind": "field",
-              "order": 3,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 13,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "60 - 140 mg/dl"
-            },
-            {
-              "id": "blood_chemistry.female.hgt",
-              "key": "hgt",
-              "name": "HGT",
-              "kind": "field",
-              "order": 4,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 14,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "53 - 103 mg/dl"
-            },
-            {
-              "id": "blood_chemistry.female.blood_urea_nitrogen",
-              "key": "blood_urea_nitrogen",
-              "name": "BLOOD UREA NITROGEN",
-              "kind": "field",
-              "order": 5,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 15,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "7.9- 20.2 mg/dl"
-            },
-            {
-              "id": "blood_chemistry.female.creatinine",
-              "key": "creatinine",
-              "name": "CREATININE",
-              "kind": "field",
-              "order": 6,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 16,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "0.4-1.2 mg/dl"
-            },
-            {
-              "id": "blood_chemistry.female.blood_uric_acid",
-              "key": "blood_uric_acid",
-              "name": "BLOOD URIC ACID",
-              "kind": "field",
-              "order": 7,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 17,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "2.6 - 6.0 mg/dl"
-            },
-            {
-              "id": "blood_chemistry.female.sodium",
-              "key": "sodium",
-              "name": "SODIUM",
-              "kind": "field",
-              "order": 8,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 18,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mEq/L",
-              "normal_value": "135 - 148 mEq/L"
-            },
-            {
-              "id": "blood_chemistry.female.potassium",
-              "key": "potassium",
-              "name": "POTASSIUM",
-              "kind": "field",
-              "order": 9,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 19,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mEq/L",
-              "normal_value": "3.5 - 5.3 mEq/l"
-            },
-            {
-              "id": "blood_chemistry.female.chloride",
-              "key": "chloride",
-              "name": "CHLORIDE",
-              "kind": "field",
-              "order": 10,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 20,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mEq/L",
-              "normal_value": "98 - 107 mEq/L"
-            },
-            {
-              "id": "blood_chemistry.female.ionized_calcium",
-              "key": "ionized_calcium",
-              "name": "IONIZED CALCIUM",
-              "kind": "field",
-              "order": 11,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 21,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mEq/L",
-              "normal_value": "1.13-1.32 mEq/L"
-            },
-            {
-              "id": "blood_chemistry.female.cholesterol",
-              "key": "cholesterol",
-              "name": "CHOLESTEROL",
-              "kind": "field",
-              "order": 12,
-              "control": "input",
-              "data_type": "number",
-              "notes": [
-                "NOTE: ALL RESULTS ABOVE OR BELOW NORMAL VALUE MAKE IT RED"
-              ],
-              "source": {
-                "sheet_row": 23,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "0 - 200 mg/dl"
-            },
-            {
-              "id": "blood_chemistry.female.triglyceride",
-              "key": "triglyceride",
-              "name": "TRIGLYCERIDE",
-              "kind": "field",
-              "order": 13,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 24,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "0 - 150 mg/dl"
-            },
-            {
-              "id": "blood_chemistry.female.hdl_cholesterol",
-              "key": "hdl_cholesterol",
-              "name": "HDL CHOLESTEROL",
-              "kind": "field",
-              "order": 14,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 25,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "30 - 85 mg/dl"
-            },
-            {
-              "id": "blood_chemistry.female.ldl_cholesterol",
-              "key": "ldl_cholesterol",
-              "name": "LDL CHOLESTEROL",
-              "kind": "field",
-              "order": 15,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 26,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "66 - 178 mg/dl"
-            },
-            {
-              "id": "blood_chemistry.female.vldl_cholesterol",
-              "key": "vldl_cholesterol",
-              "name": "VLDL CHOLESTEROL",
-              "kind": "field",
-              "order": 16,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 27,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mg/dl",
-              "normal_value": "0-40 mg/dl"
-            },
-            {
-              "id": "blood_chemistry.female.sgot_ast",
-              "key": "sgot_ast",
-              "name": "SGOT(AST)",
-              "kind": "field",
-              "order": 17,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 28,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "U/L",
-              "normal_value": "0 - 31 U/L"
-            },
-            {
-              "id": "blood_chemistry.female.sgpt_alt",
-              "key": "sgpt_alt",
-              "name": "SGPT(ALT)",
-              "kind": "field",
-              "order": 18,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 29,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "U/L",
-              "normal_value": "0 - 34 U/L"
-            },
-            {
-              "id": "blood_chemistry.female.others",
-              "key": "others",
-              "name": "OTHERS",
-              "kind": "field",
-              "order": 19,
-              "control": "input",
-              "data_type": "text",
-              "source": {
-                "sheet_row": 31,
-                "raw_input_type": "Manual Entry"
-              }
             }
           ],
           "sections": []
@@ -3224,13 +3309,15 @@
                       "id": "serology.serology.typhidot.igm.positive",
                       "key": "positive",
                       "name": "POSITIVE",
-                      "order": 1
+                      "order": 1,
+                      "is_normal": false
                     },
                     {
                       "id": "serology.serology.typhidot.igm.negative",
                       "key": "negative",
                       "name": "NEGATIVE",
-                      "order": 2
+                      "order": 2,
+                      "is_normal": true
                     }
                   ]
                 },
@@ -3251,13 +3338,15 @@
                       "id": "serology.serology.typhidot.igg.positive",
                       "key": "positive",
                       "name": "POSITIVE",
-                      "order": 1
+                      "order": 1,
+                      "is_normal": false
                     },
                     {
                       "id": "serology.serology.typhidot.igg.negative",
                       "key": "negative",
                       "name": "NEGATIVE",
-                      "order": 2
+                      "order": 2,
+                      "is_normal": true
                     }
                   ]
                 }
@@ -3289,13 +3378,15 @@
                       "id": "serology.serology.dengue_test.ns1ag.positive",
                       "key": "positive",
                       "name": "POSITIVE",
-                      "order": 1
+                      "order": 1,
+                      "is_normal": false
                     },
                     {
                       "id": "serology.serology.dengue_test.ns1ag.negative",
                       "key": "negative",
                       "name": "NEGATIVE",
-                      "order": 2
+                      "order": 2,
+                      "is_normal": true
                     }
                   ]
                 },
@@ -3316,13 +3407,15 @@
                       "id": "serology.serology.dengue_test.igm.positive",
                       "key": "positive",
                       "name": "POSITIVE",
-                      "order": 1
+                      "order": 1,
+                      "is_normal": false
                     },
                     {
                       "id": "serology.serology.dengue_test.igm.negative",
                       "key": "negative",
                       "name": "NEGATIVE",
-                      "order": 2
+                      "order": 2,
+                      "is_normal": true
                     }
                   ]
                 },
@@ -3343,13 +3436,15 @@
                       "id": "serology.serology.dengue_test.igg.positive",
                       "key": "positive",
                       "name": "POSITIVE",
-                      "order": 1
+                      "order": 1,
+                      "is_normal": false
                     },
                     {
                       "id": "serology.serology.dengue_test.igg.negative",
                       "key": "negative",
                       "name": "NEGATIVE",
-                      "order": 2
+                      "order": 2,
+                      "is_normal": true
                     }
                   ]
                 }
@@ -3381,13 +3476,15 @@
                       "id": "serology.serology.malarial_test.anti_plasmodium_falcifarum.positive",
                       "key": "positive",
                       "name": "POSITIVE",
-                      "order": 1
+                      "order": 1,
+                      "is_normal": false
                     },
                     {
                       "id": "serology.serology.malarial_test.anti_plasmodium_falcifarum.negative",
                       "key": "negative",
                       "name": "NEGATIVE",
-                      "order": 2
+                      "order": 2,
+                      "is_normal": true
                     }
                   ]
                 },
@@ -3408,13 +3505,15 @@
                       "id": "serology.serology.malarial_test.anti_plasmodium_vivax.positive",
                       "key": "positive",
                       "name": "POSITIVE",
-                      "order": 1
+                      "order": 1,
+                      "is_normal": false
                     },
                     {
                       "id": "serology.serology.malarial_test.anti_plasmodium_vivax.negative",
                       "key": "negative",
                       "name": "NEGATIVE",
-                      "order": 2
+                      "order": 2,
+                      "is_normal": true
                     }
                   ]
                 }
@@ -3447,13 +3546,15 @@
                       "id": "serology.serology.other_serology_tests.hbsag_screening.reactive",
                       "key": "reactive",
                       "name": "REACTIVE",
-                      "order": 1
+                      "order": 1,
+                      "is_normal": false
                     },
                     {
                       "id": "serology.serology.other_serology_tests.hbsag_screening.non_reactive",
                       "key": "non_reactive",
                       "name": "NON-REACTIVE",
-                      "order": 2
+                      "order": 2,
+                      "is_normal": true
                     }
                   ]
                 },
@@ -3475,13 +3576,15 @@
                       "id": "serology.serology.other_serology_tests.vdrl.positive",
                       "key": "positive",
                       "name": "POSITIVE",
-                      "order": 1
+                      "order": 1,
+                      "is_normal": false
                     },
                     {
                       "id": "serology.serology.other_serology_tests.vdrl.negative",
                       "key": "negative",
                       "name": "NEGATIVE",
-                      "order": 2
+                      "order": 2,
+                      "is_normal": true
                     }
                   ]
                 },
@@ -3503,13 +3606,15 @@
                       "id": "serology.serology.other_serology_tests.anti_hcv.reactive",
                       "key": "reactive",
                       "name": "REACTIVE",
-                      "order": 1
+                      "order": 1,
+                      "is_normal": false
                     },
                     {
                       "id": "serology.serology.other_serology_tests.anti_hcv.non_reactive",
                       "key": "non_reactive",
                       "name": "NON-REACTIVE",
-                      "order": 2
+                      "order": 2,
+                      "is_normal": true
                     }
                   ]
                 },
@@ -3531,13 +3636,15 @@
                       "id": "serology.serology.other_serology_tests.aso_titer.positive_200_iu_ml",
                       "key": "positive_200_iu_ml",
                       "name": "POSITIVE >200 IU/ML",
-                      "order": 1
+                      "order": 1,
+                      "is_normal": false
                     },
                     {
                       "id": "serology.serology.other_serology_tests.aso_titer.negative_200_iu_ml",
                       "key": "negative_200_iu_ml",
                       "name": "NEGATIVE <200 IU/ML",
-                      "order": 2
+                      "order": 2,
+                      "is_normal": true
                     }
                   ]
                 },
@@ -3570,73 +3677,88 @@
           },
           "fields": [
             {
-              "id": "serology.cardiaci.examination",
-              "key": "examination",
-              "name": "Examination",
-              "kind": "field",
+              "id": "serology.cardiaci.details",
+              "key": "details",
+              "name": "Cardiaci Details",
+              "kind": "field_group",
               "order": 1,
-              "control": "select",
-              "data_type": "enum",
               "source": {
-                "sheet_row": 7,
-                "raw_input_type": "Predefined Selection"
+                "normalized_from": "approved_default_container"
               },
-              "options": [
+              "fields": [
                 {
-                  "id": "serology.cardiaci.examination.ck_mb_tni_bnp",
-                  "key": "ck_mb_tni_bnp",
-                  "name": "CK-MB, TNI, BNP",
-                  "order": 1
+                  "id": "serology.cardiaci.examination",
+                  "key": "examination",
+                  "name": "Examination",
+                  "kind": "field",
+                  "order": 1,
+                  "control": "select",
+                  "data_type": "enum",
+                  "source": {
+                    "sheet_row": 7,
+                    "raw_input_type": "Predefined Selection"
+                  },
+                  "options": [
+                    {
+                      "id": "serology.cardiaci.examination.ck_mb_tni_bnp",
+                      "key": "ck_mb_tni_bnp",
+                      "name": "CK-MB, TNI, BNP",
+                      "order": 1
+                    }
+                  ]
+                },
+                {
+                  "id": "serology.cardiaci.ck_mb",
+                  "key": "ck_mb",
+                  "name": "CK-MB",
+                  "kind": "field",
+                  "order": 2,
+                  "control": "input",
+                  "data_type": "number",
+                  "notes": [
+                    "NOTE: ALL RESULTS ABOVE OR BELOW NORMAL VALUE MAKE IT RED"
+                  ],
+                  "source": {
+                    "sheet_row": 12,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "ng/mL",
+                  "normal_min": "0.0",
+                  "normal_max": "4.3"
+                },
+                {
+                  "id": "serology.cardiaci.troponin_i",
+                  "key": "troponin_i",
+                  "name": "TROPONIN - I",
+                  "kind": "field",
+                  "order": 3,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 13,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "ng/mL",
+                  "normal_min": "0.0",
+                  "normal_max": "0.02"
+                },
+                {
+                  "id": "serology.cardiaci.bnp",
+                  "key": "bnp",
+                  "name": "BNP",
+                  "kind": "field",
+                  "order": 4,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 14,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "pg/mL",
+                  "normal_min": "0.0",
+                  "normal_max": "100"
                 }
               ]
-            },
-            {
-              "id": "serology.cardiaci.ck_mb",
-              "key": "ck_mb",
-              "name": "CK-MB",
-              "kind": "field",
-              "order": 2,
-              "control": "input",
-              "data_type": "number",
-              "notes": [
-                "NOTE: ALL RESULTS ABOVE OR BELOW NORMAL VALUE MAKE IT RED"
-              ],
-              "source": {
-                "sheet_row": 12,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "ng/mL",
-              "normal_value": "0.0 - 4.3 ng / mL"
-            },
-            {
-              "id": "serology.cardiaci.troponin_i",
-              "key": "troponin_i",
-              "name": "TROPONIN - I",
-              "kind": "field",
-              "order": 3,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 13,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "ng/mL",
-              "normal_value": "0.0 - 0.02 ng /mL"
-            },
-            {
-              "id": "serology.cardiaci.bnp",
-              "key": "bnp",
-              "name": "BNP",
-              "kind": "field",
-              "order": 4,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 14,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "pg/mL",
-              "normal_value": "0.0 - 100 pg / mL"
             }
           ],
           "sections": []
@@ -3653,63 +3775,77 @@
           },
           "fields": [
             {
-              "id": "serology.hiv_1_and_2_testing.examination",
-              "key": "examination",
-              "name": "Examination",
-              "kind": "field",
+              "id": "serology.hiv_1_and_2_testing.details",
+              "key": "details",
+              "name": "HIV 1&2 Testing Details",
+              "kind": "field_group",
               "order": 1,
-              "control": "select",
-              "data_type": "enum",
               "source": {
-                "sheet_row": 7,
-                "raw_input_type": "Predefined Selection"
+                "normalized_from": "approved_default_container"
               },
-              "options": [
+              "fields": [
                 {
-                  "id": "serology.hiv_1_and_2_testing.examination.hiv_testing",
-                  "key": "hiv_testing",
-                  "name": "HIV TESTING",
-                  "order": 1
-                }
-              ]
-            },
-            {
-              "id": "serology.hiv_1_and_2_testing.lot_number",
-              "key": "lot_number",
-              "name": "LOT NUMBER",
-              "kind": "field",
-              "order": 2,
-              "control": "input",
-              "data_type": "text",
-              "source": {
-                "sheet_row": 12,
-                "raw_input_type": "Manual Entry"
-              }
-            },
-            {
-              "id": "serology.hiv_1_and_2_testing.test_result",
-              "key": "test_result",
-              "name": "TEST RESULT",
-              "kind": "field",
-              "order": 3,
-              "control": "select",
-              "data_type": "enum",
-              "source": {
-                "sheet_row": 14,
-                "raw_input_type": "Predefined Selection"
-              },
-              "options": [
-                {
-                  "id": "serology.hiv_1_and_2_testing.test_result.reactive",
-                  "key": "reactive",
-                  "name": "REACTIVE",
-                  "order": 1
+                  "id": "serology.hiv_1_and_2_testing.examination",
+                  "key": "examination",
+                  "name": "Examination",
+                  "kind": "field",
+                  "order": 1,
+                  "control": "select",
+                  "data_type": "enum",
+                  "source": {
+                    "sheet_row": 7,
+                    "raw_input_type": "Predefined Selection"
+                  },
+                  "options": [
+                    {
+                      "id": "serology.hiv_1_and_2_testing.examination.hiv_testing",
+                      "key": "hiv_testing",
+                      "name": "HIV TESTING",
+                      "order": 1
+                    }
+                  ]
                 },
                 {
-                  "id": "serology.hiv_1_and_2_testing.test_result.non_reactive",
-                  "key": "non_reactive",
-                  "name": "NON-REACTIVE",
-                  "order": 2
+                  "id": "serology.hiv_1_and_2_testing.lot_number",
+                  "key": "lot_number",
+                  "name": "LOT NUMBER",
+                  "kind": "field",
+                  "order": 2,
+                  "control": "input",
+                  "data_type": "text",
+                  "source": {
+                    "sheet_row": 12,
+                    "raw_input_type": "Manual Entry"
+                  }
+                },
+                {
+                  "id": "serology.hiv_1_and_2_testing.test_result",
+                  "key": "test_result",
+                  "name": "TEST RESULT",
+                  "kind": "field",
+                  "order": 3,
+                  "control": "select",
+                  "data_type": "enum",
+                  "source": {
+                    "sheet_row": 14,
+                    "raw_input_type": "Predefined Selection"
+                  },
+                  "options": [
+                    {
+                      "id": "serology.hiv_1_and_2_testing.test_result.reactive",
+                      "key": "reactive",
+                      "name": "REACTIVE",
+                      "order": 1,
+                      "is_normal": false
+                    },
+                    {
+                      "id": "serology.hiv_1_and_2_testing.test_result.non_reactive",
+                      "key": "non_reactive",
+                      "name": "NON-REACTIVE",
+                      "order": 2,
+                      "is_normal": true
+                    }
+                  ]
                 }
               ]
             }
@@ -3730,50 +3866,77 @@
           },
           "fields": [
             {
-              "id": "serology.covid_19_antigen_rapid_test.examination",
-              "key": "examination",
-              "name": "Examination",
-              "kind": "field",
+              "id": "serology.covid_19_antigen_rapid_test.details",
+              "key": "details",
+              "name": "COVID 19 Antigen (Rapid Test) Details",
+              "kind": "field_group",
               "order": 1,
-              "control": "select",
-              "data_type": "enum",
               "source": {
-                "sheet_row": 7,
-                "raw_input_type": "Predefined Selection"
+                "normalized_from": "approved_default_container"
               },
-              "options": [
+              "fields": [
                 {
-                  "id": "serology.covid_19_antigen_rapid_test.examination.covid_19_antigen_test",
-                  "key": "covid_19_antigen_test",
-                  "name": "COVID 19-ANTIGEN TEST",
-                  "order": 1
-                }
-              ]
-            },
-            {
-              "id": "serology.covid_19_antigen_rapid_test.test_result",
-              "key": "test_result",
-              "name": "TEST RESULT",
-              "kind": "field",
-              "order": 2,
-              "control": "select",
-              "data_type": "enum",
-              "source": {
-                "sheet_row": 12,
-                "raw_input_type": "Predefined Selection"
-              },
-              "options": [
-                {
-                  "id": "serology.covid_19_antigen_rapid_test.test_result.negative",
-                  "key": "negative",
-                  "name": "NEGATIVE",
-                  "order": 1
+                  "id": "serology.covid_19_antigen_rapid_test.examination",
+                  "key": "examination",
+                  "name": "Examination",
+                  "kind": "field",
+                  "order": 1,
+                  "control": "select",
+                  "data_type": "enum",
+                  "source": {
+                    "sheet_row": 7,
+                    "raw_input_type": "Predefined Selection"
+                  },
+                  "options": [
+                    {
+                      "id": "serology.covid_19_antigen_rapid_test.examination.covid_19_antigen_test",
+                      "key": "covid_19_antigen_test",
+                      "name": "COVID 19-ANTIGEN TEST",
+                      "order": 1
+                    }
+                  ]
                 },
                 {
-                  "id": "serology.covid_19_antigen_rapid_test.test_result.positive",
-                  "key": "positive",
-                  "name": "POSITIVE",
-                  "order": 2
+                  "id": "serology.covid_19_antigen_rapid_test.test_result",
+                  "key": "test_result",
+                  "name": "TEST RESULT",
+                  "kind": "field",
+                  "order": 2,
+                  "control": "select",
+                  "data_type": "enum",
+                  "source": {
+                    "sheet_row": 12,
+                    "raw_input_type": "Predefined Selection"
+                  },
+                  "options": [
+                    {
+                      "id": "serology.covid_19_antigen_rapid_test.test_result.negative",
+                      "key": "negative",
+                      "name": "NEGATIVE",
+                      "order": 1,
+                      "is_normal": true
+                    },
+                    {
+                      "id": "serology.covid_19_antigen_rapid_test.test_result.positive",
+                      "key": "positive",
+                      "name": "POSITIVE",
+                      "order": 2,
+                      "is_normal": false
+                    }
+                  ]
+                },
+                {
+                  "id": "serology.covid_19_antigen_rapid_test.details.result_image",
+                  "key": "result_image",
+                  "name": "Result Image",
+                  "kind": "field",
+                  "order": 3,
+                  "control": "input",
+                  "data_type": "image",
+                  "required": true,
+                  "source": {
+                    "normalized_from": "approved_default_result_image"
+                  }
                 }
               ]
             }
@@ -4809,174 +4972,88 @@
                   "order": 1
                 }
               ]
-            }
-          ],
-          "sections": [
-            {
-              "id": "blood_gas_analysis.blood_gas_analysis.blood_gas_value_abg",
-              "key": "blood_gas_value_abg",
-              "name": "Blood gas value (ABG)",
-              "order": 1,
-              "source": {
-                "sheet_row": 11
-              },
-              "fields": [
-                {
-                  "id": "blood_gas_analysis.blood_gas_analysis.blood_gas_value_abg.ph",
-                  "key": "ph",
-                  "name": "pH",
-                  "kind": "field",
-                  "order": 1,
-                  "control": "input",
-                  "data_type": "number",
-                  "notes": [
-                    "NOTE: ALL RESULTS ABOVE OR BELOW NORMAL VALUE MAKE IT RED"
-                  ],
-                  "source": {
-                    "sheet_row": 12,
-                    "raw_input_type": "Manual Entry"
-                  },
-                  "normal_value": "7.35-7.45"
-                },
-                {
-                  "id": "blood_gas_analysis.blood_gas_analysis.blood_gas_value_abg.po2",
-                  "key": "po2",
-                  "name": "pO2",
-                  "kind": "field",
-                  "order": 2,
-                  "control": "input",
-                  "data_type": "number",
-                  "source": {
-                    "sheet_row": 13,
-                    "raw_input_type": "Manual Entry"
-                  },
-                  "unit_hint": "mmHg",
-                  "normal_value": "80-105 mmHg"
-                },
-                {
-                  "id": "blood_gas_analysis.blood_gas_analysis.blood_gas_value_abg.pco2",
-                  "key": "pco2",
-                  "name": "pCO2",
-                  "kind": "field",
-                  "order": 3,
-                  "control": "input",
-                  "data_type": "number",
-                  "source": {
-                    "sheet_row": 14,
-                    "raw_input_type": "Manual Entry"
-                  },
-                  "unit_hint": "mmHg",
-                  "normal_value": "35.0-45.0 mmHg"
-                }
-              ]
             },
             {
-              "id": "blood_gas_analysis.blood_gas_analysis.calculated_values_oximetry",
-              "key": "calculated_values_oximetry",
-              "name": "Calculated values (OXIMETRY)",
+              "id": "blood_gas_analysis.blood_gas_analysis.blood_gas_values",
+              "key": "blood_gas_values",
+              "name": "Blood Gas Values",
+              "kind": "field_group",
               "order": 2,
               "source": {
-                "sheet_row": 15
+                "normalized_from": "approved_default_container_layout"
               },
               "fields": [
                 {
-                  "id": "blood_gas_analysis.blood_gas_analysis.calculated_values_oximetry.so2",
-                  "key": "so2",
-                  "name": "sO2",
-                  "kind": "field",
+                  "id": "blood_gas_analysis.blood_gas_analysis.blood_gas_value_abg",
+                  "key": "abg",
+                  "name": "ABG",
+                  "kind": "field_group",
                   "order": 1,
-                  "control": "input",
-                  "data_type": "number",
-                  "notes": [
-                    "NOTE: ALL RESULTS ABOVE OR BELOW NORMAL VALUE MAKE IT RED"
+                  "fields": [
+                    {
+                      "id": "blood_gas_analysis.blood_gas_analysis.blood_gas_value_abg.ph",
+                      "key": "ph",
+                      "name": "pH",
+                      "kind": "field",
+                      "order": 1,
+                      "control": "input",
+                      "data_type": "number",
+                      "notes": [
+                        "NOTE: ALL RESULTS ABOVE OR BELOW NORMAL VALUE MAKE IT RED"
+                      ],
+                      "source": {
+                        "sheet_row": 12,
+                        "raw_input_type": "Manual Entry"
+                      },
+                      "normal_value": "7.35-7.45",
+                      "normal_min": "7.35",
+                      "normal_max": "7.45"
+                    },
+                    {
+                      "id": "blood_gas_analysis.blood_gas_analysis.blood_gas_value_abg.po2",
+                      "key": "po2",
+                      "name": "pO2",
+                      "kind": "field",
+                      "order": 2,
+                      "control": "input",
+                      "data_type": "number",
+                      "source": {
+                        "sheet_row": 13,
+                        "raw_input_type": "Manual Entry"
+                      },
+                      "unit_hint": "mmHg",
+                      "normal_value": "80-105 mmHg",
+                      "normal_min": "80",
+                      "normal_max": "105"
+                    },
+                    {
+                      "id": "blood_gas_analysis.blood_gas_analysis.blood_gas_value_abg.pco2",
+                      "key": "pco2",
+                      "name": "pCO2",
+                      "kind": "field",
+                      "order": 3,
+                      "control": "input",
+                      "data_type": "number",
+                      "source": {
+                        "sheet_row": 14,
+                        "raw_input_type": "Manual Entry"
+                      },
+                      "unit_hint": "mmHg",
+                      "normal_value": "35.0-45.0 mmHg",
+                      "normal_min": "35",
+                      "normal_max": "45"
+                    }
                   ],
                   "source": {
-                    "sheet_row": 16,
-                    "raw_input_type": "Manual Entry"
-                  },
-                  "unit_hint": "%",
-                  "normal_value": "95-100 %"
-                }
-              ]
-            },
-            {
-              "id": "blood_gas_analysis.blood_gas_analysis.calculated_values_acid_base_status",
-              "key": "calculated_values_acid_base_status",
-              "name": "Calculated values (ACID BASE STATUS)",
-              "order": 3,
-              "source": {
-                "sheet_row": 17
-              },
-              "fields": [
-                {
-                  "id": "blood_gas_analysis.blood_gas_analysis.calculated_values_acid_base_status.hco3",
-                  "key": "hco3",
-                  "name": "HCO3",
-                  "kind": "field",
-                  "order": 1,
-                  "control": "input",
-                  "data_type": "number",
-                  "notes": [
-                    "NOTE: ALL RESULTS ABOVE OR BELOW NORMAL VALUE MAKE IT RED"
-                  ],
-                  "source": {
-                    "sheet_row": 18,
-                    "raw_input_type": "Manual Entry"
-                  },
-                  "unit_hint": "mmol/L",
-                  "normal_value": "22-28 mmol/L"
-                },
-                {
-                  "id": "blood_gas_analysis.blood_gas_analysis.calculated_values_acid_base_status.be_ecf",
-                  "key": "be_ecf",
-                  "name": "BE(ecf)",
-                  "kind": "field",
-                  "order": 2,
-                  "control": "input",
-                  "data_type": "number",
-                  "source": {
-                    "sheet_row": 19,
-                    "raw_input_type": "Manual Entry"
-                  },
-                  "unit_hint": "mmol/L",
-                  "normal_value": "-2 to +2 mmol/L"
-                },
-                {
-                  "id": "blood_gas_analysis.blood_gas_analysis.calculated_values_acid_base_status.po2_a_a",
-                  "key": "po2_a_a",
-                  "name": "pO2(A-a)",
-                  "kind": "field",
-                  "order": 3,
-                  "control": "input",
-                  "data_type": "number",
-                  "source": {
-                    "sheet_row": 20,
-                    "raw_input_type": "Manual Entry"
-                  },
-                  "unit_hint": "mmHg",
-                  "normal_value": "5-10 mmHg"
-                },
-                {
-                  "id": "blood_gas_analysis.blood_gas_analysis.calculated_values_acid_base_status.tco2",
-                  "key": "tco2",
-                  "name": "TCO2",
-                  "kind": "field",
-                  "order": 4,
-                  "control": "input",
-                  "data_type": "number",
-                  "source": {
-                    "sheet_row": 21,
-                    "raw_input_type": "Manual Entry"
-                  },
-                  "unit_hint": "mmol/L",
-                  "normal_value": "23-29 mmol/L"
+                    "sheet_row": 11
+                  }
                 },
                 {
                   "id": "blood_gas_analysis.blood_gas_analysis.calculated_values_acid_base_status.note",
                   "key": "note",
                   "name": "NOTE",
                   "kind": "field",
-                  "order": 5,
+                  "order": 2,
                   "control": "input",
                   "data_type": "text",
                   "source": {
@@ -4985,8 +5062,136 @@
                   }
                 }
               ]
+            },
+            {
+              "id": "blood_gas_analysis.blood_gas_analysis.calculated_values",
+              "key": "calculated_values",
+              "name": "Calculated Values",
+              "kind": "field_group",
+              "order": 3,
+              "source": {
+                "normalized_from": "approved_default_container_layout"
+              },
+              "fields": [
+                {
+                  "id": "blood_gas_analysis.blood_gas_analysis.calculated_values_oximetry",
+                  "key": "oximetry",
+                  "name": "Oximetry",
+                  "kind": "field_group",
+                  "order": 1,
+                  "fields": [
+                    {
+                      "id": "blood_gas_analysis.blood_gas_analysis.calculated_values_oximetry.so2",
+                      "key": "so2",
+                      "name": "sO2",
+                      "kind": "field",
+                      "order": 1,
+                      "control": "input",
+                      "data_type": "number",
+                      "notes": [
+                        "NOTE: ALL RESULTS ABOVE OR BELOW NORMAL VALUE MAKE IT RED"
+                      ],
+                      "source": {
+                        "sheet_row": 16,
+                        "raw_input_type": "Manual Entry"
+                      },
+                      "unit_hint": "%",
+                      "normal_value": "95-100 %",
+                      "normal_min": "95",
+                      "normal_max": "100"
+                    }
+                  ],
+                  "source": {
+                    "sheet_row": 15
+                  }
+                },
+                {
+                  "id": "blood_gas_analysis.blood_gas_analysis.calculated_values_acid_base_status",
+                  "key": "acid_base_status",
+                  "name": "Acid-Base Status",
+                  "kind": "field_group",
+                  "order": 2,
+                  "fields": [
+                    {
+                      "id": "blood_gas_analysis.blood_gas_analysis.calculated_values_acid_base_status.hco3",
+                      "key": "hco3",
+                      "name": "HCO3",
+                      "kind": "field",
+                      "order": 1,
+                      "control": "input",
+                      "data_type": "number",
+                      "notes": [
+                        "NOTE: ALL RESULTS ABOVE OR BELOW NORMAL VALUE MAKE IT RED"
+                      ],
+                      "source": {
+                        "sheet_row": 18,
+                        "raw_input_type": "Manual Entry"
+                      },
+                      "unit_hint": "mmol/L",
+                      "normal_value": "22-28 mmol/L",
+                      "normal_min": "22",
+                      "normal_max": "28"
+                    },
+                    {
+                      "id": "blood_gas_analysis.blood_gas_analysis.calculated_values_acid_base_status.be_ecf",
+                      "key": "be_ecf",
+                      "name": "BE(ecf)",
+                      "kind": "field",
+                      "order": 2,
+                      "control": "input",
+                      "data_type": "number",
+                      "source": {
+                        "sheet_row": 19,
+                        "raw_input_type": "Manual Entry"
+                      },
+                      "unit_hint": "mmol/L",
+                      "normal_value": "-2 to +2 mmol/L",
+                      "normal_min": "-2",
+                      "normal_max": "2"
+                    },
+                    {
+                      "id": "blood_gas_analysis.blood_gas_analysis.calculated_values_acid_base_status.po2_a_a",
+                      "key": "po2_a_a",
+                      "name": "pO2(A-a)",
+                      "kind": "field",
+                      "order": 3,
+                      "control": "input",
+                      "data_type": "number",
+                      "source": {
+                        "sheet_row": 20,
+                        "raw_input_type": "Manual Entry"
+                      },
+                      "unit_hint": "mmHg",
+                      "normal_value": "5-10 mmHg",
+                      "normal_min": "5",
+                      "normal_max": "10"
+                    },
+                    {
+                      "id": "blood_gas_analysis.blood_gas_analysis.calculated_values_acid_base_status.tco2",
+                      "key": "tco2",
+                      "name": "TCO2",
+                      "kind": "field",
+                      "order": 4,
+                      "control": "input",
+                      "data_type": "number",
+                      "source": {
+                        "sheet_row": 21,
+                        "raw_input_type": "Manual Entry"
+                      },
+                      "unit_hint": "mmol/L",
+                      "normal_value": "23-29 mmol/L",
+                      "normal_min": "23",
+                      "normal_max": "29"
+                    }
+                  ],
+                  "source": {
+                    "sheet_row": 17
+                  }
+                }
+              ]
             }
-          ]
+          ],
+          "sections": []
         }
       ]
     },
@@ -5010,375 +5215,445 @@
           },
           "fields": [
             {
-              "id": "hematology.hematology.examination",
-              "key": "examination",
-              "name": "Examination",
-              "kind": "field",
+              "id": "hematology.hematology.details",
+              "key": "details",
+              "name": "Hematology Details",
+              "kind": "field_group",
               "order": 1,
-              "control": "select",
-              "data_type": "enum",
               "source": {
-                "sheet_row": 7,
-                "raw_input_type": "Predefined Selection"
+                "normalized_from": "approved_default_container"
               },
-              "options": [
+              "fields": [
                 {
-                  "id": "hematology.hematology.examination.cbc_platelet_count_blood_typing",
-                  "key": "cbc_platelet_count_blood_typing",
-                  "name": "CBC, PLATELET COUNT, BLOOD TYPING",
-                  "order": 1
+                  "id": "hematology.hematology.examination",
+                  "key": "examination",
+                  "name": "Examination",
+                  "kind": "field",
+                  "order": 1,
+                  "control": "select",
+                  "data_type": "enum",
+                  "source": {
+                    "sheet_row": 7,
+                    "raw_input_type": "Predefined Selection"
+                  },
+                  "options": [
+                    {
+                      "id": "hematology.hematology.examination.cbc_platelet_count_blood_typing",
+                      "key": "cbc_platelet_count_blood_typing",
+                      "name": "CBC, PLATELET COUNT, BLOOD TYPING",
+                      "order": 1
+                    },
+                    {
+                      "id": "hematology.hematology.examination.hgb_hct_platelet_count",
+                      "key": "hgb_hct_platelet_count",
+                      "name": "HGB-HCT, PLATELET COUNT",
+                      "order": 2
+                    },
+                    {
+                      "id": "hematology.hematology.examination.blood_typing",
+                      "key": "blood_typing",
+                      "name": "BLOOD TYPING",
+                      "order": 3
+                    },
+                    {
+                      "id": "hematology.hematology.examination.cbc_platelet_count_esr",
+                      "key": "cbc_platelet_count_esr",
+                      "name": "CBC, PLATELET COUNT, ESR",
+                      "order": 4
+                    },
+                    {
+                      "id": "hematology.hematology.examination.cbc_platelet_count",
+                      "key": "cbc_platelet_count",
+                      "name": "CBC, PLATELET COUNT",
+                      "order": 5
+                    }
+                  ]
                 },
                 {
-                  "id": "hematology.hematology.examination.hgb_hct_platelet_count",
-                  "key": "hgb_hct_platelet_count",
-                  "name": "HGB-HCT, PLATELET COUNT",
-                  "order": 2
+                  "id": "hematology.hematology.rbc_count_m",
+                  "key": "rbc_count_m",
+                  "name": "RBC COUNT (M)",
+                  "kind": "field",
+                  "order": 2,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 12,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "/L",
+                  "normal_value": "4.6 - 6.2 X 1012/L",
+                  "normal_min": "4.6",
+                  "normal_max": "6.2",
+                  "unit": "x10^12/L"
                 },
                 {
-                  "id": "hematology.hematology.examination.blood_typing",
+                  "id": "hematology.hematology.rbc_count_f",
+                  "key": "rbc_count_f",
+                  "name": "RBC COUNT (F)",
+                  "kind": "field",
+                  "order": 3,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 13,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "/L",
+                  "normal_value": "4.2 - 5.4 X 1012/L",
+                  "normal_min": "4.2",
+                  "normal_max": "5.4",
+                  "unit": "x10^12/L"
+                },
+                {
+                  "id": "hematology.hematology.wbc_count",
+                  "key": "wbc_count",
+                  "name": "WBC COUNT",
+                  "kind": "field",
+                  "order": 4,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 14,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "/L",
+                  "normal_value": "5.0 - 10.0 X 109/L",
+                  "normal_min": "5.0",
+                  "normal_max": "10.0",
+                  "unit": "x10^9/L"
+                },
+                {
+                  "id": "hematology.hematology.hemoglobin_m",
+                  "key": "hemoglobin_m",
+                  "name": "HEMOGLOBIN (M)",
+                  "kind": "field",
+                  "order": 5,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 15,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "g/L",
+                  "normal_value": "140-180 g/L",
+                  "normal_min": "140",
+                  "normal_max": "180",
+                  "unit": "g/L"
+                },
+                {
+                  "id": "hematology.hematology.hemoglobin_f",
+                  "key": "hemoglobin_f",
+                  "name": "HEMOGLOBIN (F)",
+                  "kind": "field",
+                  "order": 6,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 16,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "g/L",
+                  "normal_value": "120 - 160 g/L",
+                  "normal_min": "120",
+                  "normal_max": "160",
+                  "unit": "g/L"
+                },
+                {
+                  "id": "hematology.hematology.hematocrit_m",
+                  "key": "hematocrit_m",
+                  "name": "HEMATOCRIT (M)",
+                  "kind": "field",
+                  "order": 7,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 17,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "/L",
+                  "normal_value": "0.40-0.54 /L",
+                  "normal_min": "0.40",
+                  "normal_max": "0.54",
+                  "unit": "/L"
+                },
+                {
+                  "id": "hematology.hematology.hematocrit_f",
+                  "key": "hematocrit_f",
+                  "name": "HEMATOCRIT (F)",
+                  "kind": "field",
+                  "order": 8,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 18,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "/L",
+                  "normal_value": "0.37 - 0.42 /L",
+                  "normal_min": "0.37",
+                  "normal_max": "0.42",
+                  "unit": "/L"
+                },
+                {
+                  "id": "hematology.hematology.platelet_count",
+                  "key": "platelet_count",
+                  "name": "PLATELET COUNT",
+                  "kind": "field",
+                  "order": 9,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 19,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "/L",
+                  "normal_value": "150 - 450 X 109/L",
+                  "normal_min": "150",
+                  "normal_max": "450",
+                  "unit": "x10^9/L"
+                },
+                {
+                  "id": "hematology.hematology.clotting_time",
+                  "key": "clotting_time",
+                  "name": "CLOTTING TIME",
+                  "kind": "field",
+                  "order": 10,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 20,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "minutes",
+                  "normal_value": "1 - 6 minutes",
+                  "normal_min": "1",
+                  "normal_max": "6",
+                  "unit": "minutes"
+                },
+                {
+                  "id": "hematology.hematology.bleeding_time",
+                  "key": "bleeding_time",
+                  "name": "BLEEDING TIME",
+                  "kind": "field",
+                  "order": 11,
+                  "control": "input",
+                  "data_type": "number",
+                  "source": {
+                    "sheet_row": 21,
+                    "raw_input_type": "Manual Entry"
+                  },
+                  "unit_hint": "minutes",
+                  "normal_value": "1 - 6 minutes",
+                  "normal_min": "1",
+                  "normal_max": "6",
+                  "unit": "minutes"
+                },
+                {
+                  "id": "hematology.hematology.blood_typing",
                   "key": "blood_typing",
                   "name": "BLOOD TYPING",
-                  "order": 3
+                  "kind": "field",
+                  "order": 12,
+                  "control": "select",
+                  "data_type": "enum",
+                  "source": {
+                    "sheet_row": 22,
+                    "raw_input_type": "Predefined Selection"
+                  },
+                  "options": [
+                    {
+                      "id": "hematology.hematology.blood_typing.a_rh_positive",
+                      "key": "a_rh_positive",
+                      "name": "\"A\" rh POSITIVE",
+                      "order": 1
+                    },
+                    {
+                      "id": "hematology.hematology.blood_typing.b_rh_positive",
+                      "key": "b_rh_positive",
+                      "name": "\"B\" rh POSITIVE",
+                      "order": 2
+                    },
+                    {
+                      "id": "hematology.hematology.blood_typing.ab_rh_positive",
+                      "key": "ab_rh_positive",
+                      "name": "\"AB\" rh POSITIVE",
+                      "order": 3
+                    },
+                    {
+                      "id": "hematology.hematology.blood_typing.o_rh_positive",
+                      "key": "o_rh_positive",
+                      "name": "\"O\" rh POSITIVE",
+                      "order": 4
+                    },
+                    {
+                      "id": "hematology.hematology.blood_typing.a_rh_negative",
+                      "key": "a_rh_negative",
+                      "name": "\"A\" rh NEGATIVE",
+                      "order": 5
+                    },
+                    {
+                      "id": "hematology.hematology.blood_typing.b_rh_negative",
+                      "key": "b_rh_negative",
+                      "name": "\"B\" rh NEGATIVE",
+                      "order": 6
+                    },
+                    {
+                      "id": "hematology.hematology.blood_typing.o_rh_negative",
+                      "key": "o_rh_negative",
+                      "name": "\"O\" rh NEGATIVE",
+                      "order": 7
+                    },
+                    {
+                      "id": "hematology.hematology.blood_typing.ab_rh_negative",
+                      "key": "ab_rh_negative",
+                      "name": "\"AB\" rh NEGATIVE",
+                      "order": 8
+                    }
+                  ]
                 },
                 {
-                  "id": "hematology.hematology.examination.cbc_platelet_count_esr",
-                  "key": "cbc_platelet_count_esr",
-                  "name": "CBC, PLATELET COUNT, ESR",
-                  "order": 4
+                  "id": "hematology.hematology.details.differential_count",
+                  "key": "differential_count",
+                  "name": "Differential Count",
+                  "kind": "field_group",
+                  "order": 13,
+                  "source": {
+                    "normalized_from": "approved_default_container_layout"
+                  },
+                  "fields": [
+                    {
+                      "id": "hematology.hematology.segmenters",
+                      "key": "segmenters",
+                      "name": "SEGMENTERS",
+                      "kind": "field",
+                      "order": 1,
+                      "control": "input",
+                      "data_type": "number",
+                      "source": {
+                        "sheet_row": 24,
+                        "raw_input_type": "Manual Entry"
+                      },
+                      "normal_value": "0.50 - 0.70",
+                      "normal_min": "0.50",
+                      "normal_max": "0.70"
+                    },
+                    {
+                      "id": "hematology.hematology.lymphocytes",
+                      "key": "lymphocytes",
+                      "name": "LYMPHOCYTES",
+                      "kind": "field",
+                      "order": 2,
+                      "control": "input",
+                      "data_type": "number",
+                      "source": {
+                        "sheet_row": 25,
+                        "raw_input_type": "Manual Entry"
+                      },
+                      "normal_value": "0.25 - 0.40",
+                      "normal_min": "0.25",
+                      "normal_max": "0.40"
+                    },
+                    {
+                      "id": "hematology.hematology.monocytes",
+                      "key": "monocytes",
+                      "name": "MONOCYTES",
+                      "kind": "field",
+                      "order": 3,
+                      "control": "input",
+                      "data_type": "number",
+                      "source": {
+                        "sheet_row": 26,
+                        "raw_input_type": "Manual Entry"
+                      },
+                      "normal_value": "0.03 - 0.08",
+                      "normal_min": "0.03",
+                      "normal_max": "0.08"
+                    },
+                    {
+                      "id": "hematology.hematology.eosinophils",
+                      "key": "eosinophils",
+                      "name": "EOSINOPHILS",
+                      "kind": "field",
+                      "order": 4,
+                      "control": "input",
+                      "data_type": "number",
+                      "source": {
+                        "sheet_row": 27,
+                        "raw_input_type": "Manual Entry"
+                      },
+                      "normal_value": "0.01 - 0.04",
+                      "normal_min": "0.01",
+                      "normal_max": "0.04"
+                    },
+                    {
+                      "id": "hematology.hematology.stab",
+                      "key": "stab",
+                      "name": "STAB",
+                      "kind": "field",
+                      "order": 5,
+                      "control": "input",
+                      "data_type": "number",
+                      "source": {
+                        "sheet_row": 28,
+                        "raw_input_type": "Manual Entry"
+                      },
+                      "normal_value": "0 - 0.05",
+                      "normal_min": "0",
+                      "normal_max": "0.05"
+                    },
+                    {
+                      "id": "hematology.hematology.e_s_r_m",
+                      "key": "e_s_r_m",
+                      "name": "E.S.R . (M)",
+                      "kind": "field",
+                      "order": 6,
+                      "control": "input",
+                      "data_type": "number",
+                      "source": {
+                        "sheet_row": 29,
+                        "raw_input_type": "Manual Entry"
+                      },
+                      "unit_hint": "mm/hr",
+                      "normal_value": "0 - 10 mm/hr",
+                      "normal_min": "0",
+                      "normal_max": "10",
+                      "unit": "mm/hr"
+                    },
+                    {
+                      "id": "hematology.hematology.e_s_r_f",
+                      "key": "e_s_r_f",
+                      "name": "E.S.R . (F)",
+                      "kind": "field",
+                      "order": 7,
+                      "control": "input",
+                      "data_type": "number",
+                      "source": {
+                        "sheet_row": 30,
+                        "raw_input_type": "Manual Entry"
+                      },
+                      "unit_hint": "mm/hr",
+                      "normal_value": "0 - 20 mm/hr",
+                      "normal_min": "0",
+                      "normal_max": "20",
+                      "unit": "mm/hr"
+                    }
+                  ]
                 },
                 {
-                  "id": "hematology.hematology.examination.cbc_platelet_count",
-                  "key": "cbc_platelet_count",
-                  "name": "CBC, PLATELET COUNT",
-                  "order": 5
+                  "id": "hematology.hematology.others",
+                  "key": "others",
+                  "name": "OTHERS",
+                  "kind": "field",
+                  "order": 14,
+                  "control": "input",
+                  "data_type": "text",
+                  "source": {
+                    "sheet_row": 32,
+                    "raw_input_type": "Manual Entry"
+                  }
                 }
               ]
-            },
-            {
-              "id": "hematology.hematology.rbc_count_m",
-              "key": "rbc_count_m",
-              "name": "RBC COUNT (M)",
-              "kind": "field",
-              "order": 2,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 12,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "/L",
-              "normal_value": "4.6 - 6.2 X 1012/L"
-            },
-            {
-              "id": "hematology.hematology.rbc_count_f",
-              "key": "rbc_count_f",
-              "name": "RBC COUNT (F)",
-              "kind": "field",
-              "order": 3,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 13,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "/L",
-              "normal_value": "4.2 - 5.4 X 1012/L"
-            },
-            {
-              "id": "hematology.hematology.wbc_count",
-              "key": "wbc_count",
-              "name": "WBC COUNT",
-              "kind": "field",
-              "order": 4,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 14,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "/L",
-              "normal_value": "5.0 - 10.0 X 109/L"
-            },
-            {
-              "id": "hematology.hematology.hemoglobin_m",
-              "key": "hemoglobin_m",
-              "name": "HEMOGLOBIN (M)",
-              "kind": "field",
-              "order": 5,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 15,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "g/L",
-              "normal_value": "140-180 g/L"
-            },
-            {
-              "id": "hematology.hematology.hemoglobin_f",
-              "key": "hemoglobin_f",
-              "name": "HEMOGLOBIN (F)",
-              "kind": "field",
-              "order": 6,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 16,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "g/L",
-              "normal_value": "120 - 160 g/L"
-            },
-            {
-              "id": "hematology.hematology.hematocrit_m",
-              "key": "hematocrit_m",
-              "name": "HEMATOCRIT (M)",
-              "kind": "field",
-              "order": 7,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 17,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "/L",
-              "normal_value": "0.40-0.54 /L"
-            },
-            {
-              "id": "hematology.hematology.hematocrit_f",
-              "key": "hematocrit_f",
-              "name": "HEMATOCRIT (F)",
-              "kind": "field",
-              "order": 8,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 18,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "/L",
-              "normal_value": "0.37 - 0.42 /L"
-            },
-            {
-              "id": "hematology.hematology.platelet_count",
-              "key": "platelet_count",
-              "name": "PLATELET COUNT",
-              "kind": "field",
-              "order": 9,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 19,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "/L",
-              "normal_value": "150 - 450 X 109/L"
-            },
-            {
-              "id": "hematology.hematology.clotting_time",
-              "key": "clotting_time",
-              "name": "CLOTTING TIME",
-              "kind": "field",
-              "order": 10,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 20,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "minutes",
-              "normal_value": "1 - 6 minutes"
-            },
-            {
-              "id": "hematology.hematology.bleeding_time",
-              "key": "bleeding_time",
-              "name": "BLEEDING TIME",
-              "kind": "field",
-              "order": 11,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 21,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "minutes",
-              "normal_value": "1 - 6 minutes"
-            },
-            {
-              "id": "hematology.hematology.blood_typing",
-              "key": "blood_typing",
-              "name": "BLOOD TYPING",
-              "kind": "field",
-              "order": 12,
-              "control": "select",
-              "data_type": "enum",
-              "source": {
-                "sheet_row": 22,
-                "raw_input_type": "Predefined Selection"
-              },
-              "options": [
-                {
-                  "id": "hematology.hematology.blood_typing.a_rh_positive",
-                  "key": "a_rh_positive",
-                  "name": "\"A\" rh POSITIVE",
-                  "order": 1
-                },
-                {
-                  "id": "hematology.hematology.blood_typing.b_rh_positive",
-                  "key": "b_rh_positive",
-                  "name": "\"B\" rh POSITIVE",
-                  "order": 2
-                },
-                {
-                  "id": "hematology.hematology.blood_typing.ab_rh_positive",
-                  "key": "ab_rh_positive",
-                  "name": "\"AB\" rh POSITIVE",
-                  "order": 3
-                },
-                {
-                  "id": "hematology.hematology.blood_typing.o_rh_positive",
-                  "key": "o_rh_positive",
-                  "name": "\"O\" rh POSITIVE",
-                  "order": 4
-                },
-                {
-                  "id": "hematology.hematology.blood_typing.a_rh_negative",
-                  "key": "a_rh_negative",
-                  "name": "\"A\" rh NEGATIVE",
-                  "order": 5
-                },
-                {
-                  "id": "hematology.hematology.blood_typing.b_rh_negative",
-                  "key": "b_rh_negative",
-                  "name": "\"B\" rh NEGATIVE",
-                  "order": 6
-                },
-                {
-                  "id": "hematology.hematology.blood_typing.o_rh_negative",
-                  "key": "o_rh_negative",
-                  "name": "\"O\" rh NEGATIVE",
-                  "order": 7
-                },
-                {
-                  "id": "hematology.hematology.blood_typing.ab_rh_negative",
-                  "key": "ab_rh_negative",
-                  "name": "\"AB\" rh NEGATIVE",
-                  "order": 8
-                }
-              ]
-            },
-            {
-              "id": "hematology.hematology.segmenters",
-              "key": "segmenters",
-              "name": "SEGMENTERS",
-              "kind": "field",
-              "order": 13,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 24,
-                "raw_input_type": "Manual Entry"
-              },
-              "normal_value": "0.50 - 0.70"
-            },
-            {
-              "id": "hematology.hematology.lymphocytes",
-              "key": "lymphocytes",
-              "name": "LYMPHOCYTES",
-              "kind": "field",
-              "order": 14,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 25,
-                "raw_input_type": "Manual Entry"
-              },
-              "normal_value": "0.25 - 0.40"
-            },
-            {
-              "id": "hematology.hematology.monocytes",
-              "key": "monocytes",
-              "name": "MONOCYTES",
-              "kind": "field",
-              "order": 15,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 26,
-                "raw_input_type": "Manual Entry"
-              },
-              "normal_value": "0.03 - 0.08"
-            },
-            {
-              "id": "hematology.hematology.eosinophils",
-              "key": "eosinophils",
-              "name": "EOSINOPHILS",
-              "kind": "field",
-              "order": 16,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 27,
-                "raw_input_type": "Manual Entry"
-              },
-              "normal_value": "0.01 - 0.04"
-            },
-            {
-              "id": "hematology.hematology.stab",
-              "key": "stab",
-              "name": "STAB",
-              "kind": "field",
-              "order": 17,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 28,
-                "raw_input_type": "Manual Entry"
-              },
-              "normal_value": "0 - 0.05"
-            },
-            {
-              "id": "hematology.hematology.e_s_r_m",
-              "key": "e_s_r_m",
-              "name": "E.S.R . (M)",
-              "kind": "field",
-              "order": 18,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 29,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mm/hr",
-              "normal_value": "0 - 10 mm/hr"
-            },
-            {
-              "id": "hematology.hematology.e_s_r_f",
-              "key": "e_s_r_f",
-              "name": "E.S.R . (F)",
-              "kind": "field",
-              "order": 19,
-              "control": "input",
-              "data_type": "number",
-              "source": {
-                "sheet_row": 30,
-                "raw_input_type": "Manual Entry"
-              },
-              "unit_hint": "mm/hr",
-              "normal_value": "0 - 20 mm/hr"
-            },
-            {
-              "id": "hematology.hematology.others",
-              "key": "others",
-              "name": "OTHERS",
-              "kind": "field",
-              "order": 20,
-              "control": "input",
-              "data_type": "text",
-              "source": {
-                "sheet_row": 32,
-                "raw_input_type": "Manual Entry"
-              }
             }
           ],
           "sections": []
@@ -5453,8 +5728,10 @@
                     "sheet_row": 12,
                     "raw_input_type": "Manual Entry"
                   },
-                  "unit_hint": "SECONDS",
-                  "normal_value": "10.0-13.9 seconds"
+                  "unit_hint": "seconds",
+                  "normal_min": "10.0",
+                  "normal_max": "13.9",
+                  "unit": "seconds"
                 },
                 {
                   "id": "hematology.pro_time_aptt.pro_time.control",
@@ -5468,8 +5745,8 @@
                     "sheet_row": 13,
                     "raw_input_type": "Manual Entry"
                   },
-                  "unit_hint": "SECONDS",
-                  "normal_value": "SECONDS"
+                  "unit_hint": "seconds",
+                  "unit": "seconds"
                 },
                 {
                   "id": "hematology.pro_time_aptt.pro_time.inr",
@@ -5483,7 +5760,8 @@
                     "sheet_row": 14,
                     "raw_input_type": "Manual Entry"
                   },
-                  "normal_value": "0.70-1.30"
+                  "normal_min": "0.70",
+                  "normal_max": "1.30"
                 },
                 {
                   "id": "hematology.pro_time_aptt.pro_time.activity",
@@ -5498,7 +5776,7 @@
                     "raw_input_type": "Manual Entry"
                   },
                   "unit_hint": "%",
-                  "normal_value": "% ACTIVITY"
+                  "unit": "%"
                 }
               ]
             },
@@ -5523,8 +5801,10 @@
                     "sheet_row": 17,
                     "raw_input_type": "Manual Entry"
                   },
-                  "unit_hint": "SECONDS",
-                  "normal_value": "22.2-37.9 seconds"
+                  "unit_hint": "seconds",
+                  "normal_min": "22.2",
+                  "normal_max": "37.9",
+                  "unit": "seconds"
                 },
                 {
                   "id": "hematology.pro_time_aptt.aptt.control",
@@ -5538,8 +5818,8 @@
                     "sheet_row": 18,
                     "raw_input_type": "Manual Entry"
                   },
-                  "unit_hint": "SECONDS",
-                  "normal_value": "SECONDS"
+                  "unit_hint": "seconds",
+                  "unit": "seconds"
                 }
               ]
             }
@@ -5565,50 +5845,64 @@
           },
           "fields": [
             {
-              "id": "microbiology.microbiology.examination",
-              "key": "examination",
-              "name": "Examination",
-              "kind": "field",
+              "id": "microbiology.microbiology.details",
+              "key": "details",
+              "name": "Microbiology Details",
+              "kind": "field_group",
               "order": 1,
-              "control": "select",
-              "data_type": "enum",
               "source": {
-                "sheet_row": 7,
-                "raw_input_type": "Predefined Selection"
+                "normalized_from": "approved_default_container"
               },
-              "options": [
+              "fields": [
                 {
-                  "id": "microbiology.microbiology.examination.koh_smear",
-                  "key": "koh_smear",
-                  "name": "KOH SMEAR",
-                  "order": 1
-                }
-              ]
-            },
-            {
-              "id": "microbiology.microbiology.result",
-              "key": "result",
-              "name": "RESULT",
-              "kind": "field",
-              "order": 2,
-              "control": "select",
-              "data_type": "enum",
-              "source": {
-                "sheet_row": 12,
-                "raw_input_type": "Predefined Selection"
-              },
-              "options": [
-                {
-                  "id": "microbiology.microbiology.result.no_fungal_elements_seen",
-                  "key": "no_fungal_elements_seen",
-                  "name": "NO FUNGAL ELEMENTS SEEN",
-                  "order": 1
+                  "id": "microbiology.microbiology.examination",
+                  "key": "examination",
+                  "name": "Examination",
+                  "kind": "field",
+                  "order": 1,
+                  "control": "select",
+                  "data_type": "enum",
+                  "source": {
+                    "sheet_row": 7,
+                    "raw_input_type": "Predefined Selection"
+                  },
+                  "options": [
+                    {
+                      "id": "microbiology.microbiology.examination.koh_smear",
+                      "key": "koh_smear",
+                      "name": "KOH SMEAR",
+                      "order": 1
+                    }
+                  ]
                 },
                 {
-                  "id": "microbiology.microbiology.result.positive_for_fungal_elements",
-                  "key": "positive_for_fungal_elements",
-                  "name": "POSITIVE FOR FUNGAL ELEMENTS",
-                  "order": 2
+                  "id": "microbiology.microbiology.result",
+                  "key": "result",
+                  "name": "RESULT",
+                  "kind": "field",
+                  "order": 2,
+                  "control": "select",
+                  "data_type": "enum",
+                  "source": {
+                    "sheet_row": 12,
+                    "raw_input_type": "Predefined Selection"
+                  },
+                  "options": [
+                    {
+                      "id": "microbiology.microbiology.result.no_fungal_elements_seen",
+                      "key": "no_fungal_elements_seen",
+                      "name": "NO FUNGAL ELEMENTS SEEN",
+                      "order": 1,
+                      "is_normal": true
+                    },
+                    {
+                      "id": "microbiology.microbiology.result.positive_for_fungal_elements",
+                      "key": "positive_for_fungal_elements",
+                      "name": "POSITIVE FOR FUNGAL ELEMENTS",
+                      "order": 2,
+                      "is_normal": false
+                    }
+                  ]
                 }
               ]
             }

@@ -1206,6 +1206,49 @@ function getInputNormalMax(field) {
   return isBlockNode(field) ? String(getNodeProps(field).normal_max || "").trim() : "";
 }
 
+function isNormalRangeBoundaryInclusive(field, boundary) {
+  if (!isBlockNode(field)) {
+    return true;
+  }
+  const value = getNodeProps(field)[boundary];
+  return value !== false && value !== "false" && value !== "exclusive";
+}
+
+function renderNumericNormalRange(item, path, helperText) {
+  const minInclusive = isNormalRangeBoundaryInclusive(item, "normal_min_inclusive");
+  const maxInclusive = isNormalRangeBoundaryInclusive(item, "normal_max_inclusive");
+  return `
+    <div class="reference-range">
+      <div class="reference-range-head">
+        <span class="reference-range-title">Normal range</span>
+        <p>${helperText}</p>
+      </div>
+      <div class="inline-grid reference-range-grid">
+        <label>
+          <span>Minimum</span>
+          <div class="normal-range-bound">
+            <select data-path="${encodePath(path)}" data-bind="normal_min_inclusive" title="Choose whether the minimum value is included." aria-label="Minimum range rule">
+              <option value="inclusive"${minInclusive ? " selected" : ""}>&gt;=</option>
+              <option value="exclusive"${minInclusive ? "" : " selected"}>&gt;</option>
+            </select>
+            <input type="number" step="any" data-path="${encodePath(path)}" data-bind="normal_min" value="${escapeHtml(getInputNormalMin(item) || "")}" placeholder="Example: 4.5">
+          </div>
+        </label>
+        <label>
+          <span>Maximum</span>
+          <div class="normal-range-bound">
+            <select data-path="${encodePath(path)}" data-bind="normal_max_inclusive" title="Choose whether the maximum value is included." aria-label="Maximum range rule">
+              <option value="inclusive"${maxInclusive ? " selected" : ""}>&lt;=</option>
+              <option value="exclusive"${maxInclusive ? "" : " selected"}>&lt;</option>
+            </select>
+            <input type="number" step="any" data-path="${encodePath(path)}" data-bind="normal_max" value="${escapeHtml(getInputNormalMax(item) || "")}" placeholder="Example: 11.0">
+          </div>
+        </label>
+      </div>
+    </div>
+  `;
+}
+
 function isTemporalInputType(inputType) {
   return TEMPORAL_INPUT_TYPES.has(String(inputType || "").trim());
 }
@@ -2318,6 +2361,14 @@ function setBoundValue(target, bind, rawValue) {
       props[bind] = rawValue;
       return;
     }
+    if (bind === "normal_min_inclusive" || bind === "normal_max_inclusive") {
+      if (rawValue === "exclusive") {
+        props[bind] = false;
+      } else {
+        delete props[bind];
+      }
+      return;
+    }
   }
 
   const parts = bind.split(".");
@@ -2619,6 +2670,8 @@ function applyInputType(field, typeId) {
   if (selected.id !== "number") {
     delete props.normal_min;
     delete props.normal_max;
+    delete props.normal_min_inclusive;
+    delete props.normal_max_inclusive;
   }
 }
 
@@ -4388,24 +4441,7 @@ function renderItemCard(item, path, options = {}) {
                       </label>
                       ${renderTemporalDefaultEditor(item, path, inputType)}
                     </div>
-                    ${inputType === "number" ? `
-                      <div class="reference-range">
-                        <div class="reference-range-head">
-                          <span class="reference-range-title">Normal range</span>
-                          <p>Used for abnormal highlighting in print.</p>
-                        </div>
-                        <div class="inline-grid reference-range-grid">
-                          <label>
-                            <span>From</span>
-                            <input type="number" step="any" data-path="${encodePath(path)}" data-bind="normal_min" value="${escapeHtml(getInputNormalMin(item) || "")}" placeholder="Example: 4.5">
-                          </label>
-                          <label>
-                            <span>To</span>
-                            <input type="number" step="any" data-path="${encodePath(path)}" data-bind="normal_max" value="${escapeHtml(getInputNormalMax(item) || "")}" placeholder="Example: 11.0">
-                          </label>
-                        </div>
-                      </div>
-                    ` : ""}
+                    ${inputType === "number" ? renderNumericNormalRange(item, path, "Used for abnormal highlighting in print.") : ""}
                   </section>
                 `}
 
@@ -4504,24 +4540,7 @@ function renderItemCard(item, path, options = {}) {
                 </label>
                 ${renderTemporalDefaultEditor(item, path, inputType)}
               </div>
-              ${inputType === "number" ? `
-                <div class="reference-range">
-                  <div class="reference-range-head">
-                    <span class="reference-range-title">Normal range</span>
-                    <p>Used for normal checks.</p>
-                  </div>
-                  <div class="inline-grid reference-range-grid">
-                    <label>
-                      <span>From</span>
-                      <input type="number" step="any" data-path="${encodePath(path)}" data-bind="normal_min" value="${escapeHtml(getInputNormalMin(item) || "")}" placeholder="Example: 4.5">
-                    </label>
-                    <label>
-                      <span>To</span>
-                      <input type="number" step="any" data-path="${encodePath(path)}" data-bind="normal_max" value="${escapeHtml(getInputNormalMax(item) || "")}" placeholder="Example: 11.0">
-                    </label>
-                  </div>
-                </div>
-              ` : ""}
+              ${inputType === "number" ? renderNumericNormalRange(item, path, "Used for normal checks.") : ""}
             </section>
           `}
 

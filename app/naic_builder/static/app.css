@@ -2248,6 +2248,17 @@ button.subtle[aria-pressed="true"] {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.normal-range-bound {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 6px;
+}
+
+.normal-range-bound select {
+  min-width: 0;
+  padding-inline: 8px;
+}
+
 .row-actions > .ghost,
 .row-actions > .secondary,
 .row-actions > .action-details,

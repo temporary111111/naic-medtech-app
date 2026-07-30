@@ -39,8 +39,17 @@ from naic_builder.services import (
     default_signatory_slots,
     default_patient_info_legacy_group,
     ensure_blood_gas_analysis_defaults,
+    ensure_blood_chemistry_female_defaults,
+    ensure_blood_chemistry_male_defaults,
+    ensure_cardiaci_defaults,
+    ensure_ogtt_defaults,
     ensure_default_blood_gas_analysis_layout,
+    ensure_default_blood_chemistry_female_layout,
+    ensure_default_blood_chemistry_male_layout,
+    ensure_default_cardiaci_layout,
+    ensure_default_ogtt_layout,
     ensure_default_covid_19_antigen_rapid_test_layout,
+    ensure_default_fecalysis_layout,
     ensure_default_hiv_1_and_2_testing_layout,
     ensure_default_microbiology_layout,
     ensure_default_patient_info_fields,
@@ -51,7 +60,10 @@ from naic_builder.services import (
     ensure_hba1c_defaults,
     ensure_hiv_1_and_2_testing_defaults,
     ensure_covid_19_antigen_rapid_test_defaults,
+    ensure_fecalysis_defaults,
     ensure_microbiology_defaults,
+    ensure_serology_defaults,
+    ensure_default_serology_layout,
     ensure_pro_time_aptt_defaults,
     ensure_reference_examination_in_patient_info,
     ensure_reference_seed,
@@ -173,6 +185,12 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                 self.assertEqual(ensure_hiv_1_and_2_testing_defaults(session), 1)
                 self.assertEqual(ensure_covid_19_antigen_rapid_test_defaults(session), 1)
                 self.assertEqual(ensure_microbiology_defaults(session), 1)
+                self.assertEqual(ensure_fecalysis_defaults(session), 1)
+                self.assertEqual(ensure_blood_chemistry_male_defaults(session), 1)
+                self.assertEqual(ensure_blood_chemistry_female_defaults(session), 1)
+                self.assertEqual(ensure_serology_defaults(session), 1)
+                self.assertEqual(ensure_cardiaci_defaults(session), 1)
+                self.assertEqual(ensure_ogtt_defaults(session), 1)
 
                 definitions = session.scalars(select(FormDefinition)).all()
                 self.assertEqual(len(definitions), len(reference_form_slugs()))
@@ -437,6 +455,267 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(build_print_reference(result["props"]), "4.0 to 5.6 %")
         self.assertEqual(evaluate_print_abnormal(result["props"], "4.0"), (False, None))
         self.assertEqual(evaluate_print_abnormal(result["props"], "5.7"), (True, "high"))
+
+    def test_blood_chemistry_defaults_use_workbook_ranges(self) -> None:
+        schema = json.loads(
+            (ROOT / "artifacts" / "schema" / "naic_medtech_app_schema.json").read_text(encoding="utf-8")
+        )
+        forms = {
+            form["key"]: form
+            for group in schema["groups"]
+            for form in group["forms"]
+            if form["key"] in {"male", "female"}
+        }
+        expected_ranges = {
+            "male": {
+                "fasting_blood_sugar": ("70.27", "124.32"),
+                "random_blood_sugar": ("60", "140"),
+                "hgt": ("53", "103"),
+                "blood_urea_nitrogen": ("7.9", "20.2"),
+                "creatinine": ("0.5", "1.3"),
+                "blood_uric_acid": ("3.5", "7.2"),
+                "sodium": ("135", "148"),
+                "potassium": ("3.5", "5.3"),
+                "chloride": ("98", "107"),
+                "ionized_calcium": ("1.13", "1.32"),
+                "cholesterol": ("0", "200"),
+                "triglyceride": ("0", "150"),
+                "hdl_cholesterol": ("30", "85"),
+                "ldl_cholesterol": ("66", "178"),
+                "vldl_cholesterol": ("0", "40"),
+                "sgot_ast": ("0", "31"),
+                "sgpt_alt": ("0", "34"),
+            },
+            "female": {
+                "fasting_blood_sugar": ("70.27", "124.32"),
+                "random_blood_sugar": ("60", "140"),
+                "hgt": ("53", "103"),
+                "blood_urea_nitrogen": ("7.9", "20.2"),
+                "creatinine": ("0.4", "1.2"),
+                "blood_uric_acid": ("2.6", "6.0"),
+                "sodium": ("135", "148"),
+                "potassium": ("3.5", "5.3"),
+                "chloride": ("98", "107"),
+                "ionized_calcium": ("1.13", "1.32"),
+                "cholesterol": ("0", "200"),
+                "triglyceride": ("0", "150"),
+                "hdl_cholesterol": ("30", "85"),
+                "ldl_cholesterol": ("66", "178"),
+                "vldl_cholesterol": ("0", "40"),
+                "sgot_ast": ("0", "31"),
+                "sgpt_alt": ("0", "34"),
+            },
+        }
+        layout_by_key = {
+            "male": ensure_default_blood_chemistry_male_layout,
+            "female": ensure_default_blood_chemistry_female_layout,
+        }
+
+        for form_key, expected in expected_ranges.items():
+            block_schema = build_block_storage_document_from_legacy_storage(forms[form_key])
+            ensure_reference_examination_in_patient_info(block_schema, reference_form_slugs())
+            self.assertTrue(layout_by_key[form_key](block_schema))
+            details = next(block for block in block_schema["blocks"] if block["props"]["key"] == "details")
+            fields = {child["props"]["key"]: child for child in details["children"]}
+            self.assertIn("others", fields)
+            for field_key, (normal_min, normal_max) in expected.items():
+                props = fields[field_key]["props"]
+                self.assertEqual(props["normal_min"], normal_min, field_key)
+                self.assertEqual(props["normal_max"], normal_max, field_key)
+                self.assertNotIn("reference_text", props, field_key)
+                self.assertNotIn("normal_value", props, field_key)
+
+            creatinine = fields["creatinine"]
+            low_value = "0.4" if form_key == "male" else "0.3"
+            self.assertEqual(evaluate_print_abnormal(creatinine["props"], low_value), (True, "low"))
+            self.assertEqual(
+                build_print_reference(fields["fasting_blood_sugar"]["props"]),
+                "70.27 to 124.32 mg/dl",
+            )
+
+    def test_serology_and_cardiaci_defaults_use_workbook_values(self) -> None:
+        schema = json.loads(
+            (ROOT / "artifacts" / "schema" / "naic_medtech_app_schema.json").read_text(encoding="utf-8")
+        )
+        forms = {
+            form["key"]: form
+            for group in schema["groups"]
+            for form in group["forms"]
+            if form["key"] in {"serology", "cardiaci"}
+        }
+
+        serology_schema = build_block_storage_document_from_legacy_storage(forms["serology"])
+        ensure_reference_examination_in_patient_info(serology_schema, reference_form_slugs())
+        self.assertTrue(ensure_default_serology_layout(serology_schema))
+        serology_fields: dict[str, list[dict]] = {}
+
+        def collect_fields(blocks):
+            for block in blocks:
+                if block["kind"] == "field":
+                    serology_fields.setdefault(block["props"]["key"], []).append(block)
+                collect_fields(block.get("children") or [])
+
+        collect_fields(serology_schema["blocks"])
+        expected_normal_choices = {
+            "igm": "NEGATIVE",
+            "igg": "NEGATIVE",
+            "ns1ag": "NEGATIVE",
+            "anti_plasmodium_falcifarum": "NEGATIVE",
+            "anti_plasmodium_vivax": "NEGATIVE",
+            "hbsag_screening": "NON-REACTIVE",
+            "vdrl": "NEGATIVE",
+            "anti_hcv": "NON-REACTIVE",
+            "aso_titer": "NEGATIVE <200 IU/ML",
+        }
+        for field_key, normal_choice in expected_normal_choices.items():
+            self.assertGreaterEqual(len(serology_fields[field_key]), 1, field_key)
+            for field in serology_fields[field_key]:
+                props = field["props"]
+                self.assertEqual(
+                    [option["name"] for option in props["options"] if option["is_normal"]],
+                    [normal_choice],
+                    field_key,
+                )
+                self.assertEqual(evaluate_print_abnormal(props, normal_choice), (False, None))
+        self.assertEqual(
+            evaluate_print_abnormal(serology_fields["igm"][0]["props"], "POSITIVE"),
+            (True, "abnormal"),
+        )
+        self.assertEqual(
+            evaluate_print_abnormal(serology_fields["hbsag_screening"][0]["props"], "REACTIVE"),
+            (True, "abnormal"),
+        )
+
+        cardiaci_schema = build_block_storage_document_from_legacy_storage(forms["cardiaci"])
+        ensure_reference_examination_in_patient_info(cardiaci_schema, reference_form_slugs())
+        self.assertTrue(ensure_default_cardiaci_layout(cardiaci_schema))
+        details = next(block for block in cardiaci_schema["blocks"] if block["props"]["key"] == "details")
+        cardiaci_fields = {child["props"]["key"]: child for child in details["children"]}
+        expected_ranges = {
+            "ck_mb": ("0.0", "4.3"),
+            "troponin_i": ("0.0", "0.02"),
+            "bnp": ("0.0", "100"),
+        }
+        for field_key, (normal_min, normal_max) in expected_ranges.items():
+            props = cardiaci_fields[field_key]["props"]
+            self.assertEqual((props["normal_min"], props["normal_max"]), (normal_min, normal_max))
+            self.assertNotIn("reference_text", props)
+            self.assertNotIn("normal_value", props)
+        self.assertEqual(build_print_reference(cardiaci_fields["ck_mb"]["props"]), "0.0 to 4.3 ng/mL")
+        self.assertEqual(evaluate_print_abnormal(cardiaci_fields["troponin_i"]["props"], "0.03"), (True, "high"))
+
+    def test_ogtt_defaults_use_workbook_ranges_and_exclusive_upper_limits(self) -> None:
+        schema = json.loads(
+            (ROOT / "artifacts" / "schema" / "naic_medtech_app_schema.json").read_text(encoding="utf-8")
+        )
+        ogtt = next(
+            form
+            for group in schema["groups"]
+            for form in group["forms"]
+            if form["key"] == "ogtt"
+        )
+        block_schema = build_block_storage_document_from_legacy_storage(ogtt)
+        ensure_reference_examination_in_patient_info(block_schema, reference_form_slugs())
+        self.assertTrue(ensure_default_ogtt_layout(block_schema))
+        containers = {block["props"]["key"]: block for block in block_schema["blocks"]}
+
+        expected_ranges = {
+            "50g_oral_glucose_tolerance": {
+                "1st_hour": (None, "200", False),
+                "2nd_hour": (None, "140", False),
+            },
+            "75g_oral_glucose_tolerance": {
+                "fasting_blood_sugar": ("70.27", "124.32", True),
+                "1st_hour": (None, "200", False),
+                "2nd_hour": (None, "140", False),
+            },
+            "100g_oral_glucose_tolerance": {
+                "fasting_blood_sugar": ("70.27", "124.32", True),
+                "1st_hour": (None, "180", False),
+                "2nd_hour": (None, "155", False),
+                "3rd_hour": (None, "140", False),
+            },
+        }
+        for container_key, field_ranges in expected_ranges.items():
+            fields = {
+                child["props"]["key"]: child
+                for child in containers[container_key]["children"]
+                if child["kind"] == "field"
+            }
+            for field_key, (normal_min, normal_max, max_is_inclusive) in field_ranges.items():
+                props = fields[field_key]["props"]
+                self.assertEqual(props.get("normal_min"), normal_min, field_key)
+                self.assertEqual(props.get("normal_max"), normal_max, field_key)
+                self.assertEqual(
+                    props.get("normal_max_inclusive", True),
+                    max_is_inclusive,
+                    field_key,
+                )
+                self.assertNotIn("reference_text", props, field_key)
+                self.assertNotIn("normal_value", props, field_key)
+
+        fifty_gram_first_hour = next(
+            child
+            for child in containers["50g_oral_glucose_tolerance"]["children"]
+            if child["props"]["key"] == "1st_hour"
+        )
+        self.assertEqual(build_print_reference(fifty_gram_first_hour["props"]), "< 200 mg/dl")
+        self.assertEqual(evaluate_print_abnormal(fifty_gram_first_hour["props"], "199.99"), (False, None))
+        self.assertEqual(evaluate_print_abnormal(fifty_gram_first_hour["props"], "200"), (True, "high"))
+
+        additional_fields = {
+            child["props"]["key"]: child
+            for child in containers["additional_tests"]["children"]
+            if child["kind"] == "field"
+        }
+        self.assertNotIn("normal_min", additional_fields["2_hours_post_prandial"]["props"])
+        self.assertNotIn("normal_max", additional_fields["50_g_oral_glucose_challenge"]["props"])
+
+    def test_fecalysis_defaults_mark_only_explicit_negative_findings_as_normal(self) -> None:
+        schema = json.loads(
+            (ROOT / "artifacts" / "schema" / "naic_medtech_app_schema.json").read_text(encoding="utf-8")
+        )
+        fecalysis = next(
+            form
+            for group in schema["groups"]
+            for form in group["forms"]
+            if form["key"] == "fecalysis"
+        )
+        block_schema = build_block_storage_document_from_legacy_storage(fecalysis)
+        ensure_reference_examination_in_patient_info(block_schema, reference_form_slugs())
+        self.assertTrue(ensure_default_fecalysis_layout(block_schema))
+
+        fields: dict[str, dict] = {}
+
+        def collect_fields(blocks):
+            for block in blocks:
+                if block["kind"] == "field":
+                    fields[block["props"]["key"]] = block
+                collect_fields(block.get("children") or [])
+
+        collect_fields(block_schema["blocks"])
+        expected_normal_choices = {
+            "fecal_occult_blood": "NEGATIVE",
+            "parasites": "NO OVA NOR PARASITES SEEN",
+        }
+        for field_key, normal_choice in expected_normal_choices.items():
+            props = fields[field_key]["props"]
+            self.assertEqual(
+                [option["name"] for option in props["options"] if option["is_normal"]],
+                [normal_choice],
+            )
+            self.assertEqual(evaluate_print_abnormal(props, normal_choice), (False, None))
+
+        self.assertEqual(
+            evaluate_print_abnormal(fields["fecal_occult_blood"]["props"], "POSITIVE"),
+            (True, "abnormal"),
+        )
+        self.assertEqual(
+            evaluate_print_abnormal(fields["parasites"]["props"], "ASCARIS LUMBRICOIDES OVA"),
+            (True, "abnormal"),
+        )
+        self.assertNotIn("normal_min", fields["pus"]["props"])
+        self.assertNotIn("normal_max", fields["red_blood_cell"]["props"])
 
     def test_pro_time_aptt_defaults_use_approved_ranges(self) -> None:
         schema = json.loads(

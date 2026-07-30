@@ -83,13 +83,19 @@ from .services import (
     create_user_account,
     current_record_values,
     ensure_blood_gas_analysis_defaults,
+    ensure_blood_chemistry_female_defaults,
+    ensure_blood_chemistry_male_defaults,
+    ensure_cardiaci_defaults,
+    ensure_ogtt_defaults,
     ensure_client_signatory_defaults,
     ensure_default_patient_info_fields,
     ensure_covid_19_antigen_rapid_test_defaults,
+    ensure_fecalysis_defaults,
     ensure_hematology_defaults,
     ensure_hba1c_defaults,
     ensure_hiv_1_and_2_testing_defaults,
     ensure_microbiology_defaults,
+    ensure_serology_defaults,
     ensure_form_version_storage_documents,
     ensure_library_tree,
     ensure_pro_time_aptt_defaults,
@@ -153,6 +159,12 @@ async def lifespan(_: FastAPI):
         ensure_hiv_1_and_2_testing_defaults(session)
         ensure_covid_19_antigen_rapid_test_defaults(session)
         ensure_microbiology_defaults(session)
+        ensure_fecalysis_defaults(session)
+        ensure_blood_chemistry_male_defaults(session)
+        ensure_blood_chemistry_female_defaults(session)
+        ensure_serology_defaults(session)
+        ensure_cardiaci_defaults(session)
+        ensure_ogtt_defaults(session)
         ensure_library_tree(session)
     backup_stop_event = asyncio.Event()
     backup_task = asyncio.create_task(scheduled_backup_loop(backup_stop_event))

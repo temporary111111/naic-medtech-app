@@ -23,6 +23,53 @@ APP_SCHEMA_VERSION = "1.0.5"
 
 # These are reviewed application defaults, not source-workbook corrections. Keep
 # them declarative so each approved form can retain its own clear builder layout.
+def normal_range_properties(normal_min: str, normal_max: str) -> dict[str, str | bool | None]:
+    return {
+        "normal_min": normal_min,
+        "normal_max": normal_max,
+        "reference_text": None,
+        "normal_value": None,
+    }
+
+
+def exclusive_upper_limit_properties(normal_max: str) -> dict[str, str | bool | None]:
+    return {
+        "normal_max": normal_max,
+        "normal_max_inclusive": False,
+        "reference_text": None,
+        "normal_value": None,
+    }
+
+
+BLOOD_CHEMISTRY_SHARED_FIELD_PROPERTY_OVERRIDES = {
+    "fasting_blood_sugar": normal_range_properties("70.27", "124.32"),
+    "random_blood_sugar": normal_range_properties("60", "140"),
+    "hgt": normal_range_properties("53", "103"),
+    "blood_urea_nitrogen": normal_range_properties("7.9", "20.2"),
+    "sodium": normal_range_properties("135", "148"),
+    "potassium": normal_range_properties("3.5", "5.3"),
+    "chloride": normal_range_properties("98", "107"),
+    "ionized_calcium": normal_range_properties("1.13", "1.32"),
+    "cholesterol": normal_range_properties("0", "200"),
+    "triglyceride": normal_range_properties("0", "150"),
+    "hdl_cholesterol": normal_range_properties("30", "85"),
+    "ldl_cholesterol": normal_range_properties("66", "178"),
+    "vldl_cholesterol": normal_range_properties("0", "40"),
+    "sgot_ast": normal_range_properties("0", "31"),
+    "sgpt_alt": normal_range_properties("0", "34"),
+}
+BLOOD_CHEMISTRY_MALE_FIELD_PROPERTY_OVERRIDES = {
+    **BLOOD_CHEMISTRY_SHARED_FIELD_PROPERTY_OVERRIDES,
+    "creatinine": normal_range_properties("0.5", "1.3"),
+    "blood_uric_acid": normal_range_properties("3.5", "7.2"),
+}
+BLOOD_CHEMISTRY_FEMALE_FIELD_PROPERTY_OVERRIDES = {
+    **BLOOD_CHEMISTRY_SHARED_FIELD_PROPERTY_OVERRIDES,
+    "creatinine": normal_range_properties("0.4", "1.2"),
+    "blood_uric_acid": normal_range_properties("2.6", "6.0"),
+}
+
+
 FORM_DEFAULT_OVERRIDES = {
     "blood_bank": {
         "patient_field_overrides": {
@@ -196,6 +243,63 @@ FORM_DEFAULT_OVERRIDES = {
         },
         "normal_choice_options": {
             "result": ["NO FUNGAL ELEMENTS SEEN"],
+        },
+    },
+    "male": {
+        "root_fields_container": {
+            "key": "details",
+            "name": "Male Details",
+        },
+        "field_property_overrides": BLOOD_CHEMISTRY_MALE_FIELD_PROPERTY_OVERRIDES,
+    },
+    "female": {
+        "root_fields_container": {
+            "key": "details",
+            "name": "Female Details",
+        },
+        "field_property_overrides": BLOOD_CHEMISTRY_FEMALE_FIELD_PROPERTY_OVERRIDES,
+    },
+    "serology": {
+        "normal_choice_options": {
+            "igm": ["NEGATIVE"],
+            "igg": ["NEGATIVE"],
+            "ns1ag": ["NEGATIVE"],
+            "anti_plasmodium_falcifarum": ["NEGATIVE"],
+            "anti_plasmodium_vivax": ["NEGATIVE"],
+            "hbsag_screening": ["NON-REACTIVE"],
+            "vdrl": ["NEGATIVE"],
+            "anti_hcv": ["NON-REACTIVE"],
+            "aso_titer": ["NEGATIVE <200 IU/ML"],
+        },
+    },
+    "fecalysis": {
+        "normal_choice_options": {
+            "fecal_occult_blood": ["NEGATIVE"],
+            "parasites": ["NO OVA NOR PARASITES SEEN"],
+        },
+    },
+    "cardiaci": {
+        "root_fields_container": {
+            "key": "details",
+            "name": "Cardiaci Details",
+        },
+        "field_property_overrides": {
+            "ck_mb": normal_range_properties("0.0", "4.3"),
+            "troponin_i": normal_range_properties("0.0", "0.02"),
+            "bnp": normal_range_properties("0.0", "100"),
+        },
+    },
+    "ogtt": {
+        "numeric_ranges": {
+            "50g_oral_glucose_tolerance.1st_hour": exclusive_upper_limit_properties("200"),
+            "50g_oral_glucose_tolerance.2nd_hour": exclusive_upper_limit_properties("140"),
+            "75g_oral_glucose_tolerance.fasting_blood_sugar": normal_range_properties("70.27", "124.32"),
+            "75g_oral_glucose_tolerance.1st_hour": exclusive_upper_limit_properties("200"),
+            "75g_oral_glucose_tolerance.2nd_hour": exclusive_upper_limit_properties("140"),
+            "100g_oral_glucose_tolerance.fasting_blood_sugar": normal_range_properties("70.27", "124.32"),
+            "100g_oral_glucose_tolerance.1st_hour": exclusive_upper_limit_properties("180"),
+            "100g_oral_glucose_tolerance.2nd_hour": exclusive_upper_limit_properties("155"),
+            "100g_oral_glucose_tolerance.3rd_hour": exclusive_upper_limit_properties("140"),
         },
     },
 }
@@ -1229,12 +1333,23 @@ def apply_numeric_range_overrides(
             range_override = numeric_ranges.get(f"{section_key}.{field_key}")
             if not isinstance(range_override, dict):
                 continue
-            for property_name in ("normal_min", "normal_max", "unit", "unit_hint", "reference_text", "normal_value"):
+            for property_name in (
+                "normal_min",
+                "normal_max",
+                "normal_min_inclusive",
+                "normal_max_inclusive",
+                "unit",
+                "unit_hint",
+                "reference_text",
+                "normal_value",
+            ):
                 if property_name not in range_override:
                     continue
                 value = range_override.get(property_name)
                 if value is None:
                     field.pop(property_name, None)
+                elif isinstance(value, bool):
+                    field[property_name] = value
                 elif str(value).strip():
                     field[property_name] = str(value).strip()
 
@@ -1253,6 +1368,8 @@ def apply_field_property_overrides(
                 for property_name, value in overrides.items():
                     if value is None:
                         field.pop(property_name, None)
+                    elif isinstance(value, bool):
+                        field[property_name] = value
                     elif str(value).strip():
                         field[property_name] = str(value).strip()
             children = field.get("fields")
