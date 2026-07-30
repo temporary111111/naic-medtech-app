@@ -1620,9 +1620,10 @@ async def save_record_print_options(
             style=profile["style"],
             orientation=profile["orientation"],
             text_size=profile["text_size"],
+            paper_size=profile["paper_size"],
         )
         preference_saved = True
-    if user is not None and (form_data.get("set_paper_default") or [""])[0] in {"1", "on", "true"}:
+    elif user is not None and (form_data.get("set_paper_default") or [""])[0] in {"1", "on", "true"}:
         save_user_print_preferences(
             session,
             user,
