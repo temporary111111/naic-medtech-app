@@ -1692,13 +1692,15 @@ body {
 .print-template-legacy-landscape .print-legacy-header .print-clinic-copy strong {
   color: inherit;
   font-size: 15px;
+  font-weight: 900;
   line-height: 1.05;
 }
 
 .print-template-legacy-landscape .print-legacy-header .print-clinic-copy span {
   color: inherit;
   font-size: 8.5px;
-  line-height: 1.2;
+  font-weight: 700;
+  line-height: 1.1;
 }
 
 .print-template-legacy-landscape .print-meta-grid {
@@ -2519,11 +2521,12 @@ body {
   }
 
   .print-template-legacy-landscape .print-legacy-header .print-clinic-copy strong {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .print-template-legacy-landscape .print-legacy-header .print-clinic-copy span {
-    font-size: 7.2px;
+    font-size: 7.6px;
+    line-height: 1.1;
   }
 
   .print-template-legacy-landscape .print-legacy-header .print-title {
@@ -2650,11 +2653,12 @@ body {
   }
 
   .print-template-legacy-landscape.print-paper-a5 .print-legacy-header .print-clinic-copy strong {
-    font-size: 9.5px;
+    font-size: 10.5px;
   }
 
   .print-template-legacy-landscape.print-paper-a5 .print-legacy-header .print-clinic-copy span {
-    font-size: 6.4px;
+    font-size: 7px;
+    line-height: 1.1;
   }
 
   .print-template-legacy-landscape.print-paper-a5 .print-legacy-header .print-title {
