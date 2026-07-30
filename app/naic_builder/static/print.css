@@ -123,6 +123,76 @@ body {
   justify-content: flex-end;
 }
 
+/* Containers describe the builder hierarchy; print presents that hierarchy as headings, not nested cards. */
+.print-group.has-title {
+  margin: 4px 0 0 8px;
+  padding-left: 7px;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 58%, var(--line) 42%);
+}
+
+.print-group.has-title > .print-group-head {
+  min-height: 21px;
+  padding: 3px 0 3px 6px;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 64%, var(--line) 36%);
+  background: transparent;
+}
+
+.print-group.has-title > .print-items {
+  min-width: 0;
+}
+
+.print-group.print-container-depth-2.has-title {
+  margin-left: 15px;
+  padding-left: 6px;
+  border-left-width: 1px;
+  border-left-style: solid;
+}
+
+.print-group.is-deep.has-title {
+  margin-left: 21px;
+  padding-left: 5px;
+  border-left-style: dashed;
+}
+
+.print-group.is-deep.has-title > .print-group-head {
+  min-height: 18px;
+  padding-block: 2px;
+}
+
+.print-template-classic-landscape .print-group.has-title,
+.print-template-classic-portrait .print-group.has-title,
+.print-template-legacy-landscape .print-group.has-title {
+  border-left-color: var(--ink);
+}
+
+.print-template-classic-landscape .print-group.has-title > .print-group-head,
+.print-template-classic-portrait .print-group.has-title > .print-group-head,
+.print-template-legacy-landscape .print-group.has-title > .print-group-head {
+  border-bottom-color: var(--ink);
+}
+
+.print-template-legacy-landscape.print-paper-a5 .print-group.has-title {
+  margin-top: 1px;
+  margin-left: 4px;
+  padding-left: 3px;
+}
+
+.print-template-legacy-landscape.print-paper-a5 .print-group.has-title > .print-group-head {
+  min-height: 13px;
+  padding: 1px 0 1px 3px;
+}
+
+.print-template-legacy-landscape.print-paper-a5 .print-group.print-container-depth-2.has-title {
+  margin-left: 8px;
+  padding-left: 3px;
+}
+
+.print-template-legacy-landscape.print-paper-a5 .print-group.is-deep.has-title {
+  margin-left: 11px;
+  padding-left: 2px;
+}
+
 .print-layout-control,
 .print-paper-control {
   position: relative;

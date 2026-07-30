@@ -278,6 +278,18 @@ DEFAULT_PRINT_SUMMARY_ITEMS = [
 DEFAULT_LAB_REQUEST_FIELD_SET_ID = "default_lab_request"
 DEFAULT_PATIENT_INFO_MATERIALIZED_META_KEY = "default_patient_info_materialized"
 DEFAULT_EXAMINATION_IN_PATIENT_INFO_META_KEY = "default_examination_in_patient_info_v1"
+BLOOD_GAS_ANALYSIS_FORM_KEY = "blood_gas_analysis"
+DEFAULT_BLOOD_GAS_LAYOUT_META_KEY = "default_blood_gas_layout_v1"
+BLOOD_GAS_NUMERIC_RANGES = {
+    "ph": ("7.35", "7.45"),
+    "po2": ("80", "105"),
+    "pco2": ("35", "45"),
+    "so2": ("95", "100"),
+    "hco3": ("22", "28"),
+    "be_ecf": ("-2", "2"),
+    "po2_a_a": ("5", "10"),
+    "tco2": ("23", "29"),
+}
 PATIENT_INFO_GROUP_KEY = "patient_information"
 PATIENT_INFO_GROUP_NAME = "Patient Information"
 PATIENT_INFO_PRIMARY_KEY = "name"
@@ -1995,6 +2007,131 @@ def ensure_reference_examination_in_patient_info(
     return True
 
 
+def find_top_level_block_by_key(blocks: list[Any], block_key: str) -> dict[str, Any] | None:
+    for block in blocks:
+        if not isinstance(block, dict):
+            continue
+        props = block.get("props") if isinstance(block.get("props"), dict) else {}
+        if compact_text(props.get("key")) == block_key:
+            return block
+    return None
+
+
+def configure_blood_gas_numeric_ranges(block_schema: dict[str, Any]) -> bool:
+    changed = False
+    for field_key, (normal_min, normal_max) in BLOOD_GAS_NUMERIC_RANGES.items():
+        match = find_field_with_parent(normalize_items(block_schema.get("blocks")), field_key)
+        if match is None:
+            continue
+        _, field = match
+        props = field.get("props") if isinstance(field.get("props"), dict) else {}
+        if compact_text(props.get("normal_min")) != normal_min:
+            props["normal_min"] = normal_min
+            changed = True
+        if compact_text(props.get("normal_max")) != normal_max:
+            props["normal_max"] = normal_max
+            changed = True
+        field["props"] = props
+    return changed
+
+
+def set_default_blood_gas_container(
+    block: dict[str, Any],
+    *,
+    key: str,
+    name: str,
+    order: int,
+) -> None:
+    block["name"] = name
+    props = block.get("props") if isinstance(block.get("props"), dict) else {}
+    props["key"] = key
+    props["order"] = order
+    block["props"] = props
+
+
+def ensure_default_blood_gas_analysis_layout(block_schema: dict[str, Any]) -> bool:
+    if not isinstance(block_schema, dict):
+        return False
+
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    if compact_text(meta.get("form_key")) != BLOOD_GAS_ANALYSIS_FORM_KEY:
+        return False
+    if meta.get(DEFAULT_BLOOD_GAS_LAYOUT_META_KEY) is True:
+        return False
+
+    changed = configure_blood_gas_numeric_ranges(block_schema)
+    blocks = normalize_items(block_schema.get("blocks"))
+    blood_gas_values = find_top_level_block_by_key(blocks, "blood_gas_values")
+    calculated_values = find_top_level_block_by_key(blocks, "calculated_values")
+
+    if blood_gas_values is None or calculated_values is None:
+        abg = find_top_level_block_by_key(blocks, "blood_gas_value_abg")
+        oximetry = find_top_level_block_by_key(blocks, "calculated_values_oximetry")
+        acid_base_status = find_top_level_block_by_key(blocks, "calculated_values_acid_base_status")
+        if abg is None or oximetry is None or acid_base_status is None:
+            return changed
+
+        abg_children = abg.get("children") if isinstance(abg.get("children"), list) else []
+        acid_base_children = (
+            acid_base_status.get("children") if isinstance(acid_base_status.get("children"), list) else []
+        )
+        note_match = find_field_with_parent(acid_base_children, "note")
+        note = None
+        if note_match is not None:
+            note_parent, note = note_match
+            note_parent.remove(note)
+
+        set_default_blood_gas_container(abg, key="abg", name="ABG", order=1)
+        set_default_blood_gas_container(oximetry, key="oximetry", name="Oximetry", order=1)
+        set_default_blood_gas_container(
+            acid_base_status,
+            key="acid_base_status",
+            name="Acid-Base Status",
+            order=2,
+        )
+        if note is not None:
+            note_props = note.get("props") if isinstance(note.get("props"), dict) else {}
+            note_props["order"] = 2
+            note["props"] = note_props
+
+        first_index = min(blocks.index(abg), blocks.index(oximetry), blocks.index(acid_base_status))
+        for block in (abg, oximetry, acid_base_status):
+            blocks.remove(block)
+        blood_gas_values = {
+            "id": f"{meta['form_id']}.blood_gas_values",
+            "kind": "container",
+            "name": "Blood Gas Values",
+            "props": {
+                "key": "blood_gas_values",
+                "order": first_index + 1,
+                "source": {"normalized_from": "approved_default_container_layout"},
+            },
+            "children": [abg, *([note] if note is not None else [])],
+        }
+        calculated_values = {
+            "id": f"{meta['form_id']}.calculated_values",
+            "kind": "container",
+            "name": "Calculated Values",
+            "props": {
+                "key": "calculated_values",
+                "order": first_index + 2,
+                "source": {"normalized_from": "approved_default_container_layout"},
+            },
+            "children": [oximetry, acid_base_status],
+        }
+        blocks.insert(first_index, blood_gas_values)
+        blocks.insert(first_index + 1, calculated_values)
+        resequence_block_orders(blood_gas_values["children"])
+        resequence_block_orders(calculated_values["children"])
+        resequence_block_orders(acid_base_status["children"])
+        resequence_top_level_block_orders(blocks)
+        changed = True
+
+    meta[DEFAULT_BLOOD_GAS_LAYOUT_META_KEY] = True
+    block_schema["meta"] = meta
+    return True
+
+
 def ensure_default_patient_info_identity(block_schema: dict[str, Any]) -> bool:
     meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
     form_id = compact_text(meta.get("form_id"))
@@ -3399,6 +3536,7 @@ def build_print_items(
                 {
                     "kind": "section" if container_depth == 0 else "group",
                     "name": compact_text(block.get("name")) or "Untitled Container",
+                    "container_depth": container_depth,
                     "show_title": normalize_boolean_setting(
                         config.get(
                             "show_top_level_container_titles"
@@ -5322,6 +5460,57 @@ def ensure_default_patient_info_fields(session: Session) -> int:
     if migrated_count:
         session.commit()
     return migrated_count
+
+
+def ensure_blood_gas_analysis_defaults(session: Session) -> int:
+    definition = session.scalar(
+        select(FormDefinition)
+        .where(FormDefinition.slug == BLOOD_GAS_ANALYSIS_FORM_KEY)
+        .options(
+            selectinload(FormDefinition.versions),
+            selectinload(FormDefinition.library_node),
+        )
+    )
+    if definition is None:
+        return 0
+
+    version = current_version(definition)
+    if version is None:
+        return 0
+
+    block_schema, _ = load_block_storage_document(version)
+    if not ensure_default_blood_gas_analysis_layout(block_schema):
+        return 0
+
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    form_order = int(
+        meta.get("form_order")
+        or (definition.library_node.node_order if definition.library_node is not None else 1)
+        or 1
+    )
+    stored_block_schema = build_block_storage_payload(
+        block_schema,
+        slug=definition.slug,
+        name=definition.name,
+        form_order=form_order,
+    )
+    for existing_version in definition.versions:
+        existing_version.is_current = False
+
+    next_version = max((existing_version.version_number for existing_version in definition.versions), default=0) + 1
+    session.add(
+        build_form_version_record(
+            form_id=definition.id,
+            version_number=next_version,
+            summary="Applied approved Blood Gas Analysis defaults.",
+            block_storage_schema=stored_block_schema,
+            source="system",
+            is_current=True,
+        )
+    )
+    definition.updated_at = utc_now()
+    session.commit()
+    return 1
 
 
 def ensure_client_signatory_defaults(session: Session) -> int:

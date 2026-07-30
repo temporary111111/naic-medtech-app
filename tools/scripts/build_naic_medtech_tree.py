@@ -51,6 +51,51 @@ FORM_DEFAULT_OVERRIDES = {
             "type_of_crossmatching.remarks": ["COMPATIBLE"],
         },
     },
+    "blood_gas_analysis": {
+        "numeric_ranges": {
+            "blood_gas_value_abg.ph": {"normal_min": "7.35", "normal_max": "7.45"},
+            "blood_gas_value_abg.po2": {"normal_min": "80", "normal_max": "105"},
+            "blood_gas_value_abg.pco2": {"normal_min": "35", "normal_max": "45"},
+            "calculated_values_oximetry.so2": {"normal_min": "95", "normal_max": "100"},
+            "calculated_values_acid_base_status.hco3": {"normal_min": "22", "normal_max": "28"},
+            "calculated_values_acid_base_status.be_ecf": {"normal_min": "-2", "normal_max": "2"},
+            "calculated_values_acid_base_status.po2_a_a": {"normal_min": "5", "normal_max": "10"},
+            "calculated_values_acid_base_status.tco2": {"normal_min": "23", "normal_max": "29"},
+        },
+        "section_container_layout": [
+            {
+                "key": "blood_gas_values",
+                "name": "Blood Gas Values",
+                "children": [
+                    {
+                        "section_key": "blood_gas_value_abg",
+                        "key": "abg",
+                        "name": "ABG",
+                    },
+                    {
+                        "from_section_key": "calculated_values_acid_base_status",
+                        "field_key": "note",
+                    },
+                ],
+            },
+            {
+                "key": "calculated_values",
+                "name": "Calculated Values",
+                "children": [
+                    {
+                        "section_key": "calculated_values_oximetry",
+                        "key": "oximetry",
+                        "name": "Oximetry",
+                    },
+                    {
+                        "section_key": "calculated_values_acid_base_status",
+                        "key": "acid_base_status",
+                        "name": "Acid-Base Status",
+                    },
+                ],
+            },
+        ],
+    },
 }
 
 
@@ -1067,6 +1112,131 @@ def build_explicit_patient_info_group(
     }
 
 
+def apply_numeric_range_overrides(
+    app_form: dict[str, object],
+    numeric_ranges: dict[str, object],
+) -> None:
+    for section in app_form.get("sections") or []:
+        if not isinstance(section, dict):
+            continue
+        section_key = str(section.get("key") or "")
+        for field in section.get("fields") or []:
+            if not isinstance(field, dict):
+                continue
+            field_key = str(field.get("key") or "")
+            range_override = numeric_ranges.get(f"{section_key}.{field_key}")
+            if not isinstance(range_override, dict):
+                continue
+            for property_name in ("normal_min", "normal_max"):
+                value = range_override.get(property_name)
+                if value is not None and str(value).strip():
+                    field[property_name] = str(value).strip()
+
+
+def section_as_field_group(
+    section: dict[str, object],
+    *,
+    key: str,
+    name: str,
+    order: int,
+) -> dict[str, object]:
+    group: dict[str, object] = {
+        "id": str(section["id"]),
+        "key": key,
+        "name": name,
+        "kind": "field_group",
+        "order": order,
+        "fields": section.get("fields") if isinstance(section.get("fields"), list) else [],
+    }
+    notes = section.get("notes")
+    if isinstance(notes, list) and notes:
+        group["notes"] = notes
+    source = section.get("source")
+    if isinstance(source, dict) and source:
+        group["source"] = source
+    return group
+
+
+def apply_section_container_layout(
+    app_form: dict[str, object],
+    layout: list[object],
+) -> None:
+    sections = [section for section in app_form.get("sections") or [] if isinstance(section, dict)]
+    sections_by_key = {str(section.get("key") or ""): section for section in sections}
+    used_section_keys: set[str] = set()
+    containers: list[dict[str, object]] = []
+
+    for container_order, raw_container in enumerate(layout, start=1):
+        if not isinstance(raw_container, dict):
+            continue
+        container_key = str(raw_container.get("key") or "")
+        container_name = str(raw_container.get("name") or "")
+        if not container_key or not container_name:
+            continue
+
+        children: list[dict[str, object]] = []
+        for raw_child in raw_container.get("children") or []:
+            if not isinstance(raw_child, dict):
+                continue
+
+            section_key = str(raw_child.get("section_key") or "")
+            if section_key:
+                section = sections_by_key.get(section_key)
+                if section is None or section_key in used_section_keys:
+                    continue
+                used_section_keys.add(section_key)
+                children.append(
+                    section_as_field_group(
+                        section,
+                        key=str(raw_child.get("key") or section["key"]),
+                        name=str(raw_child.get("name") or section["name"]),
+                        order=len(children) + 1,
+                    )
+                )
+                continue
+
+            source_section = sections_by_key.get(str(raw_child.get("from_section_key") or ""))
+            field_key = str(raw_child.get("field_key") or "")
+            if source_section is None or not field_key:
+                continue
+            source_fields = source_section.get("fields")
+            if not isinstance(source_fields, list):
+                continue
+            for index, field in enumerate(source_fields):
+                if not isinstance(field, dict) or str(field.get("key") or "") != field_key:
+                    continue
+                source_fields.pop(index)
+                field["order"] = len(children) + 1
+                children.append(field)
+                break
+
+        if not children:
+            continue
+        containers.append(
+            {
+                "id": f"{app_form['id']}.{container_key}",
+                "key": container_key,
+                "name": container_name,
+                "kind": "field_group",
+                "order": container_order,
+                "source": {"normalized_from": "approved_default_container_layout"},
+                "fields": children,
+            }
+        )
+
+    if not containers:
+        return
+
+    root_fields = [field for field in app_form.get("fields") or [] if isinstance(field, dict)]
+    root_fields.extend(containers)
+    for order, field in enumerate(root_fields, start=1):
+        field["order"] = order
+    app_form["fields"] = root_fields
+    app_form["sections"] = [
+        section for section in sections if str(section.get("key") or "") not in used_section_keys
+    ]
+
+
 def apply_form_default_overrides(app_form: dict[str, object]) -> dict[str, object]:
     overrides = FORM_DEFAULT_OVERRIDES.get(str(app_form.get("key") or ""), {})
     if not overrides:
@@ -1095,6 +1265,14 @@ def apply_form_default_overrides(app_form: dict[str, object]) -> dict[str, objec
             build_explicit_patient_info_group(app_form, patient_field_overrides),
             *app_form["fields"],
         ]
+
+    numeric_ranges = overrides.get("numeric_ranges")
+    if isinstance(numeric_ranges, dict):
+        apply_numeric_range_overrides(app_form, numeric_ranges)
+
+    section_container_layout = overrides.get("section_container_layout")
+    if isinstance(section_container_layout, list):
+        apply_section_container_layout(app_form, section_container_layout)
 
     section_names = overrides.get("section_names")
     field_group_names = overrides.get("field_group_names")

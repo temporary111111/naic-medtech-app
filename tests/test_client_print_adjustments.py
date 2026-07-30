@@ -30,12 +30,15 @@ from naic_builder.services import (
     build_block_storage_document_from_legacy_storage,
     build_print_clinic_profile,
     build_print_display_value,
+    build_form_print_preview_document,
     build_print_items,
     build_print_summary_items,
     build_signatory_snapshot,
     current_version,
     default_signatory_slots,
     default_patient_info_legacy_group,
+    ensure_blood_gas_analysis_defaults,
+    ensure_default_blood_gas_analysis_layout,
     ensure_default_patient_info_fields,
     ensure_reference_examination_in_patient_info,
     ensure_reference_seed,
@@ -149,6 +152,7 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             with Session() as session:
                 ensure_reference_seed(session)
                 self.assertEqual(ensure_default_patient_info_fields(session), len(reference_form_slugs()))
+                self.assertEqual(ensure_blood_gas_analysis_defaults(session), 1)
 
                 definitions = session.scalars(select(FormDefinition)).all()
                 self.assertEqual(len(definitions), len(reference_form_slugs()))
@@ -163,6 +167,155 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                     self.assertIn("examination", patient_field_keys, definition.slug)
         finally:
             engine.dispose()
+
+    def test_blood_gas_defaults_use_approved_layout_and_ranges(self) -> None:
+        schema = json.loads(
+            (ROOT / "artifacts" / "schema" / "naic_medtech_app_schema.json").read_text(encoding="utf-8")
+        )
+        blood_gas = next(
+            form
+            for group in schema["groups"]
+            for form in group["forms"]
+            if form["key"] == "blood_gas_analysis"
+        )
+        block_schema = build_block_storage_document_from_legacy_storage(blood_gas)
+        ensure_reference_examination_in_patient_info(block_schema, reference_form_slugs())
+
+        self.assertTrue(ensure_default_blood_gas_analysis_layout(block_schema))
+        top_level = {block["props"]["key"]: block for block in block_schema["blocks"]}
+        self.assertEqual(
+            [block["props"]["key"] for block in block_schema["blocks"]],
+            ["patient_information", "blood_gas_values", "calculated_values"],
+        )
+        self.assertEqual(
+            [child["props"]["key"] for child in top_level["blood_gas_values"]["children"]],
+            ["abg", "note"],
+        )
+        self.assertEqual(
+            [child["props"]["key"] for child in top_level["calculated_values"]["children"]],
+            ["oximetry", "acid_base_status"],
+        )
+        printed = build_print_items(
+            block_schema["blocks"],
+            values={},
+            asset_by_field={},
+            record_id=1,
+            print_config={
+                "show_top_level_container_titles": True,
+                "show_nested_container_titles": True,
+            },
+        )
+        printed_sections = {item["name"]: item for item in printed if item["kind"] == "section"}
+        self.assertEqual(
+            [item["name"] for item in printed_sections["Blood Gas Values"]["items"]],
+            ["ABG", "NOTE"],
+        )
+        self.assertEqual(
+            [item["name"] for item in printed_sections["Calculated Values"]["items"]],
+            ["Oximetry", "Acid-Base Status"],
+        )
+        preview = build_form_print_preview_document(
+            form_name="Blood Gas Analysis",
+            block_schema=block_schema,
+        )
+        legacy_a5_fit = estimate_print_page_fit(
+            {
+                "print_config": apply_print_presentation(
+                    {},
+                    template_id="legacy_landscape",
+                    text_size="standard",
+                    paper_size="a5",
+                ),
+                "items": preview["items"],
+            }
+        )
+        self.assertTrue(legacy_a5_fit["requires_one_page"])
+        self.assertTrue(legacy_a5_fit["can_print"])
+
+        fields = {}
+
+        def collect_fields(blocks):
+            for block in blocks:
+                if block["kind"] == "field":
+                    fields[block["props"]["key"]] = block
+                collect_fields(block["children"])
+
+        collect_fields(block_schema["blocks"])
+        self.assertEqual(fields["ph"]["props"]["normal_min"], "7.35")
+        self.assertEqual(fields["ph"]["props"]["normal_max"], "7.45")
+        self.assertEqual(fields["be_ecf"]["props"]["normal_min"], "-2")
+        self.assertEqual(fields["be_ecf"]["props"]["normal_max"], "2")
+        self.assertEqual(evaluate_print_abnormal(fields["ph"]["props"], "7.35"), (False, None))
+        self.assertEqual(evaluate_print_abnormal(fields["ph"]["props"], "7.46"), (True, "high"))
+        self.assertEqual(evaluate_print_abnormal(fields["be_ecf"]["props"], "-2.1"), (True, "low"))
+
+    def test_print_containers_render_as_depth_aware_document_hierarchy(self) -> None:
+        blocks = [
+            {
+                "id": "section",
+                "kind": "container",
+                "name": "Level 0",
+                "props": {"key": "level_0"},
+                "children": [
+                    {
+                        "id": "group_1",
+                        "kind": "container",
+                        "name": "Level 1",
+                        "props": {"key": "level_1"},
+                        "children": [
+                            {
+                                "id": "group_2",
+                                "kind": "container",
+                                "name": "Level 2",
+                                "props": {"key": "level_2"},
+                                "children": [
+                                    {
+                                        "id": "group_3",
+                                        "kind": "container",
+                                        "name": "Level 3",
+                                        "props": {"key": "level_3"},
+                                        "children": [
+                                            {
+                                                "id": "result",
+                                                "kind": "field",
+                                                "name": "Result",
+                                                "props": {"key": "result", "data_type": "text"},
+                                                "children": [],
+                                            }
+                                        ],
+                                    }
+                                ],
+                            }
+                        ],
+                    }
+                ],
+            }
+        ]
+        items = build_print_items(
+            blocks,
+            values={},
+            asset_by_field={},
+            record_id=1,
+            print_config={
+                "show_top_level_container_titles": True,
+                "show_nested_container_titles": True,
+            },
+        )
+        self.assertEqual(items[0]["container_depth"], 0)
+        self.assertEqual(items[0]["items"][0]["container_depth"], 1)
+        self.assertEqual(items[0]["items"][0]["items"][0]["container_depth"], 2)
+        self.assertEqual(items[0]["items"][0]["items"][0]["items"][0]["container_depth"], 3)
+
+        environment = Environment(loader=FileSystemLoader(str(ROOT / "app" / "naic_builder" / "templates")))
+        rendered = environment.get_template("records/_print_document.html").module.render_print_items(items)
+        self.assertIn('print-section print-container-depth-0 has-title', rendered)
+        self.assertIn('print-group print-container-depth-1 has-title', rendered)
+        self.assertIn('print-group print-container-depth-2 has-title', rendered)
+        self.assertIn('print-group print-container-depth-3 is-deep has-title', rendered)
+
+        print_css = (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8")
+        self.assertIn(".print-group.has-title", print_css)
+        self.assertIn(".print-group.is-deep.has-title", print_css)
 
     def test_blood_bank_seed_uses_approved_container_names(self) -> None:
         schema = json.loads(

@@ -82,6 +82,7 @@ from .services import (
     create_record,
     create_user_account,
     current_record_values,
+    ensure_blood_gas_analysis_defaults,
     ensure_client_signatory_defaults,
     ensure_default_patient_info_fields,
     ensure_form_version_storage_documents,
@@ -139,6 +140,7 @@ async def lifespan(_: FastAPI):
         ensure_client_signatory_defaults(session)
         ensure_form_version_storage_documents(session)
         ensure_default_patient_info_fields(session)
+        ensure_blood_gas_analysis_defaults(session)
         ensure_library_tree(session)
     backup_stop_event = asyncio.Event()
     backup_task = asyncio.create_task(scheduled_backup_loop(backup_stop_event))
