@@ -38,12 +38,14 @@ from naic_builder.services import (
     current_version,
     default_signatory_slots,
     default_patient_info_legacy_group,
+    ensure_blood_bank_defaults,
     ensure_blood_gas_analysis_defaults,
     ensure_blood_chemistry_female_defaults,
     ensure_blood_chemistry_male_defaults,
     ensure_cardiaci_defaults,
     ensure_ogtt_defaults,
     ensure_default_blood_gas_analysis_layout,
+    ensure_default_blood_bank_layout,
     ensure_default_blood_chemistry_female_layout,
     ensure_default_blood_chemistry_male_layout,
     ensure_default_cardiaci_layout,
@@ -178,6 +180,7 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             with Session() as session:
                 ensure_reference_seed(session)
                 self.assertEqual(ensure_default_patient_info_fields(session), len(reference_form_slugs()))
+                self.assertEqual(ensure_blood_bank_defaults(session), 1)
                 self.assertEqual(ensure_blood_gas_analysis_defaults(session), 1)
                 self.assertEqual(ensure_hematology_defaults(session), 1)
                 self.assertEqual(ensure_hba1c_defaults(session), 1)
@@ -849,6 +852,18 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(patient_fields["case_number"]["props"]["data_type"], "number")
         self.assertTrue(patient_fields["case_number"]["props"]["required"])
         crossmatching = containers[-1]
+        self.assertTrue(ensure_default_blood_bank_layout(block_schema))
+        crossmatching_fields = [child["props"]["key"] for child in crossmatching["children"]]
+        self.assertIn("release_date_time", crossmatching_fields)
+        self.assertEqual(
+            crossmatching_fields.index("release_date_time"),
+            crossmatching_fields.index("released_to") + 1,
+        )
+        release_date_time = next(
+            child for child in crossmatching["children"] if child["props"]["key"] == "release_date_time"
+        )
+        self.assertEqual(release_date_time["name"], "Date & Time")
+        self.assertEqual(release_date_time["props"]["data_type"], "datetime")
         remarks = next(child for child in crossmatching["children"] if child["props"]["key"] == "remarks")
         self.assertEqual(
             evaluate_print_abnormal(remarks["props"], "COMPATIBLE"),

@@ -82,6 +82,7 @@ from .services import (
     create_record,
     create_user_account,
     current_record_values,
+    ensure_blood_bank_defaults,
     ensure_blood_gas_analysis_defaults,
     ensure_blood_chemistry_female_defaults,
     ensure_blood_chemistry_male_defaults,
@@ -153,6 +154,7 @@ async def lifespan(_: FastAPI):
         ensure_form_version_storage_documents(session)
         ensure_default_patient_info_fields(session)
         ensure_blood_gas_analysis_defaults(session)
+        ensure_blood_bank_defaults(session)
         ensure_hematology_defaults(session)
         ensure_hba1c_defaults(session)
         ensure_pro_time_aptt_defaults(session)

@@ -88,6 +88,16 @@ FORM_DEFAULT_OVERRIDES = {
             "key": "details",
             "name": "Blood Bank Details",
         },
+        "section_field_appends": {
+            "type_of_crossmatching": [
+                {
+                    "key": "release_date_time",
+                    "name": "Date & Time",
+                    "control": "input",
+                    "data_type": "datetime",
+                },
+            ],
+        },
         "section_names": {
             "type_of_crossmatching": "Crossmatching Details",
         },
@@ -1469,6 +1479,43 @@ def append_default_detail_fields(
         existing_keys.add(key)
 
 
+def append_default_section_fields(
+    app_form: dict[str, object],
+    section_field_appends: dict[str, object],
+) -> None:
+    for section in app_form.get("sections") or []:
+        if not isinstance(section, dict):
+            continue
+        section_key = str(section.get("key") or "")
+        raw_fields = section_field_appends.get(section_key)
+        fields = section.get("fields")
+        if not isinstance(raw_fields, list) or not isinstance(fields, list):
+            continue
+
+        existing_keys = {str(field.get("key") or "") for field in fields if isinstance(field, dict)}
+        for raw_field in raw_fields:
+            if not isinstance(raw_field, dict):
+                continue
+            key = str(raw_field.get("key") or "").strip()
+            name = str(raw_field.get("name") or "").strip()
+            if not key or not name or key in existing_keys:
+                continue
+            fields.append(
+                {
+                    "id": f"{section['id']}.{key}",
+                    "key": key,
+                    "name": name,
+                    "kind": "field",
+                    "order": len(fields) + 1,
+                    "control": str(raw_field.get("control") or "input"),
+                    "data_type": str(raw_field.get("data_type") or "text"),
+                    "required": bool(raw_field.get("required")),
+                    "source": {"normalized_from": "approved_default_section_field"},
+                }
+            )
+            existing_keys.add(key)
+
+
 def apply_root_field_group_layout(
     app_form: dict[str, object],
     layout: list[object],
@@ -1679,6 +1726,10 @@ def apply_form_default_overrides(app_form: dict[str, object]) -> dict[str, objec
     detail_field_appends = overrides.get("detail_field_appends")
     if isinstance(detail_field_appends, list):
         append_default_detail_fields(app_form, detail_field_appends)
+
+    section_field_appends = overrides.get("section_field_appends")
+    if isinstance(section_field_appends, dict):
+        append_default_section_fields(app_form, section_field_appends)
 
     patient_field_overrides = overrides.get("patient_field_overrides")
     if isinstance(patient_field_overrides, dict):

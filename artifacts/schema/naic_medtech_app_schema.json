@@ -2,7 +2,7 @@
   "schema_name": "NAIC Medtech App Schema",
   "schema_version": "1.0.5",
   "source_workbook": "NAIC MEDTECH SYSTEM DATA.xlsx",
-  "generated_at_utc": "2026-07-30T17:18:29.362541+00:00",
+  "generated_at_utc": "2026-07-30T17:36:56.151032+00:00",
   "normalization_rules": [
     "Shared patient/request metadata was moved into a reusable common field set.",
     "Medical Technologist and Pathologist are modeled as configurable print signatories, not ordinary result fields.",
@@ -4927,6 +4927,19 @@
                   "source": {
                     "sheet_row": 28,
                     "raw_input_type": "Manual Entry"
+                  }
+                },
+                {
+                  "id": "blood_bank.blood_bank.type_of_crossmatching.release_date_time",
+                  "key": "release_date_time",
+                  "name": "Date & Time",
+                  "kind": "field",
+                  "order": 8,
+                  "control": "input",
+                  "data_type": "datetime",
+                  "required": false,
+                  "source": {
+                    "normalized_from": "approved_default_section_field"
                   }
                 }
               ]

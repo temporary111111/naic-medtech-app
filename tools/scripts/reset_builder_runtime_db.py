@@ -13,6 +13,7 @@ if str(APP_DIR) not in sys.path:
 from naic_builder.config import DB_PATH
 from naic_builder.database import SessionLocal, ensure_runtime_schema
 from naic_builder.services import (
+    ensure_blood_bank_defaults,
     ensure_blood_gas_analysis_defaults,
     ensure_blood_chemistry_female_defaults,
     ensure_blood_chemistry_male_defaults,
@@ -43,6 +44,7 @@ def main() -> None:
         ensure_form_version_storage_documents(session)
         ensure_default_patient_info_fields(session)
         ensure_blood_gas_analysis_defaults(session)
+        ensure_blood_bank_defaults(session)
         ensure_hematology_defaults(session)
         ensure_hba1c_defaults(session)
         ensure_pro_time_aptt_defaults(session)

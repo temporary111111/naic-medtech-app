@@ -278,6 +278,8 @@ DEFAULT_PRINT_SUMMARY_ITEMS = [
 DEFAULT_LAB_REQUEST_FIELD_SET_ID = "default_lab_request"
 DEFAULT_PATIENT_INFO_MATERIALIZED_META_KEY = "default_patient_info_materialized"
 DEFAULT_EXAMINATION_IN_PATIENT_INFO_META_KEY = "default_examination_in_patient_info_v1"
+BLOOD_BANK_FORM_KEY = "blood_bank"
+DEFAULT_BLOOD_BANK_DEFAULTS_META_KEY = "default_blood_bank_defaults_v1"
 BLOOD_GAS_ANALYSIS_FORM_KEY = "blood_gas_analysis"
 DEFAULT_BLOOD_GAS_LAYOUT_META_KEY = "default_blood_gas_layout_v1"
 BLOOD_GAS_NUMERIC_RANGES = {
@@ -2455,6 +2457,77 @@ def ensure_default_image_field(
     return changed
 
 
+def ensure_default_release_datetime_field(
+    block_schema: dict[str, Any],
+    *,
+    container: dict[str, Any],
+) -> bool:
+    children = container.get("children") if isinstance(container.get("children"), list) else []
+    if not isinstance(container.get("children"), list):
+        container["children"] = children
+
+    existing = next(
+        (
+            child
+            for child in children
+            if isinstance(child, dict)
+            and child.get("kind") == "field"
+            and compact_text((child.get("props") or {}).get("key")) == "release_date_time"
+        ),
+        None,
+    )
+    changed = False
+    if existing is None:
+        meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+        form_id = compact_text(meta.get("form_id"))
+        container_key = compact_text((container.get("props") or {}).get("key"))
+        if not form_id or not container_key:
+            return False
+        existing = {
+            "id": f"{form_id}.{container_key}.release_date_time",
+            "kind": "field",
+            "name": "Date & Time",
+            "props": {
+                "key": "release_date_time",
+                "order": len(children) + 1,
+                "control": "input",
+                "data_type": "datetime",
+                "default_value_mode": "smart",
+                "source": {"normalized_from": "approved_default_release_date_time"},
+            },
+            "children": [],
+        }
+        released_to_index = next(
+            (
+                index
+                for index, child in enumerate(children)
+                if isinstance(child, dict)
+                and compact_text((child.get("props") or {}).get("key")) == "released_to"
+            ),
+            len(children) - 1,
+        )
+        children.insert(released_to_index + 1, existing)
+        resequence_block_orders(children)
+        return True
+
+    props = existing.get("props") if isinstance(existing.get("props"), dict) else {}
+    defaults = {
+        "key": "release_date_time",
+        "control": "input",
+        "data_type": "datetime",
+        "default_value_mode": "smart",
+    }
+    for property_name, expected_value in defaults.items():
+        if props.get(property_name) != expected_value:
+            props[property_name] = expected_value
+            changed = True
+    if compact_text(existing.get("name")) != "Date & Time":
+        existing["name"] = "Date & Time"
+        changed = True
+    existing["props"] = props
+    return changed
+
+
 def ensure_default_top_level_container(
     block_schema: dict[str, Any],
     *,
@@ -2596,6 +2669,29 @@ def ensure_default_hba1c_layout(block_schema: dict[str, Any]) -> bool:
         {"details": HBA1C_FIELD_DEFAULTS},
     )
     meta[DEFAULT_HBA1C_LAYOUT_META_KEY] = True
+    block_schema["meta"] = meta
+    return True
+
+
+def ensure_default_blood_bank_layout(block_schema: dict[str, Any]) -> bool:
+    if not isinstance(block_schema, dict):
+        return False
+
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    if compact_text(meta.get("form_key")) != BLOOD_BANK_FORM_KEY:
+        return False
+    if meta.get(DEFAULT_BLOOD_BANK_DEFAULTS_META_KEY) is True:
+        return False
+
+    crossmatching = find_top_level_block_by_key(
+        normalize_items(block_schema.get("blocks")),
+        "type_of_crossmatching",
+    )
+    if crossmatching is None:
+        return False
+    ensure_default_release_datetime_field(block_schema, container=crossmatching)
+    resequence_block_orders(normalize_items(crossmatching.get("children")))
+    meta[DEFAULT_BLOOD_BANK_DEFAULTS_META_KEY] = True
     block_schema["meta"] = meta
     return True
 
@@ -6532,6 +6628,15 @@ def ensure_qualitative_result_form_defaults(
         definition,
         block_schema,
         summary=summary,
+    )
+
+
+def ensure_blood_bank_defaults(session: Session) -> int:
+    return ensure_qualitative_result_form_defaults(
+        session,
+        form_key=BLOOD_BANK_FORM_KEY,
+        layout=ensure_default_blood_bank_layout,
+        summary="Applied approved Blood Bank defaults.",
     )
 
 
