@@ -37,7 +37,10 @@
           <span>{{ fit.detail }}</span>
         </div>
         {% endif %}
-        <button class="print-settings-trigger" type="button" data-open-print-settings aria-haspopup="dialog">Print settings</button>
+        <button class="print-active-profile" type="button" data-open-print-settings aria-haspopup="dialog" aria-label="Change print settings" title="Change print settings">
+          <span>Print setup</span>
+          <strong>{{ presentation.style_label }} | {{ presentation.orientation }} | {{ presentation.text_size_label }} | {{ presentation.paper_size_label }}</strong>
+        </button>
         <details class="print-more-menu">
           <summary>More</summary>
           <div class="print-more-panel">
