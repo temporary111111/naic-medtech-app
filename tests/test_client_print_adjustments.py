@@ -1932,6 +1932,18 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             ".print-container-run.print-layout-grid {\n  display: grid;",
             (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
         )
+        self.assertIn(
+            "body.is-layout-editing .print-container-run.print-layout-grid > .print-container-run-item",
+            (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
+        )
+        self.assertIn(
+            ".print-container-run.print-layout-grid {\n  background: var(--paper);",
+            (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
+        )
+        self.assertNotIn(
+            ".print-font-times-new-roman .print-group-title,",
+            (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
+        )
 
     def test_user_print_layout_preference_is_personal_and_profile_scoped(self) -> None:
         engine = create_engine("sqlite://")
