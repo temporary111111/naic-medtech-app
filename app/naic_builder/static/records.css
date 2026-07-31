@@ -1605,6 +1605,10 @@
   gap: 10px;
 }
 
+.entry-field--image.is-uploading .entry-image-upload-form {
+  opacity: 0.65;
+}
+
 .entry-image-upload-form input[type="file"] {
   width: 100%;
   border: 1px solid color-mix(in srgb, var(--line) 92%, transparent);
@@ -1617,6 +1621,14 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.entry-image-upload-status:empty {
+  display: none;
+}
+
+.entry-image-upload-status[data-status="error"] {
+  color: var(--danger);
 }
 
 .completion-checklist {

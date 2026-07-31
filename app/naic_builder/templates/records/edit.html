@@ -102,40 +102,38 @@
 
         {% if props.data_type == "image" %}
         <div class="entry-image-field">
+          <div data-record-image-current>
           {% if image_asset %}
           <img class="entry-image-preview" src="/records/{{ record_id }}/assets/{{ image_asset.id }}/file" alt="{{ block.name }}">
           <p class="entry-inline-hint">{{ image_asset.original_filename }}{% if image_asset.size_bytes %} - {{ ((image_asset.size_bytes / 1024 / 1024) | round(1)) }} MB{% endif %}</p>
-          <div class="entry-image-actions">
-            <button
-              class="ghost-button"
-              type="submit"
-              formaction="/records/{{ record_id }}/assets/{{ image_asset.id }}/remove"
-              formmethod="post"
-              formnovalidate
-            >Remove image</button>
-          </div>
           {% else %}
           <div class="entry-image-placeholder">
             <strong>Image answer</strong>
             <span>Upload one image for this field.</span>
           </div>
           {% endif %}
+          </div>
 
           <div class="entry-image-upload-form">
-            <input type="file" name="image_file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
-            <div class="entry-image-actions">
+            <input
+              type="file"
+              accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+              data-record-image-upload
+              data-record-id="{{ record_id }}"
+              data-field-block-id="{{ block.id }}"
+              aria-describedby="record-image-status-{{ block.id }}"
+            >
+            <div class="entry-image-actions" data-record-image-actions {% if not image_asset %}hidden{% endif %}>
               <button
-                class="primary-button"
-                type="submit"
-                name="field_block_id"
-                value="{{ block.id }}"
-                formaction="/records/{{ record_id }}/assets"
-                formmethod="post"
-                formenctype="multipart/form-data"
-                formnovalidate
-              >{{ "Replace image" if image_asset else "Upload image" }}</button>
+                class="ghost-button"
+                type="button"
+                data-record-image-remove
+                data-asset-id="{{ image_asset.id if image_asset else '' }}"
+                {% if not image_asset %}disabled{% endif %}
+              >Remove image</button>
             </div>
           </div>
+          <p class="entry-inline-hint entry-image-upload-status" id="record-image-status-{{ block.id }}" data-record-image-status aria-live="polite"></p>
           <p class="entry-inline-hint">PNG, JPG, or WebP up to 10 MB.</p>
         </div>
         {% elif props.control == "select" %}
@@ -407,5 +405,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', path='records.js') }}?v=20260612-temporal-compact" defer></script>
+  <script src="{{ url_for('static', path='records.js') }}?v=20260731-record-image-preview-fix" defer></script>
 {% endblock %}

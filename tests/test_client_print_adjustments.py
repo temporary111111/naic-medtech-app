@@ -1745,6 +1745,19 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn('class="print-result-image"', rendered)
         self.assertIn('class="print-image', rendered)
 
+    def test_record_image_editor_uses_async_auto_upload_controls(self) -> None:
+        editor_template = (ROOT / "app" / "naic_builder" / "templates" / "records" / "edit.html").read_text(encoding="utf-8")
+        records_source = (ROOT / "app" / "naic_builder" / "static" / "records.js").read_text(encoding="utf-8")
+
+        self.assertIn("data-record-image-upload", editor_template)
+        self.assertIn("data-record-image-remove", editor_template)
+        self.assertNotIn(">Upload image</button>", editor_template)
+        self.assertIn("setupRecordImageUploads", records_source)
+        self.assertIn("`/api/records/${recordId}/assets`", records_source)
+        self.assertIn('method: "DELETE"', records_source)
+        self.assertIn('target.matches("[data-record-image-upload]")', records_source)
+        self.assertIn("asset_by_field_id", records_source)
+
     def test_field_run_template_preserves_rows_until_grid_presentation_is_selected(self) -> None:
         environment = Environment(loader=FileSystemLoader(ROOT / "app" / "naic_builder" / "templates"))
         macro = environment.get_template("records/_print_document.html").module.render_print_page

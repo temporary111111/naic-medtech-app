@@ -320,7 +320,11 @@
         statusEl.classList.toggle("is-dirty", dirty);
       };
 
-      const markDirty = () => {
+      const markDirty = (event) => {
+        const target = event?.target;
+        if (target instanceof Element && target.matches("[data-record-image-upload]")) {
+          return;
+        }
         if (!dirty) {
           setDirty(true);
         }
@@ -424,6 +428,158 @@
         }
         event.preventDefault();
         event.returnValue = "";
+      });
+    });
+  };
+
+  const setupRecordImageUploads = () => {
+    const imageInputs = document.querySelectorAll("[data-record-image-upload]");
+    if (!imageInputs.length) {
+      return;
+    }
+
+    const formatFileSize = (sizeBytes) => {
+      const size = Number(sizeBytes || 0);
+      return Number.isFinite(size) && size > 0 ? ` - ${(size / 1024 / 1024).toFixed(1)} MB` : "";
+    };
+    const setStatus = (field, message, status = "") => {
+      const statusEl = field.querySelector("[data-record-image-status]");
+      if (!statusEl) {
+        return;
+      }
+      statusEl.textContent = message;
+      statusEl.dataset.status = status;
+    };
+    const renderCurrentImage = (field, recordId, asset) => {
+      const current = field.querySelector("[data-record-image-current]");
+      if (!current) {
+        return;
+      }
+      current.replaceChildren();
+      if (!asset) {
+        const placeholder = document.createElement("div");
+        placeholder.className = "entry-image-placeholder";
+        const title = document.createElement("strong");
+        title.textContent = "Image answer";
+        const copy = document.createElement("span");
+        copy.textContent = "Upload one image for this field.";
+        placeholder.append(title, copy);
+        current.append(placeholder);
+        return;
+      }
+
+      const image = document.createElement("img");
+      image.className = "entry-image-preview";
+      image.src = `/records/${recordId}/assets/${asset.id}/file?upload=${Date.now()}`;
+      image.alt = field.querySelector(".entry-field-head > span")?.textContent?.replace("*", "").trim() || "Uploaded image";
+      const meta = document.createElement("p");
+      meta.className = "entry-inline-hint";
+      meta.textContent = `${asset.original_filename || "Image"}${formatFileSize(asset.size_bytes)}`;
+      current.append(image, meta);
+    };
+    const setUploading = (field, value) => {
+      field.classList.toggle("is-uploading", value);
+      const input = field.querySelector("[data-record-image-upload]");
+      const removeButton = field.querySelector("[data-record-image-remove]");
+      if (input) input.disabled = value;
+      if (removeButton) removeButton.disabled = value || !removeButton.dataset.assetId;
+    };
+    const readResponse = async (response) => {
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body.detail || "Could not update the image.");
+      }
+      return body;
+    };
+    const uploadedAssetFromResponse = (payload, fieldBlockId) => {
+      const mappedAsset = payload?.asset_by_field_id?.[fieldBlockId];
+      if (mappedAsset && typeof mappedAsset === "object") {
+        return mappedAsset;
+      }
+      if (Array.isArray(payload?.assets)) {
+        const matchingAsset = payload.assets.find((asset) => asset?.field_block_id === fieldBlockId);
+        if (matchingAsset && typeof matchingAsset === "object") {
+          return matchingAsset;
+        }
+      }
+      return payload;
+    };
+
+    imageInputs.forEach((input) => {
+      if (input.dataset.recordImageUploadReady === "true") {
+        return;
+      }
+      input.dataset.recordImageUploadReady = "true";
+      const field = input.closest(".entry-field--image");
+      const removeButton = field?.querySelector("[data-record-image-remove]");
+      const removeActions = field?.querySelector("[data-record-image-actions]");
+      const recordId = String(input.dataset.recordId || "");
+      const fieldBlockId = String(input.dataset.fieldBlockId || "");
+      if (!field || !recordId || !fieldBlockId) {
+        return;
+      }
+
+      input.addEventListener("change", async () => {
+        const file = input.files?.[0];
+        if (!file) {
+          return;
+        }
+        setUploading(field, true);
+        setStatus(field, "Uploading image...", "uploading");
+        try {
+          const data = new FormData();
+          data.append("field_block_id", fieldBlockId);
+          data.append("image_file", file);
+          const response = await readResponse(await fetch(`/api/records/${recordId}/assets`, {
+            method: "POST",
+            body: data,
+          }));
+          const asset = uploadedAssetFromResponse(response, fieldBlockId);
+          if (!asset?.id) {
+            throw new Error("Image uploaded, but its preview could not be loaded.");
+          }
+          renderCurrentImage(field, recordId, asset);
+          if (removeButton) {
+            removeButton.dataset.assetId = String(asset.id || "");
+          }
+          if (removeActions) {
+            removeActions.hidden = false;
+          }
+          setStatus(field, "Image uploaded.", "success");
+        } catch (error) {
+          console.error(error);
+          setStatus(field, error.message || "Could not upload the image.", "error");
+        } finally {
+          input.value = "";
+          setUploading(field, false);
+        }
+      });
+
+      removeButton?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const assetId = String(removeButton.dataset.assetId || "");
+        if (!assetId) {
+          return;
+        }
+        setUploading(field, true);
+        setStatus(field, "Removing image...", "uploading");
+        try {
+          await readResponse(await fetch(`/api/records/${recordId}/assets/${assetId}`, {
+            method: "DELETE",
+          }));
+          renderCurrentImage(field, recordId, null);
+          removeButton.dataset.assetId = "";
+          if (removeActions) {
+            removeActions.hidden = true;
+          }
+          setStatus(field, "Image removed.", "success");
+        } catch (error) {
+          console.error(error);
+          setStatus(field, error.message || "Could not remove the image.", "error");
+        } finally {
+          setUploading(field, false);
+        }
       });
     });
   };
@@ -555,6 +711,7 @@
   };
 
   setupDirtyGuards();
+  setupRecordImageUploads();
   setupTemporalInputs();
   setupRequiredFieldAttention();
   setupRecordFormPickers();
