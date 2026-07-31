@@ -2097,6 +2097,14 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
         )
         self.assertIn(
+            ".print-block-run-grid.print-layout-grid {\n  gap: 0;\n  background: var(--paper);",
+            (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
+        )
+        self.assertIn(
+            "outline: 1px solid var(--line-soft);",
+            (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
+        )
+        self.assertIn(
             'is-layout-drop-before-row',
             (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
         )

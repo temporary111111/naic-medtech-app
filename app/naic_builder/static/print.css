@@ -2071,6 +2071,7 @@ body.is-layout-editing .print-block-run-grid.print-layout-grid > .print-grid-cel
 }
 
 .print-block-run-grid.print-layout-grid {
+  gap: 0;
   background: var(--paper);
 }
 
@@ -2080,6 +2081,8 @@ body.is-layout-editing .print-block-run-grid.print-layout-grid > .print-grid-cel
   min-width: 0;
   border: 0;
   background: var(--paper);
+  outline: 1px solid var(--line-soft);
+  outline-offset: -1px;
 }
 
 .print-block-run-grid.print-layout-grid > .print-grid-cell {
