@@ -30,7 +30,17 @@ from .config import (
     USER_UPLOADS_DIR,
 )
 from .database import Base, engine
-from .models import ClinicProfile, FormDefinition, FormVersion, LibraryNode, Record, RecordAsset, User, utc_now
+from .models import (
+    ClinicProfile,
+    FormDefinition,
+    FormVersion,
+    LibraryNode,
+    Record,
+    RecordAsset,
+    RecordPrintPresentation,
+    User,
+    utc_now,
+)
 from .schemas import (
     AccountRequestPayload,
     ClinicProfilePayload,
@@ -139,6 +149,7 @@ DEFAULT_PRINT_TEXT_SIZE = "standard"
 DEFAULT_PRINT_PAPER_SIZE = "a4"
 PRINT_PROFILE_VERSION = 2
 PRINT_LAYOUT_PREFERENCE_VERSION = 5
+FORM_PRINT_LAYOUT_DEFAULTS_VERSION = 1
 PRINT_LAYOUT_MODES = {"preserve", "balance", "manual"}
 PRINT_CONTAINER_LAYOUT_MODES = {"flow", "balance", "manual"}
 PRINT_TEXT_SIZE_DETAILS = {
@@ -1419,6 +1430,213 @@ def save_user_print_layout_preference(
     )
     save_user(session, user)
     return normalized_preference
+
+
+def print_layout_default_profile_key(template_id: Any, paper_size: Any) -> str:
+    return ":".join(
+        [
+            normalize_print_template_id(template_id),
+            normalize_print_paper_size(paper_size),
+        ]
+    )
+
+
+def normalize_form_print_layout_defaults(value: Any) -> dict[str, Any]:
+    raw_defaults = value if isinstance(value, dict) else {}
+    raw_profiles = raw_defaults.get("profiles") if isinstance(raw_defaults.get("profiles"), dict) else {}
+    profiles: dict[str, dict[str, Any]] = {}
+
+    for raw_key, raw_layout in raw_profiles.items():
+        key = compact_text(raw_key)
+        parts = key.split(":", 1)
+        if len(parts) != 2:
+            continue
+        profile_key = print_layout_default_profile_key(parts[0], parts[1])
+        preference = normalize_print_layout_preference(raw_layout)
+        if preference["grids"] or preference["containers"] or preference["blocks"]:
+            profiles[profile_key] = preference
+
+    return {
+        "version": FORM_PRINT_LAYOUT_DEFAULTS_VERSION,
+        "profiles": profiles,
+    }
+
+
+def form_version_print_layout_defaults(form_version: FormVersion) -> dict[str, Any]:
+    block_schema, _ = load_block_storage_document(form_version)
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    return normalize_form_print_layout_defaults(meta.get("print_layout_defaults"))
+
+
+def form_version_print_layout_preference(
+    form_version: FormVersion,
+    *,
+    template_id: Any,
+    paper_size: Any,
+) -> dict[str, Any]:
+    profile_key = print_layout_default_profile_key(template_id, paper_size)
+    return form_version_print_layout_defaults(form_version)["profiles"].get(
+        profile_key,
+        normalize_print_layout_preference({}),
+    )
+
+
+def record_print_presentation_for_record(record: Record) -> RecordPrintPresentation | None:
+    return record.print_presentation
+
+
+def record_print_presentation_profile(
+    presentation: RecordPrintPresentation,
+) -> dict[str, Any]:
+    return normalize_print_profile(
+        template_id=presentation.template_id,
+        text_size=presentation.text_size,
+        paper_size=presentation.paper_size,
+    )
+
+
+def serialize_record_print_presentation(
+    presentation: RecordPrintPresentation | None,
+) -> dict[str, Any] | None:
+    if presentation is None:
+        return None
+    profile = record_print_presentation_profile(presentation)
+    saved_by = presentation.saved_by_user
+    return {
+        "id": presentation.id,
+        "record_id": presentation.record_id,
+        "form_version_id": presentation.form_version_id,
+        "template_id": profile["template_id"],
+        "style": profile["style"],
+        "orientation": profile["orientation"],
+        "text_size": profile["text_size"],
+        "paper_size": profile["paper_size"],
+        "layout": normalize_print_layout_preference(load_json_object(presentation.layout_json)),
+        "saved_by": {
+            "id": saved_by.id,
+            "full_name": saved_by.full_name,
+        } if saved_by is not None else None,
+        "saved_at": presentation.updated_at.astimezone(timezone.utc).isoformat(),
+    }
+
+
+def user_can_manage_record_print_presentation(record: Record, user: User | None) -> bool:
+    if user is None:
+        return False
+    return user.role == "admin" or record.created_by_user_id == user.id
+
+
+def apply_record_print_presentation(
+    session: Session,
+    record: Record,
+    *,
+    user: User | None,
+    profile: dict[str, Any],
+    layout: Any,
+) -> RecordPrintPresentation:
+    presentation = record_print_presentation_for_record(record)
+    if presentation is None:
+        presentation = RecordPrintPresentation(
+            record_id=record.id,
+            form_version_id=record.form_version_id,
+            template_id=profile["template_id"],
+            text_size=profile["text_size"],
+            paper_size=profile["paper_size"],
+            layout_json="{}",
+            saved_by_user_id=user.id if user is not None else None,
+        )
+    else:
+        presentation.form_version_id = record.form_version_id
+        presentation.template_id = profile["template_id"]
+        presentation.text_size = profile["text_size"]
+        presentation.paper_size = profile["paper_size"]
+        presentation.saved_by_user_id = user.id if user is not None else None
+
+    presentation.layout_json = json.dumps(
+        normalize_print_layout_preference(layout),
+        ensure_ascii=False,
+    )
+    session.add(presentation)
+    return presentation
+
+
+def snapshot_completed_record_print_presentation(
+    session: Session,
+    record: Record,
+    *,
+    user: User | None,
+) -> RecordPrintPresentation:
+    profile = user_print_preferences(user)
+    layout = form_version_print_layout_preference(
+        record.form_version,
+        template_id=profile["template_id"],
+        paper_size=profile["paper_size"],
+    )
+    return apply_record_print_presentation(
+        session,
+        record,
+        user=user,
+        profile=profile,
+        layout=layout,
+    )
+
+
+def save_record_print_presentation(
+    session: Session,
+    record: Record,
+    *,
+    user: User,
+    profile: dict[str, Any],
+    layout: Any,
+) -> dict[str, Any]:
+    presentation = apply_record_print_presentation(
+        session,
+        record,
+        user=user,
+        profile=profile,
+        layout=layout,
+    )
+    session.commit()
+    session.refresh(presentation)
+    return serialize_record_print_presentation(presentation) or {}
+
+
+def clear_record_print_presentation(session: Session, record: Record) -> bool:
+    presentation = record_print_presentation_for_record(record)
+    if presentation is None:
+        return False
+    session.delete(presentation)
+    session.commit()
+    return True
+
+
+def effective_record_print_presentation(
+    record: Record,
+    *,
+    fallback_profile: dict[str, Any],
+    use_record_presentation: bool = True,
+) -> dict[str, Any]:
+    presentation = record_print_presentation_for_record(record)
+    if presentation is not None and use_record_presentation:
+        return {
+            "profile": record_print_presentation_profile(presentation),
+            "layout": normalize_print_layout_preference(load_json_object(presentation.layout_json)),
+            "source": "record",
+            "presentation": serialize_record_print_presentation(presentation),
+        }
+
+    layout = form_version_print_layout_preference(
+        record.form_version,
+        template_id=fallback_profile["template_id"],
+        paper_size=fallback_profile["paper_size"],
+    )
+    has_default = bool(layout["grids"] or layout["containers"] or layout["blocks"])
+    return {
+        "profile": fallback_profile,
+        "layout": layout,
+        "source": "form_default" if has_default else "automatic",
+        "presentation": None,
+    }
 
 
 def get_or_create_clinic_profile(session: Session) -> ClinicProfile:
@@ -5850,6 +6068,12 @@ def build_form_print_preview_document(
     block_schema: dict[str, Any],
     clinic_profile: dict[str, Any] | None = None,
     clinic_logo_url: str = "",
+    template_id: Any = "",
+    style: Any = "",
+    orientation: Any = "",
+    text_size: Any = "",
+    paper_size: Any = "",
+    print_layout_preference: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     entry_schema = json.loads(json.dumps(block_schema if isinstance(block_schema, dict) else {}))
     if not entry_schema:
@@ -5869,7 +6093,14 @@ def build_form_print_preview_document(
         fallback_secondary="NAIC-2026-0001",
     )
     meta = entry_schema.get("meta") if isinstance(entry_schema.get("meta"), dict) else {}
-    print_config = apply_print_presentation(normalize_print_config(meta.get("print_config")))
+    print_config = apply_print_presentation(
+        normalize_print_config(meta.get("print_config")),
+        template_id=template_id,
+        style=style,
+        orientation=orientation,
+        text_size=text_size,
+        paper_size=paper_size,
+    )
     signatory_slots = normalize_signatory_slots(meta.get("signatories"), use_defaults=False)
     signatory_samples = normalize_record_signatory_snapshots({}, signatory_slots)
     print_accent_ink = print_accent_text_color(print_config.get("accent_color"))
@@ -5902,19 +6133,30 @@ def build_form_print_preview_document(
         values,
         issued_at_label="Preview sample",
     )
+    presentation = print_presentation_details(
+        print_config.get("template_id"),
+        print_config.get("text_size"),
+        paper_size=print_config.get("paper_size"),
+    )
+    print_items = build_print_items(
+        normalize_items(entry_schema.get("blocks")),
+        values,
+        {},
+        record_id=0,
+        print_config=print_config,
+    )
+    apply_print_layout_preference(
+        print_items,
+        print_layout_preference,
+        field_grid_units=int(presentation["field_grid_units"]),
+    )
     prepared_by_name = "Sample Medtech"
     document = {
         "record": serialized,
         "clinic": build_print_clinic_profile(clinic_profile, logo_url=clinic_logo_url),
         "print_config": print_config,
         "print_accent_ink": print_accent_ink,
-        "template": {
-            **print_presentation_details(
-                print_config.get("template_id"),
-                print_config.get("text_size"),
-                paper_size=print_config.get("paper_size"),
-            ),
-        },
+        "template": presentation,
         "title": report_title,
         "status": "draft",
         "display_title": compact_text(identity.get("primary_value")) or normalized_form_name,
@@ -5943,13 +6185,7 @@ def build_form_print_preview_document(
             prepared_by_name=prepared_by_name,
             signatories=signatory_samples,
         ),
-        "items": build_print_items(
-            normalize_items(entry_schema.get("blocks")),
-            values,
-            {},
-            record_id=0,
-            print_config=print_config,
-        ),
+        "items": print_items,
     }
     document["fit_estimate"] = estimate_print_page_fit(document)
     return document
@@ -6389,6 +6625,14 @@ def complete_record(
     record.status = "completed"
     record.completed_at = utc_now()
     record.updated_by_user_id = actor_user_id
+    presentation_user = record.created_by_user
+    if presentation_user is None and actor_user_id is not None:
+        presentation_user = session.get(User, actor_user_id)
+    snapshot_completed_record_print_presentation(
+        session,
+        record,
+        user=presentation_user,
+    )
     session.commit()
     session.expire_all()
 
@@ -7971,3 +8215,92 @@ def update_form(session: Session, slug: str, payload: FormSavePayload) -> dict[s
     ensure_library_tree(session)
     session.expire_all()
     return serialize_form(get_form_or_none(session, slug))
+
+
+def save_form_print_layout_default(
+    session: Session,
+    slug: str,
+    *,
+    profile: dict[str, Any],
+    layout: Any,
+) -> dict[str, Any]:
+    definition = get_form_or_none(session, slug)
+    if definition is None:
+        raise KeyError(slug)
+
+    version = current_version(definition)
+    if version is None:
+        raise ValueError("The form has no current version.")
+
+    block_schema, _ = load_block_storage_document(version)
+    preview_document = build_form_print_preview_document(
+        form_name=definition.name,
+        form_path_label=serialize_form_location(definition)["location_path_label"],
+        block_schema=block_schema,
+        template_id=profile["template_id"],
+        text_size=profile["text_size"],
+        paper_size=profile["paper_size"],
+    )
+    preference = filter_print_layout_preference_for_items(
+        layout,
+        preview_document["items"],
+        field_grid_units=int(preview_document["template"]["field_grid_units"]),
+    )
+    defaults = form_version_print_layout_defaults(version)
+    profile_key = print_layout_default_profile_key(profile["template_id"], profile["paper_size"])
+    if preference["grids"] or preference["containers"] or preference["blocks"]:
+        defaults["profiles"][profile_key] = preference
+    else:
+        defaults["profiles"].pop(profile_key, None)
+
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    if defaults["profiles"]:
+        meta["print_layout_defaults"] = defaults
+    else:
+        meta.pop("print_layout_defaults", None)
+    block_schema["meta"] = meta
+
+    serialized = serialize_form(definition)
+    return update_form(
+        session,
+        slug,
+        FormSavePayload(
+            name=definition.name,
+            location_name=serialized["location_name"],
+            library_parent_node_key=definition.library_parent_node_key,
+            summary=(
+                f"Updated default print layout for "
+                f"{profile['template_id']} / {profile['paper_size']}."
+            ),
+            form_schema=block_schema,
+        ),
+    )
+
+
+def clear_form_print_layout_default(
+    session: Session,
+    slug: str,
+    *,
+    profile: dict[str, Any],
+) -> tuple[dict[str, Any], bool]:
+    definition = get_form_or_none(session, slug)
+    if definition is None:
+        raise KeyError(slug)
+    version = current_version(definition)
+    if version is None:
+        raise ValueError("The form has no current version.")
+
+    defaults = form_version_print_layout_defaults(version)
+    profile_key = print_layout_default_profile_key(profile["template_id"], profile["paper_size"])
+    if profile_key not in defaults["profiles"]:
+        return serialize_form(definition), False
+
+    return (
+        save_form_print_layout_default(
+            session,
+            slug,
+            profile=profile,
+            layout={},
+        ),
+        True,
+    )

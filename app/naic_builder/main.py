@@ -68,6 +68,8 @@ from .services import (
     build_form_print_preview_document,
     build_record_print_document,
     change_user_password,
+    clear_record_print_presentation,
+    clear_form_print_layout_default,
     count_records,
     count_users,
     complete_record,
@@ -82,6 +84,7 @@ from .services import (
     create_record,
     create_user_account,
     current_record_values,
+    effective_record_print_presentation,
     ensure_blood_bank_defaults,
     ensure_blood_gas_analysis_defaults,
     ensure_blood_chemistry_female_defaults,
@@ -117,6 +120,7 @@ from .services import (
     move_form,
     normalize_print_profile,
     filter_print_layout_preference_for_items,
+    form_version_print_layout_preference,
     print_orientation_options,
     print_paper_size_options,
     print_style_options,
@@ -131,18 +135,19 @@ from .services import (
     serialize_form,
     serialize_form_location,
     save_clinic_profile,
+    save_form_print_layout_default,
     save_signatory_stamp_image,
     save_user_avatar,
     save_user_print_preferences,
-    save_user_print_layout_preference,
+    save_record_print_presentation,
     store_record_image_asset,
     update_user_admin_details,
     update_user_status,
     approve_user_account,
     update_record,
     update_form,
+    user_can_manage_record_print_presentation,
     user_print_preferences,
-    user_print_layout_preference,
     void_completed_record,
 )
 
@@ -1004,22 +1009,50 @@ def render_record_print_page(
     clinic_logo_url = "/settings/clinic/logo" if clinic_profile.get("has_logo") else ""
     current_user = get_user_or_none(session, current_user_id(request) or 0)
     saved_preference = user_print_preferences(current_user)
-    profile = normalize_print_profile(
-        template_id=request.query_params.get("template") or saved_preference["template_id"],
-        style=request.query_params.get("style"),
-        orientation=request.query_params.get("orientation"),
-        text_size=request.query_params.get("text_size") or saved_preference["text_size"],
-        paper_size=request.query_params.get("paper_size") or saved_preference["paper_size"],
+    can_manage_presentation = user_can_manage_record_print_presentation(record, current_user)
+    fallback_user = current_user if can_manage_presentation else record.created_by_user
+    fallback_preference = user_print_preferences(fallback_user)
+    requested_profile = normalize_print_profile(
+        template_id=(
+            request.query_params.get("template") if can_manage_presentation else ""
+        ) or fallback_preference["template_id"],
+        style=request.query_params.get("style") if can_manage_presentation else "",
+        orientation=request.query_params.get("orientation") if can_manage_presentation else "",
+        text_size=(
+            request.query_params.get("text_size") if can_manage_presentation else ""
+        ) or fallback_preference["text_size"],
+        paper_size=(
+            request.query_params.get("paper_size") if can_manage_presentation else ""
+        ) or fallback_preference["paper_size"],
+    )
+    edit_record_presentation = (
+        can_manage_presentation
+        and request.query_params.get("edit_presentation") == "1"
+    )
+    effective_presentation = effective_record_print_presentation(
+        record,
+        fallback_profile=requested_profile,
+        use_record_presentation=not edit_record_presentation,
+    )
+    profile = effective_presentation["profile"]
+    base_document = build_record_print_document(
+        record,
+        clinic_profile=clinic_profile,
+        clinic_logo_url=clinic_logo_url,
+        template_id=profile["template_id"],
+        style=profile["style"],
+        orientation=profile["orientation"],
+        text_size=profile["text_size"],
+        paper_size=profile["paper_size"],
+    )
+    layout_preference = filter_print_layout_preference_for_items(
+        effective_presentation["layout"],
+        base_document["items"],
+        field_grid_units=int(base_document["template"]["field_grid_units"]),
     )
     back_to_history = request.query_params.get("from") == "history"
     history_return_url = safe_records_history_return(request.query_params.get("return_to"))
     history_query = records_history_query(history_return_url) if back_to_history else ""
-    layout_preference = user_print_layout_preference(
-        current_user,
-        form_id=record.form_id,
-        template_id=profile["template_id"],
-        paper_size=profile["paper_size"],
-    )
 
     return templates.TemplateResponse(
         request=request,
@@ -1034,6 +1067,17 @@ def render_record_print_page(
             "saved_print_preference": saved_preference,
             "print_preference_saved": request.query_params.get("preference_saved") == "1",
             "print_paper_preference_saved": request.query_params.get("paper_preference_saved") == "1",
+            "can_manage_print_presentation": can_manage_presentation,
+            "record_print_presentation": effective_presentation["presentation"],
+            "record_has_print_presentation": record.print_presentation is not None,
+            "print_presentation_source": effective_presentation["source"],
+            "editing_record_presentation": edit_record_presentation,
+            "is_form_layout_builder": False,
+            "layout_save_url": f"/records/{record.id}/print-layout",
+            "layout_restore_url": f"/records/{record.id}/print-presentation",
+            "print_fit_url": f"/records/{record.id}/print-fit",
+            "print_settings_action": f"/records/{record.id}/print-options",
+            "print_settings_method": "post",
             "document": build_record_print_document(
                 record,
                 clinic_profile=clinic_profile,
@@ -1637,9 +1681,21 @@ async def save_record_print_options(
     request: Request,
     session: Session = Depends(get_session),
 ) -> RedirectResponse:
+    record = get_record_or_none(session, record_id)
+    if record is None or record.status == "deleted":
+        raise HTTPException(status_code=404, detail="Record not found.")
+    if record.status != "completed":
+        raise HTTPException(status_code=400, detail="Complete the record before changing print settings.")
+
     body = (await request.body()).decode("utf-8")
     form_data = parse_qs(body, keep_blank_values=True)
     user = get_user_or_none(session, current_user_id(request) or 0)
+    can_manage_presentation = user_can_manage_record_print_presentation(record, user)
+    if not can_manage_presentation:
+        raise HTTPException(
+            status_code=403,
+            detail="Only the record creator or an admin can change this record's print presentation.",
+        )
     saved_preference = user_print_preferences(user)
     profile = normalize_print_profile(
         template_id=(form_data.get("template") or [""])[0],
@@ -1683,6 +1739,8 @@ async def save_record_print_options(
         query["preference_saved"] = "1"
     if paper_preference_saved:
         query["paper_preference_saved"] = "1"
+    if can_manage_presentation and record.print_presentation is not None:
+        query["edit_presentation"] = "1"
     if (form_data.get("from") or [""])[0] == "history":
         query["from"] = "history"
     history_return_url = safe_records_history_return((form_data.get("return_to") or [""])[0])
@@ -1706,6 +1764,11 @@ async def save_record_print_layout(
     user = get_user_or_none(session, current_user_id(request) or 0)
     if user is None:
         raise HTTPException(status_code=401, detail="Sign in to save a print layout.")
+    if not user_can_manage_record_print_presentation(record, user):
+        raise HTTPException(
+            status_code=403,
+            detail="Only the record creator or an admin can save this record's print layout.",
+        )
 
     try:
         payload = await request.json()
@@ -1716,6 +1779,7 @@ async def save_record_print_layout(
 
     profile = normalize_print_profile(
         template_id=payload.get("template_id"),
+        text_size=payload.get("text_size"),
         paper_size=payload.get("paper_size"),
     )
     document = build_record_print_document(
@@ -1728,15 +1792,44 @@ async def save_record_print_layout(
         document["items"],
         field_grid_units=int(document["template"]["field_grid_units"]),
     )
-    saved = save_user_print_layout_preference(
+    saved = save_record_print_presentation(
         session,
-        user,
-        form_id=record.form_id,
-        template_id=profile["template_id"],
-        paper_size=profile["paper_size"],
-        preference=preference,
+        record,
+        user=user,
+        profile=profile,
+        layout=preference,
     )
-    return JSONResponse({"layout": saved, "message": "Print layout saved for this profile."})
+    return JSONResponse({"presentation": saved, "message": "Print setup and layout saved for this record."})
+
+
+@app.delete("/records/{record_id}/print-presentation")
+def restore_record_form_print_default(
+    record_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> JSONResponse:
+    record = get_record_or_none(session, record_id)
+    if record is None or record.status == "deleted":
+        raise HTTPException(status_code=404, detail="Record not found.")
+    if record.status != "completed":
+        raise HTTPException(status_code=400, detail="Complete the record before restoring its form default.")
+
+    user = get_user_or_none(session, current_user_id(request) or 0)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Sign in to restore the form default.")
+    if not user_can_manage_record_print_presentation(record, user):
+        raise HTTPException(
+            status_code=403,
+            detail="Only the record creator or an admin can restore this record's form default.",
+        )
+
+    restored = clear_record_print_presentation(session, record)
+    return JSONResponse(
+        {
+            "restored": restored,
+            "message": "Form default restored for this record." if restored else "This record is already using its form default.",
+        }
+    )
 
 
 @app.post("/records/{record_id}/print-fit")
@@ -2141,6 +2234,92 @@ def form_builder_page(
     if definition is None:
         raise HTTPException(status_code=404, detail="Form not found.")
     return render_builder_page(request, initial_form_slug=definition.slug)
+
+
+@app.get("/forms/{slug}/print-layout", response_class=HTMLResponse)
+def form_default_print_layout_page(
+    slug: str,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> HTMLResponse:
+    definition = get_form_or_none(session, slug)
+    if definition is None:
+        raise HTTPException(status_code=404, detail="Form not found.")
+
+    profile = normalize_print_profile(
+        template_id=request.query_params.get("template"),
+        style=request.query_params.get("style"),
+        orientation=request.query_params.get("orientation"),
+        text_size=request.query_params.get("text_size"),
+        paper_size=request.query_params.get("paper_size"),
+    )
+    serialized_form = serialize_form(definition)
+    clinic_profile = get_clinic_profile(session)
+    clinic_logo_url = "/settings/clinic/logo" if clinic_profile.get("has_logo") else ""
+    base_document = build_form_print_preview_document(
+        form_name=definition.name,
+        form_path_label=serialized_form["location_path_label"],
+        block_schema=serialized_form["block_schema"],
+        clinic_profile=clinic_profile,
+        clinic_logo_url=clinic_logo_url,
+        template_id=profile["template_id"],
+        text_size=profile["text_size"],
+        paper_size=profile["paper_size"],
+    )
+    default_layout = form_version_print_layout_preference(
+        definition.versions[-1],
+        template_id=profile["template_id"],
+        paper_size=profile["paper_size"],
+    )
+    default_layout = filter_print_layout_preference_for_items(
+        default_layout,
+        base_document["items"],
+        field_grid_units=int(base_document["template"]["field_grid_units"]),
+    )
+    has_default_layout = bool(
+        default_layout["grids"]
+        or default_layout["containers"]
+        or default_layout["blocks"]
+    )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="records/print.html",
+        context={
+            "app_title": APP_TITLE,
+            "back_href": f"/forms/{definition.slug}/builder",
+            "back_label": "Back to Form Builder",
+            "print_style_options": print_style_options(),
+            "print_orientation_options": print_orientation_options(),
+            "print_paper_size_options": print_paper_size_options(),
+            "saved_print_preference": profile,
+            "print_preference_saved": False,
+            "print_paper_preference_saved": False,
+            "can_manage_print_presentation": True,
+            "record_print_presentation": None,
+            "record_has_print_presentation": False,
+            "form_has_print_layout_default": has_default_layout,
+            "print_presentation_source": "form_default" if has_default_layout else "automatic",
+            "editing_record_presentation": False,
+            "is_form_layout_builder": True,
+            "layout_save_url": f"/api/forms/{definition.slug}/print-layout-default",
+            "layout_restore_url": f"/api/forms/{definition.slug}/print-layout-default",
+            "print_fit_url": "",
+            "print_settings_action": f"/forms/{definition.slug}/print-layout",
+            "print_settings_method": "get",
+            "document": build_form_print_preview_document(
+                form_name=definition.name,
+                form_path_label=serialized_form["location_path_label"],
+                block_schema=serialized_form["block_schema"],
+                clinic_profile=clinic_profile,
+                clinic_logo_url=clinic_logo_url,
+                template_id=profile["template_id"],
+                text_size=profile["text_size"],
+                paper_size=profile["paper_size"],
+                print_layout_preference=default_layout,
+            ),
+        },
+    )
 
 
 @app.get("/forms/move", response_class=HTMLResponse)
@@ -3049,3 +3228,67 @@ def update_form_endpoint(
         raise HTTPException(status_code=404, detail="Form not found.") from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.post("/api/forms/{slug}/print-layout-default")
+async def save_form_print_layout_default_endpoint(
+    slug: str,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    try:
+        payload = await request.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid form print layout payload.") from exc
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Invalid form print layout payload.")
+
+    profile = normalize_print_profile(
+        template_id=payload.get("template_id"),
+        text_size=payload.get("text_size"),
+        paper_size=payload.get("paper_size"),
+    )
+    try:
+        saved = save_form_print_layout_default(
+            session,
+            slug,
+            profile=profile,
+            layout=payload.get("layout"),
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Form not found.") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {
+        "form": saved,
+        "message": "Default print layout saved as a new form version.",
+    }
+
+
+@app.delete("/api/forms/{slug}/print-layout-default")
+async def clear_form_print_layout_default_endpoint(
+    slug: str,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    try:
+        payload = await request.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid form print layout payload.") from exc
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Invalid form print layout payload.")
+
+    profile = normalize_print_profile(
+        template_id=payload.get("template_id"),
+        paper_size=payload.get("paper_size"),
+    )
+    try:
+        _, removed = clear_form_print_layout_default(session, slug, profile=profile)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Form not found.") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {
+        "removed": removed,
+        "message": "Automatic layout restored for this print profile." if removed else "This print profile already uses the automatic layout.",
+    }

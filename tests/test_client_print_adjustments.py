@@ -37,6 +37,7 @@ from naic_builder.services import (
     build_print_summary_items,
     build_signatory_snapshot,
     current_version,
+    effective_record_print_presentation,
     default_signatory_slots,
     default_patient_info_legacy_group,
     ensure_blood_bank_defaults,
@@ -77,6 +78,7 @@ from naic_builder.services import (
     evaluate_print_abnormal,
     format_print_temporal_value,
     filter_print_layout_preference_for_items,
+    form_version_print_layout_preference,
     list_record_completion_issues,
     load_block_storage_document,
     normalize_print_paper_size,
@@ -94,9 +96,13 @@ from naic_builder.services import (
     sample_print_value_for_field,
     save_user_print_preferences,
     save_user_print_layout_preference,
+    save_form_print_layout_default,
     save_clinic_profile,
+    save_record_print_presentation,
     signatory_snapshots_for_print,
+    snapshot_completed_record_print_presentation,
     update_form,
+    user_can_manage_record_print_presentation,
     user_print_layout_preference,
 )
 
@@ -2092,7 +2098,9 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
 
         self.assertIn('data-layout-flow', editor_source)
         self.assertIn('data-layout-grid', editor_source)
-        self.assertIn('Restore default', editor_source)
+        self.assertIn('Reset selection', editor_source)
+        self.assertIn('Restore form default', editor_source)
+        self.assertIn('Save record layout', editor_source)
         self.assertNotIn('data-layout-arrange', editor_source)
         self.assertNotIn('data-layout-balance', editor_source)
         self.assertIn('querySelectorAll(":scope > [data-print-grid-cell]")', editor_source)
@@ -2212,6 +2220,184 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                     )["grids"],
                     {},
                 )
+        finally:
+            engine.dispose()
+
+    def test_form_layout_defaults_are_versioned_and_completed_records_are_authoritative(self) -> None:
+        engine = create_engine("sqlite://")
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine)
+        try:
+            with Session() as session:
+                session.info[SKIP_CHANGE_BACKUP_SESSION_KEY] = True
+                ensure_reference_seed(session)
+                definition = session.scalars(
+                    select(FormDefinition).where(FormDefinition.slug == "blood_bank")
+                ).one()
+                original_version = current_version(definition)
+                self.assertIsNotNone(original_version)
+
+                owner = User(
+                    email="record-owner@example.test",
+                    login_id="record_owner",
+                    full_name="Record Owner",
+                    role="medtech",
+                    status="active",
+                )
+                admin = User(
+                    email="layout-admin@example.test",
+                    login_id="layout_admin",
+                    full_name="Layout Admin",
+                    role="admin",
+                    status="active",
+                )
+                session.add_all([owner, admin])
+                session.commit()
+
+                profile = save_user_print_preferences(
+                    session,
+                    owner,
+                    template_id="modern_portrait",
+                    text_size="standard",
+                    paper_size="a4",
+                )
+                default_layout = {
+                    "containers": {
+                        "root:containers:0": {
+                            "container_ids": [
+                                "root/form.blood_bank.patient_information",
+                                "root/form.blood_bank.details",
+                                "root/form.blood_bank.type_of_crossmatching",
+                            ],
+                            "mode": "manual",
+                            "spans": {
+                                "root/form.blood_bank.patient_information": 4,
+                                "root/form.blood_bank.details": 2,
+                                "root/form.blood_bank.type_of_crossmatching": 2,
+                            },
+                        }
+                    }
+                }
+                save_form_print_layout_default(
+                    session,
+                    definition.slug,
+                    profile=profile,
+                    layout=default_layout,
+                )
+                session.expire_all()
+                definition = session.scalars(
+                    select(FormDefinition).where(FormDefinition.slug == "blood_bank")
+                ).one()
+                updated_version = current_version(definition)
+                self.assertIsNotNone(updated_version)
+                self.assertNotEqual(original_version.id, updated_version.id)
+                self.assertEqual(
+                    form_version_print_layout_preference(
+                        original_version,
+                        template_id=profile["template_id"],
+                        paper_size=profile["paper_size"],
+                    )["containers"],
+                    {},
+                )
+                self.assertEqual(
+                    form_version_print_layout_preference(
+                        updated_version,
+                        template_id=profile["template_id"],
+                        paper_size=profile["paper_size"],
+                    )["containers"]["root:containers:0"]["spans"]["root/form.blood_bank.patient_information"],
+                    4,
+                )
+
+                old_record = Record(
+                    record_key="OLD-LAYOUT-RECORD",
+                    form_id=definition.id,
+                    form_version_id=original_version.id,
+                    created_by_user_id=owner.id,
+                    status="completed",
+                )
+                new_record = Record(
+                    record_key="NEW-LAYOUT-RECORD",
+                    form_id=definition.id,
+                    form_version_id=updated_version.id,
+                    created_by_user_id=owner.id,
+                    status="completed",
+                )
+                session.add_all([old_record, new_record])
+                session.commit()
+                session.refresh(old_record)
+                session.refresh(new_record)
+
+                self.assertEqual(
+                    effective_record_print_presentation(
+                        old_record,
+                        fallback_profile=profile,
+                    )["source"],
+                    "automatic",
+                )
+                self.assertEqual(
+                    effective_record_print_presentation(
+                        new_record,
+                        fallback_profile=profile,
+                    )["source"],
+                    "form_default",
+                )
+
+                snapshot_completed_record_print_presentation(
+                    session,
+                    new_record,
+                    user=owner,
+                )
+                session.commit()
+                session.refresh(new_record)
+                self.assertEqual(new_record.print_presentation.template_id, "modern_portrait")
+                self.assertEqual(
+                    json.loads(new_record.print_presentation.layout_json)["containers"]["root:containers:0"]["spans"][
+                        "root/form.blood_bank.patient_information"
+                    ],
+                    4,
+                )
+                self.assertEqual(
+                    effective_record_print_presentation(
+                        new_record,
+                        fallback_profile=profile,
+                    )["source"],
+                    "record",
+                )
+
+                record_layout = {
+                    "grids": {
+                        "root/form.blood_bank.patient_information:0": {
+                            "field_ids": ["form.blood_bank.patient_information.name"],
+                            "mode": "manual",
+                            "spans": {"form.blood_bank.patient_information.name": 4},
+                        }
+                    }
+                }
+                saved = save_record_print_presentation(
+                    session,
+                    old_record,
+                    user=owner,
+                    profile=normalize_print_profile(
+                        template_id="legacy_landscape",
+                        text_size="large",
+                        paper_size="a5",
+                    ),
+                    layout=record_layout,
+                )
+                self.assertEqual(saved["template_id"], "legacy_landscape")
+                self.assertEqual(
+                    saved["layout"]["grids"]["root/form.blood_bank.patient_information:0"]["spans"],
+                    record_layout["grids"]["root/form.blood_bank.patient_information:0"]["spans"],
+                )
+                effective = effective_record_print_presentation(
+                    old_record,
+                    fallback_profile=profile,
+                )
+                self.assertEqual(effective["source"], "record")
+                self.assertEqual(effective["profile"]["template_id"], "legacy_landscape")
+                self.assertTrue(user_can_manage_record_print_presentation(old_record, owner))
+                self.assertTrue(user_can_manage_record_print_presentation(old_record, admin))
+                self.assertFalse(user_can_manage_record_print_presentation(new_record, None))
         finally:
             engine.dispose()
 

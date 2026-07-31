@@ -6,38 +6,36 @@
   --font-heading: "Fraunces", "Georgia", "Palatino Linotype", "Book Antiqua", serif;
   --font-display: "Space Grotesk", "Segoe UI Variable Text", "Segoe UI", sans-serif;
 
-  --bg: #e8eef2;
-  --bg-soft: #f2f7f9;
-  --panel: rgba(248, 251, 252, 0.88);
-  --panel-strong: rgba(255, 255, 255, 0.94);
-  --surface-elevated: rgba(255, 255, 255, 0.72);
-  --line: rgba(26, 52, 63, 0.12);
-  --line-strong: rgba(26, 52, 63, 0.2);
-  --text: #14242b;
-  --muted: #647984;
-  --accent: #0f7078;
-  --accent-strong: #2f7f8d;
-  --accent-soft: rgba(15, 112, 120, 0.12);
-  --warm: #b08c4f;
-  --warm-soft: rgba(176, 140, 79, 0.16);
-  --success: #2f8b75;
-  --success-soft: rgba(47, 139, 117, 0.14);
-  --danger: #b14f44;
-  --danger-soft: rgba(177, 79, 68, 0.14);
-  --shell-bg:
-    radial-gradient(circle at top right, rgba(195, 170, 116, 0.18), transparent 28%),
-    linear-gradient(135deg, #0d1b21, #17303a 52%, #24424e);
-  --shell-line: rgba(183, 209, 218, 0.1);
-  --shell-text: #edf7fa;
-  --shell-muted: rgba(222, 237, 242, 0.72);
-  --shell-button: rgba(255, 255, 255, 0.08);
-  --shell-button-border: rgba(255, 255, 255, 0.12);
-  --input-bg: rgba(255, 255, 255, 0.92);
-  --input-border: rgba(26, 52, 63, 0.18);
-  --input-focus-ring: rgba(15, 112, 120, 0.16);
-  --shadow-soft: 0 10px 26px rgba(9, 23, 29, 0.08);
-  --shadow: 0 24px 64px rgba(9, 23, 29, 0.12);
-  --shadow-strong: 0 30px 80px rgba(6, 18, 23, 0.18);
+  --bg: #d5dfdc;
+  --bg-soft: #e8eeeb;
+  --panel: #f1f5f3;
+  --panel-strong: #f8fbf9;
+  --surface-elevated: #ffffff;
+  --line: #8fa49e;
+  --line-strong: #58736c;
+  --text: #102526;
+  --muted: #40585a;
+  --accent: #075f64;
+  --accent-strong: #08757a;
+  --accent-soft: #d4e9e6;
+  --warm: #86621d;
+  --warm-soft: #f0e4c9;
+  --success: #267260;
+  --success-soft: #d8ebe4;
+  --danger: #a4463c;
+  --danger-soft: #f1dcd8;
+  --shell-bg: #f4f8f6;
+  --shell-line: #58736c;
+  --shell-text: #102526;
+  --shell-muted: #40585a;
+  --shell-button: #ffffff;
+  --shell-button-border: #8fa49e;
+  --input-bg: #ffffff;
+  --input-border: #738983;
+  --input-focus-ring: rgba(7, 95, 100, 0.2);
+  --shadow-soft: 0 8px 20px rgba(26, 47, 45, 0.08);
+  --shadow: 0 14px 32px rgba(26, 47, 45, 0.1);
+  --shadow-strong: 0 18px 42px rgba(26, 47, 45, 0.12);
   --radius-xl: 28px;
   --radius-lg: 22px;
   --radius-md: 16px;
@@ -103,10 +101,7 @@ body {
 
 body {
   color: var(--text);
-  background:
-    radial-gradient(circle at top left, rgba(102, 195, 202, 0.08), transparent 22%),
-    radial-gradient(circle at 85% 0%, rgba(210, 174, 109, 0.12), transparent 24%),
-    linear-gradient(180deg, var(--bg-soft), var(--bg));
+  background: linear-gradient(180deg, var(--bg-soft), var(--bg));
   font-family: var(--font-body);
   transition:
     background 180ms ease,
@@ -193,9 +188,7 @@ strong {
   content: "";
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.04), transparent 38%),
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.08), transparent 24%);
+  background: none;
   pointer-events: none;
 }
 

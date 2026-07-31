@@ -3422,6 +3422,9 @@ function renderPrintCard() {
   const fields = collectIdentityFieldOptions();
   const config = getDraftPrintConfig(state.draft);
   const summaryItems = normalizePrintSummaryItems(config.summary_items);
+  const printLayoutDefaults = state.draft?.block_schema?.meta?.print_layout_defaults;
+  const defaultLayoutCount = Object.keys(printLayoutDefaults?.profiles || {}).length;
+  const canConfigureDefaultLayout = Boolean(state.selectedFormSlug) && !state.dirty;
   config.summary_items = summaryItems;
   return `
     <section class="editor-card print-config-card">
@@ -3440,6 +3443,23 @@ function renderPrintCard() {
 
       <div class="print-config-layout">
         <div class="print-config-controls">
+          <details class="print-settings-section" open>
+            <summary class="print-settings-summary">
+              <span>
+                <strong>Default layout</strong>
+                <small>${defaultLayoutCount ? `${defaultLayoutCount} print profile${defaultLayoutCount === 1 ? "" : "s"} configured` : "Automatic layout"}</small>
+              </span>
+            </summary>
+            <div class="print-settings-body">
+              <div class="reference-editor-head">
+                <span class="reference-range-title">Layout defaults</span>
+                ${canConfigureDefaultLayout
+                  ? `<a class="ghost mini" href="/forms/${encodeURIComponent(state.selectedFormSlug)}/print-layout">Configure</a>`
+                  : '<button class="ghost mini" type="button" disabled>Save form first</button>'}
+              </div>
+            </div>
+          </details>
+
           <details class="print-settings-section" open>
             <summary class="print-settings-summary">
               <span>

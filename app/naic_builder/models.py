@@ -191,6 +191,33 @@ class Record(Base):
         cascade="all, delete-orphan",
         order_by="RecordAsset.created_at",
     )
+    print_presentation: Mapped["RecordPrintPresentation | None"] = relationship(
+        back_populates="record",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
+
+
+class RecordPrintPresentation(Base):
+    __tablename__ = "record_print_presentations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    record_id: Mapped[int] = mapped_column(ForeignKey("records.id"), unique=True, index=True)
+    form_version_id: Mapped[int] = mapped_column(ForeignKey("form_versions.id"), index=True)
+    template_id: Mapped[str] = mapped_column(String(80))
+    text_size: Mapped[str] = mapped_column(String(40), default="standard")
+    paper_size: Mapped[str] = mapped_column(String(40), default="a4")
+    layout_json: Mapped[str] = mapped_column(Text, default="{}")
+    saved_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        onupdate=utc_now,
+    )
+
+    record: Mapped[Record] = relationship(back_populates="print_presentation")
+    saved_by_user: Mapped["User | None"] = relationship(foreign_keys=[saved_by_user_id])
 
 
 class RecordAsset(Base):

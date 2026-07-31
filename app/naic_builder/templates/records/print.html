@@ -10,7 +10,7 @@
   {% set presentation = document.template or {} %}
   {% set record_meta = document["record"] or {} %}
 </head>
-<body class="print-template-{{ document.print_config.template_id | replace('_', '-') }} print-paper-{{ presentation.paper_size }} print-text-{{ document.print_config.text_size | replace('_', '-') }} print-density-{{ document.print_config.density }} print-font-{{ (document.print_config.font_family or 'arial_narrow') | replace('_', '-') }}" data-print-record-id="{{ record_meta.id }}" data-print-template-id="{{ document.print_config.template_id }}" data-print-paper-size="{{ presentation.paper_size }}" data-print-text-size="{{ document.print_config.text_size }}" data-print-paper-label="{{ presentation.paper_size_label }}" data-print-requires-one-page="{{ 'true' if presentation.requires_one_page else 'false' }}" style="--accent: {{ document.print_config.accent_color }}; --accent-ink: {{ document.print_accent_ink or '#ffffff' }}; --print-page-width: {{ presentation.page_width_mm }}mm; --print-page-height: {{ presentation.page_height_mm }}mm;">
+<body class="print-template-{{ document.print_config.template_id | replace('_', '-') }} print-paper-{{ presentation.paper_size }} print-text-{{ document.print_config.text_size | replace('_', '-') }} print-density-{{ document.print_config.density }} print-font-{{ (document.print_config.font_family or 'arial_narrow') | replace('_', '-') }}" data-print-record-id="{{ record_meta.id }}" data-print-template-id="{{ document.print_config.template_id }}" data-print-paper-size="{{ presentation.paper_size }}" data-print-text-size="{{ document.print_config.text_size }}" data-print-paper-label="{{ presentation.paper_size_label }}" data-print-requires-one-page="{{ 'true' if presentation.requires_one_page else 'false' }}" data-print-layout-save-url="{{ layout_save_url }}" data-print-layout-restore-url="{{ layout_restore_url }}" data-print-fit-url="{{ print_fit_url }}" data-form-layout-builder="{{ 'true' if is_form_layout_builder else 'false' }}" style="--accent: {{ document.print_config.accent_color }}; --accent-ink: {{ document.print_accent_ink or '#ffffff' }}; --print-page-width: {{ presentation.page_width_mm }}mm; --print-page-height: {{ presentation.page_height_mm }}mm;">
   {% if presentation.requires_one_page %}
   <style>@page { size: {{ presentation.page_css_size }} landscape; margin: 4mm 6mm; }</style>
   {% elif presentation.orientation_key == "landscape" %}
@@ -31,12 +31,21 @@
         </div>
       </div>
       <div class="print-command-actions">
+        {% if can_manage_print_presentation %}
         <button class="print-active-profile" type="button" data-open-print-settings aria-haspopup="dialog" aria-label="Change print settings" title="Change print settings">
           <span>Print setup</span>
           <strong>{{ presentation.style_label }} | {{ presentation.orientation }} | {{ presentation.text_size_label }} | {{ presentation.paper_size_label }}</strong>
           <small class="print-fit-status" data-print-fit-status data-fit="{{ fit.status or 'likely' }}" title="{{ fit.detail or 'Use browser print preview for final confirmation.' }}"><span data-print-fit-label>{{ fit.label or 'One-page check' }}</span></small>
         </button>
         <button class="print-link print-layout-command" type="button" data-open-layout-editor>Adjust layout</button>
+        {% else %}
+        <div class="print-active-profile" aria-label="Print setup">
+          <span>Print setup</span>
+          <strong>{{ presentation.style_label }} | {{ presentation.orientation }} | {{ presentation.text_size_label }} | {{ presentation.paper_size_label }}</strong>
+          <small class="print-fit-status" data-print-fit-status data-fit="{{ fit.status or 'likely' }}" title="{{ fit.detail or 'Use browser print preview for final confirmation.' }}"><span data-print-fit-label>{{ fit.label or 'One-page check' }}</span></small>
+        </div>
+        {% endif %}
+        {% if not is_form_layout_builder %}
         <details class="print-more-menu">
           <summary>More</summary>
           <div class="print-more-panel">
@@ -49,10 +58,14 @@
             <a href="/records/new">Choose form</a>
           </div>
         </details>
+        {% endif %}
+        {% if not is_form_layout_builder %}
         <button class="print-button" type="button" data-print-action onclick="window.print()">Print / Save PDF</button>
+        {% endif %}
       </div>
     </header>
 
+    {% if can_manage_print_presentation %}
     <section class="print-layout-editor" data-print-layout-editor hidden aria-labelledby="print-layout-editor-title">
       <div class="print-layout-editor-copy">
         <strong id="print-layout-editor-title">Layout editing</strong>
@@ -68,8 +81,13 @@
           <button type="button" data-layout-flow hidden>Rows</button>
           <button type="button" data-layout-grid>Columns</button>
         </div>
-        <button type="button" data-layout-reset disabled title="Restore the selected layout to the form default">Restore default</button>
-        <button type="button" data-layout-save title="Save for this form and print profile">Save default</button>
+        <button type="button" data-layout-reset disabled title="Restore the selected grid to its saved state">Reset selection</button>
+        {% if is_form_layout_builder and form_has_print_layout_default %}
+        <button type="button" data-layout-restore-form title="Remove this default and use the automatic layout">Use automatic layout</button>
+        {% elif record_has_print_presentation %}
+        <button type="button" data-layout-restore-form title="Remove this record setup and use the form-version default">Restore form default</button>
+        {% endif %}
+        <button type="button" data-layout-save title="Save this print setup and layout">{{ 'Save form default' if is_form_layout_builder else 'Save record layout' }}</button>
         <button type="button" class="is-primary" data-layout-done>Done</button>
       </div>
       <p class="print-layout-editor-status" data-layout-editor-status role="status" aria-live="polite"></p>
@@ -85,7 +103,7 @@
           <p>{{ presentation.style_label }} | {{ presentation.orientation }} | {{ presentation.text_size_label }} text | {{ presentation.paper_size_label }}</p>
         </div>
       </div>
-      <form method="post" action="/records/{{ record_meta.id }}/print-options" class="print-settings-form">
+      <form method="{{ print_settings_method }}" action="{{ print_settings_action }}" class="print-settings-form">
         {% if request.query_params.get("from") == "history" %}
         <input type="hidden" name="from" value="history">
         {% endif %}
@@ -132,6 +150,7 @@
             </select>
           </label>
         </div>
+        {% if not is_form_layout_builder %}
         <label class="print-default-option">
           <input type="checkbox" name="set_default" value="1">
           <span>Use these print settings as my default</span>
@@ -139,12 +158,14 @@
         {% if print_preference_saved or print_paper_preference_saved %}
         <p class="print-layout-notice">Your default print settings were saved.</p>
         {% endif %}
+        {% endif %}
         <div class="print-settings-actions">
           <button class="print-link" type="button" data-close-print-settings>Cancel</button>
           <button class="print-link print-link--next" type="submit">Apply settings</button>
         </div>
       </form>
     </dialog>
+    {% endif %}
 
     {{ render_print_page(document) }}
   </main>
@@ -226,6 +247,7 @@
       const fitTemplateId = document.body.dataset.printTemplateId || "";
       const fitPaperSize = document.body.dataset.printPaperSize || "";
       const fitTextSize = document.body.dataset.printTextSize || "";
+      const fitUrl = document.body.dataset.printFitUrl || "";
       const requiresOnePage = document.body.dataset.printRequiresOnePage === "true";
       let queuedPrintFitCheck = 0;
       let printFitRequestId = 0;
@@ -256,10 +278,10 @@
       const schedulePrintFitCheck = () => {
         window.clearTimeout(queuedPrintFitCheck);
         queuedPrintFitCheck = window.setTimeout(async () => {
-          if (!fitRecordId || !fitTemplateId || !fitPaperSize) return;
+          if (!fitUrl || !fitRecordId || !fitTemplateId || !fitPaperSize) return;
           const requestId = ++printFitRequestId;
           try {
-            const response = await fetch(`/records/${fitRecordId}/print-fit`, {
+            const response = await fetch(fitUrl, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -288,6 +310,7 @@
       const layoutFlowButton = document.querySelector("[data-layout-flow]");
       const layoutGridButton = document.querySelector("[data-layout-grid]");
       const resetLayoutButton = document.querySelector("[data-layout-reset]");
+      const restoreFormDefaultButton = document.querySelector("[data-layout-restore-form]");
       const undoLayoutButton = document.querySelector("[data-layout-undo]");
       const redoLayoutButton = document.querySelector("[data-layout-redo]");
       const saveLayoutButton = document.querySelector("[data-layout-save]");
@@ -298,6 +321,9 @@
       const layoutRecordId = document.body.dataset.printRecordId;
       const layoutTemplateId = document.body.dataset.printTemplateId;
       const layoutPaperSize = document.body.dataset.printPaperSize;
+      const layoutTextSize = document.body.dataset.printTextSize;
+      const layoutSaveUrl = document.body.dataset.printLayoutSaveUrl;
+      const layoutRestoreUrl = document.body.dataset.printLayoutRestoreUrl;
       let layoutEditing = false;
       let activeLayoutGrid = null;
       let activeLayoutCell = null;
@@ -787,26 +813,55 @@
         }
       });
       saveLayoutButton?.addEventListener("click", async () => {
-        if (!layoutRecordId || !layoutTemplateId || !layoutPaperSize) return;
+        if (!layoutSaveUrl || !layoutTemplateId || !layoutPaperSize || !layoutTextSize) return;
         saveLayoutButton.disabled = true;
         setLayoutStatus("Saving layout...");
         try {
-          const response = await fetch(`/records/${layoutRecordId}/print-layout`, {
+          const response = await fetch(layoutSaveUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               template_id: layoutTemplateId,
+              text_size: layoutTextSize,
               paper_size: layoutPaperSize,
               layout: currentLayoutPreference(),
             }),
           });
           const result = await response.json();
           if (!response.ok) throw new Error(result.detail || "Could not save the print layout.");
-          setLayoutStatus(result.message || "Print layout saved for this profile.");
+          setLayoutStatus(result.message || "Print setup and layout saved for this record.");
         } catch (error) {
           setLayoutStatus(error.message || "Could not save the print layout.", true);
         } finally {
           saveLayoutButton.disabled = false;
+        }
+      });
+      restoreFormDefaultButton?.addEventListener("click", async () => {
+        if (!layoutRestoreUrl) return;
+        const restoringFormDefault = document.body.dataset.formLayoutBuilder !== "true";
+        const confirmation = restoringFormDefault
+          ? "Restore the form-version default layout for this record?"
+          : "Use the automatic layout for this print profile?";
+        if (!window.confirm(confirmation)) return;
+        restoreFormDefaultButton.disabled = true;
+        setLayoutStatus("Restoring form default...");
+        try {
+          const response = await fetch(layoutRestoreUrl, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              template_id: layoutTemplateId,
+              paper_size: layoutPaperSize,
+            }),
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.detail || "Could not restore the form default.");
+          const nextUrl = new URL(window.location.href);
+          nextUrl.searchParams.delete("edit_presentation");
+          window.location.assign(nextUrl.toString());
+        } catch (error) {
+          setLayoutStatus(error.message || "Could not restore the form default.", true);
+          restoreFormDefaultButton.disabled = false;
         }
       });
       schedulePrintFitCheck();

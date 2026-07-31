@@ -632,6 +632,52 @@
   color: var(--drawer-text);
 }
 
+html:not([data-theme="dark"]) .app-drawer {
+  background: color-mix(in srgb, var(--shell-bg) 76%, var(--bg) 24%);
+}
+
+html:not([data-theme="dark"]) .app-drawer::before {
+  background: none;
+}
+
+html:not([data-theme="dark"]) .app-drawer__brand-mark,
+html:not([data-theme="dark"]) .app-drawer__close,
+html:not([data-theme="dark"]) .app-drawer__item,
+html:not([data-theme="dark"]) .app-drawer__workspace-note,
+html:not([data-theme="dark"]) .app-drawer__account,
+html:not([data-theme="dark"]) .app-drawer__account-avatar,
+html:not([data-theme="dark"]) .app-view-size,
+html:not([data-theme="dark"]) .app-view-size__custom input,
+html:not([data-theme="dark"]) .app-drawer__footer-actions .ghost-button,
+html:not([data-theme="dark"]) .app-drawer__footer-actions button.ghost-button {
+  border-color: var(--line);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+html:not([data-theme="dark"]) .app-drawer__close:hover,
+html:not([data-theme="dark"]) .app-drawer__close:focus-visible,
+html:not([data-theme="dark"]) .app-drawer__item:hover,
+html:not([data-theme="dark"]) .app-drawer__item:focus-visible,
+html:not([data-theme="dark"]) .app-drawer__footer-actions .ghost-button:hover,
+html:not([data-theme="dark"]) .app-drawer__footer-actions .ghost-button:focus-visible,
+html:not([data-theme="dark"]) .app-drawer__footer-actions button.ghost-button:hover,
+html:not([data-theme="dark"]) .app-drawer__footer-actions button.ghost-button:focus-visible {
+  border-color: var(--line-strong);
+  background: var(--panel-strong);
+}
+
+html:not([data-theme="dark"]) .app-drawer__item.is-active {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--accent) 24%, transparent);
+  color: #ffffff;
+}
+
+html:not([data-theme="dark"]) .app-drawer__footer {
+  border-top-color: var(--line);
+}
+
 .app-global-header {
   position: relative;
   z-index: 24;
