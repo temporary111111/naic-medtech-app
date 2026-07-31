@@ -2254,6 +2254,20 @@ body.is-layout-editing [data-print-layout-grid].is-layout-active > [data-print-g
   cursor: grab;
 }
 
+.print-layout-grip-dots {
+  display: grid;
+  grid-template-columns: repeat(2, 2px);
+  grid-template-rows: repeat(3, 2px);
+  gap: 2px;
+}
+
+.print-layout-grip-dots > span {
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
 body.is-layout-editing [data-print-layout-grid].is-layout-active > [data-print-grid-cell].is-layout-cell-moving {
   opacity: 0.45;
 }

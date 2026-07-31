@@ -26,10 +26,16 @@
   </span>
 {% endmacro %}
 
+{% macro render_print_layout_move_handle(label) %}
+  <button class="print-layout-move-handle" type="button" data-layout-move-handle aria-label="Move {{ label }}" title="Move {{ label }}">
+    <span class="print-layout-grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>
+  </button>
+{% endmacro %}
+
 {% macro render_print_grid_field(field, span=2, layout_item_id="", original_index=0, show_move_handle=false) %}
   <article class="print-grid-cell{% if layout_item_id %} print-layout-run-field{% endif %}" data-print-grid-cell data-field-id="{{ field.id }}" data-layout-source-id="{{ field.id }}"{% if layout_item_id %} data-layout-item-id="{{ layout_item_id }}"{% endif %} data-original-index="{{ original_index }}" data-base-span="2" data-print-span="{{ span }}" style="--print-grid-span: {{ span }};">
     {% if show_move_handle %}
-    <button class="print-layout-move-handle" type="button" data-layout-move-handle aria-label="Move {{ field.name }}" title="Move {{ field.name }}">&#8597;</button>
+    {{ render_print_layout_move_handle(field.name) }}
     {% endif %}
     <div class="print-grid-cell-head">
       <strong>{{ field.name }}</strong>
@@ -54,7 +60,7 @@
       {% for container in container_items %}
       {% set container_span = container_layout.spans[container.id] if container_layout.spans and container.id in container_layout.spans else 2 %}
       <article class="print-container-run-item" data-print-grid-cell data-container-id="{{ container.id }}" data-original-index="{{ container.get('_print_layout_original_index', loop.index0) }}" data-base-span="2" data-print-span="{{ container_span }}"{% if containers_are_grid %} style="--print-grid-span: {{ container_span }};"{% endif %}>
-        <button class="print-layout-move-handle" type="button" data-layout-move-handle aria-label="Move {{ container.name }}" title="Move {{ container.name }}">&#8597;</button>
+        {{ render_print_layout_move_handle(container.name) }}
         {{ render_print_items([container], field_grid_columns) }}
       </article>
       {% endfor %}
@@ -76,7 +82,7 @@
         {{ render_print_grid_field(block_item, block_span, layout_item_id=block_item.id, original_index=block_item.get('_print_layout_original_index', loop.index0), show_move_handle=true) }}
       {% else %}
       <article class="print-block-run-item" data-print-grid-cell data-block-id="{{ block_item.id }}" data-original-index="{{ block_item.get('_print_layout_original_index', loop.index0) }}" data-base-span="2" data-print-span="{{ block_span }}"{% if blocks_are_grid %} style="--print-grid-span: {{ block_span }};"{% endif %}>
-        <button class="print-layout-move-handle" type="button" data-layout-move-handle aria-label="Move {{ block_item.name }}" title="Move {{ block_item.name }}">&#8597;</button>
+        {{ render_print_layout_move_handle(block_item.name) }}
         {{ render_print_items([block_item], field_grid_columns) }}
       </article>
       {% endif %}
@@ -136,7 +142,7 @@
       {% for field in run_items %}
       {% set field_span = run_layout.spans[field.id] if run_layout.spans and field.id in run_layout.spans else 2 %}
       <article class="print-row" data-print-grid-cell data-field-id="{{ field.id }}" data-layout-source-id="{{ field.id }}" data-original-index="{{ field.get('_print_layout_original_index', loop.index0) }}" data-base-span="2" data-print-span="{{ field_span }}"{% if run_is_grid %} style="--print-grid-span: {{ field_span }};"{% endif %}>
-        <button class="print-layout-move-handle" type="button" data-layout-move-handle aria-label="Move {{ field.name }}" title="Move {{ field.name }}">&#8597;</button>
+        {{ render_print_layout_move_handle(field.name) }}
         <div class="print-row-name">
           <strong>{{ field.name }}</strong>
           {% if field.reference_text %}
