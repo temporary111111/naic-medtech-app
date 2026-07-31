@@ -2037,6 +2037,8 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn('const blockIds', editor_source)
         self.assertIn('blocks[gridId]', editor_source)
         self.assertIn('data-layout-move-handle', editor_source)
+        self.assertIn('setMoveDropIndicator', editor_source)
+        self.assertIn('clearMoveDropIndicator', editor_source)
         self.assertIn('activateBlockRunItem', editor_source)
         self.assertIn(
             ".print-container-run.print-layout-grid,\n.print-block-run-grid.print-layout-grid {\n  display: grid;",
@@ -2048,6 +2050,14 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         )
         self.assertIn(
             ".print-container-run.print-layout-grid {\n  background: var(--paper);",
+            (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
+        )
+        self.assertIn(
+            'is-layout-drop-before-row',
+            (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
+        )
+        self.assertIn(
+            'is-layout-drop-after-column',
             (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
         )
         self.assertNotIn(

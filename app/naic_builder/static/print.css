@@ -2272,6 +2272,22 @@ body.is-layout-editing [data-print-layout-grid].is-layout-active > [data-print-g
   opacity: 0.45;
 }
 
+body.is-layout-editing [data-print-layout-grid].is-layout-active > [data-print-grid-cell].is-layout-drop-before-column {
+  box-shadow: inset 3px 0 0 #146b62;
+}
+
+body.is-layout-editing [data-print-layout-grid].is-layout-active > [data-print-grid-cell].is-layout-drop-after-column {
+  box-shadow: inset -3px 0 0 #146b62;
+}
+
+body.is-layout-editing [data-print-layout-grid].is-layout-active > [data-print-grid-cell].is-layout-drop-before-row {
+  box-shadow: inset 0 3px 0 #146b62;
+}
+
+body.is-layout-editing [data-print-layout-grid].is-layout-active > [data-print-grid-cell].is-layout-drop-after-row {
+  box-shadow: inset 0 -3px 0 #146b62;
+}
+
 body.is-layout-moving,
 body.is-layout-moving * {
   cursor: grabbing !important;
