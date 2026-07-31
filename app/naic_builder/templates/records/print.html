@@ -6,7 +6,7 @@
   <title>Print Record | {{ document.form_name }}</title>
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
-  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260730-adjustable-print-layout-v14">
+  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260730-mixed-print-block-layout-v15">
   {% set presentation = document.template or {} %}
   {% set record_meta = document["record"] or {} %}
 </head>
@@ -271,9 +271,12 @@
       };
       const fieldIds = (grid) => gridCells(grid).map((cell) => cell.dataset.fieldId || "").filter(Boolean);
       const containerIds = (grid) => gridCells(grid).map((cell) => cell.dataset.containerId || "").filter(Boolean);
-      const layoutItemIds = (grid) => grid.dataset.layoutKind === "container_run"
-        ? containerIds(grid)
-        : fieldIds(grid);
+      const blockIds = (grid) => gridCells(grid).map((cell) => cell.dataset.blockId || "").filter(Boolean);
+      const layoutItemIds = (grid) => {
+        if (grid.dataset.layoutKind === "container_run") return containerIds(grid);
+        if (grid.dataset.layoutKind === "block_run") return blockIds(grid);
+        return fieldIds(grid);
+      };
       const hasCustomOrder = (grid) => gridCells(grid).some((cell, index) => {
         const originalIndex = Number.parseInt(cell.dataset.originalIndex || String(index), 10);
         return originalIndex !== index;
@@ -305,7 +308,7 @@
         grid.querySelectorAll(".print-grid-cell--placeholder").forEach((cell) => cell.remove());
         grid.querySelectorAll(".print-field-run-placeholder").forEach((cell) => cell.remove());
         if (layoutPresentation(grid) !== "grid") return;
-        if (grid.dataset.layoutKind === "container_run") return;
+        if (["container_run", "block_run"].includes(grid.dataset.layoutKind)) return;
         const rows = rowGroups(grid);
         const lastRow = rows.at(-1) || [];
         const used = lastRow.reduce((total, cell) => total + cell.span, 0);
@@ -360,10 +363,11 @@
         });
         const usesFlowLayout = grid && layoutPresentation(grid) !== "grid";
         const usesDefaultGrid = grid?.dataset.defaultPresentation === "grid";
+        const usesStackedLayout = ["container_run", "block_run"].includes(grid?.dataset.layoutKind);
         if (layoutMode) layoutMode.hidden = !grid;
         if (layoutFlowButton) {
           layoutFlowButton.hidden = !grid || usesDefaultGrid;
-          layoutFlowButton.textContent = grid?.dataset.layoutKind === "container_run" ? "Stacked" : "Rows";
+          layoutFlowButton.textContent = usesStackedLayout ? "Stacked" : "Rows";
           layoutFlowButton.classList.toggle("is-selected", Boolean(grid) && usesFlowLayout);
           layoutFlowButton.setAttribute("aria-pressed", String(Boolean(grid) && usesFlowLayout));
         }
@@ -380,10 +384,10 @@
         if (layoutHint) {
           layoutHint.textContent = !grid
             ? "Select a field or container."
-            : grid.dataset.layoutKind === "container_run" && !usesFlowLayout
-                  ? "Drag the selected container border."
-                  : grid.dataset.layoutKind === "container_run"
-                    ? "Choose Columns to resize the selected containers."
+            : usesStackedLayout && !usesFlowLayout
+                  ? "Drag the selected block border."
+                  : usesStackedLayout
+                    ? "Choose Columns to arrange the selected blocks."
                     : usesFlowLayout
                       ? "Choose Columns to resize the selected fields."
                       : "Drag the selected field border.";
@@ -392,6 +396,7 @@
       const currentLayoutPreference = () => {
         const grids = {};
         const containers = {};
+        const blocks = {};
         layoutGrids.forEach((grid) => {
           const mode = grid.dataset.gridMode || "preserve";
           const order = layoutItemIds(grid);
@@ -401,7 +406,9 @@
           gridCells(grid).forEach((cell) => {
             const layoutItemId = grid.dataset.layoutKind === "container_run"
               ? cell.dataset.containerId || ""
-              : cell.dataset.fieldId || "";
+              : grid.dataset.layoutKind === "block_run"
+                ? cell.dataset.blockId || ""
+                : cell.dataset.fieldId || "";
             if (layoutItemId) {
               spans[layoutItemId] = Number.parseInt(cell.dataset.printSpan || "2", 10) || 2;
             }
@@ -409,11 +416,13 @@
           const gridId = grid.dataset.gridId || "";
           if (grid.dataset.layoutKind === "container_run") {
             containers[gridId] = { container_ids: containerIds(grid), mode, spans, order: orderChanged ? order : [] };
+          } else if (grid.dataset.layoutKind === "block_run") {
+            blocks[gridId] = { block_ids: blockIds(grid), mode, spans, order: orderChanged ? order : [] };
           } else {
             grids[gridId] = { field_ids: fieldIds(grid), mode, spans, order: orderChanged ? order : [] };
           }
         });
-        return { grids, containers };
+        return { grids, containers, blocks };
       };
       const setLayoutStatus = (message, isError = false) => {
         if (!layoutStatus) return;

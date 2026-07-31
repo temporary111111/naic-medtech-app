@@ -866,6 +866,7 @@ body {
 .print-note,
 .print-divider-block,
 .print-container-run-item,
+.print-block-run-item,
 .print-field-run,
 .print-row {
   break-inside: avoid;
@@ -914,8 +915,13 @@ body {
   display: block;
 }
 
-.print-container-run-item {
+.print-container-run-item,
+.print-block-run-item {
   min-width: 0;
+}
+
+.print-block-run {
+  display: block;
 }
 
 .print-field-run {
@@ -1978,7 +1984,8 @@ body {
    The grid background draws stable borders even when cells span and reflow. */
 .print-field-grid.print-layout-grid,
 .print-field-run.print-layout-grid,
-.print-container-run.print-layout-grid {
+.print-container-run.print-layout-grid,
+.print-block-run.print-layout-grid {
   display: grid;
   grid-template-columns: repeat(var(--print-grid-units), minmax(0, 1fr)) !important;
   gap: 1px;
@@ -2005,7 +2012,8 @@ body {
   background: var(--paper);
 }
 
-body.is-layout-editing .print-container-run.print-layout-grid {
+body.is-layout-editing .print-container-run.print-layout-grid,
+body.is-layout-editing .print-block-run.print-layout-grid {
   background: var(--line-soft);
 }
 
@@ -2032,8 +2040,19 @@ body.is-layout-editing .print-container-run.print-layout-grid {
 }
 
 /* The grid remains visible while editing, but a finished report stays white. */
-body.is-layout-editing .print-container-run.print-layout-grid > .print-container-run-item {
+body.is-layout-editing .print-container-run.print-layout-grid > .print-container-run-item,
+body.is-layout-editing .print-block-run.print-layout-grid > .print-block-run-item {
   background: transparent;
+}
+
+.print-block-run.print-layout-grid {
+  background: var(--paper);
+}
+
+.print-block-run.print-layout-grid > .print-block-run-item {
+  grid-column: span var(--print-grid-span, 2);
+  min-width: 0;
+  background: var(--paper);
 }
 
 .print-container-run.print-layout-grid > .print-container-run-item > .print-section,

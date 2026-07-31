@@ -41,6 +41,19 @@
       </article>
       {% endfor %}
     </div>
+    {% elif item.kind == "block_run" %}
+    {% set block_items = item["items"] or [] %}
+    {% set block_layout = item["layout"] or {} %}
+    {% set block_units = block_layout.units or (field_grid_columns * 2) %}
+    {% set blocks_are_grid = block_layout.presentation == "grid" %}
+    <div class="print-block-run{% if blocks_are_grid %} print-layout-grid{% endif %}" data-print-layout-grid data-layout-kind="block_run" data-layout-presentation="{{ block_layout.presentation or 'flow' }}" data-default-presentation="flow" data-default-mode="flow" data-grid-id="{{ block_layout.id or item.id or '' }}" data-grid-units="{{ block_units }}" data-grid-mode="{{ block_layout.mode or 'flow' }}"{% if blocks_are_grid %} style="--print-grid-units: {{ block_units }};"{% endif %}>
+      {% for block_item in block_items %}
+      {% set block_span = block_layout.spans[block_item.id] if block_layout.spans and block_item.id in block_layout.spans else 2 %}
+      <article class="print-block-run-item" data-print-grid-cell data-block-id="{{ block_item.id }}" data-original-index="{{ block_item.get('_print_layout_original_index', loop.index0) }}" data-base-span="2" data-print-span="{{ block_span }}"{% if blocks_are_grid %} style="--print-grid-span: {{ block_span }};"{% endif %}>
+        {{ render_print_items([block_item], field_grid_columns) }}
+      </article>
+      {% endfor %}
+    </div>
     {% elif item.kind == "section" %}
     {% set child_items = item["items"] or [] %}
     <section class="print-section print-container-depth-{{ item.container_depth | default(0) }}{% if item.show_title %} has-title{% else %} is-title-hidden{% endif %}">

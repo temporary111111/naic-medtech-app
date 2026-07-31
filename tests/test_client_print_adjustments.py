@@ -349,7 +349,7 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             for item in items:
                 if item["kind"] == "field_run":
                     names.extend(child["name"] for child in item["items"])
-                elif item["kind"] == "container_run":
+                elif item["kind"] in {"container_run", "block_run"}:
                     names.extend(print_item_names(item["items"]))
                 else:
                     names.append(item["name"])
@@ -1089,10 +1089,10 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                 "show_nested_container_titles": True,
             },
         )
-        self.assertEqual(printed[0]["kind"], "field_run")
-        self.assertEqual(printed[0]["items"][0]["kind"], "field")
-        self.assertEqual(printed[1]["kind"], "section")
-        self.assertEqual(printed[1]["items"][0]["kind"], "group")
+        self.assertEqual(printed[0]["kind"], "block_run")
+        self.assertEqual([item["kind"] for item in printed[0]["items"]], ["field_run", "section"])
+        self.assertEqual(printed[0]["items"][0]["items"][0]["kind"], "field")
+        self.assertEqual(printed[0]["items"][1]["items"][0]["kind"], "group")
 
     def test_saved_v1_form_version_upgrades_without_losing_legacy_archive(self) -> None:
         engine = create_engine("sqlite://")
@@ -1915,6 +1915,85 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn("containers[gridId]", editor_source)
         self.assertIn(".print-container-run.print-layout-grid", stylesheet)
 
+    def test_mixed_print_blocks_make_a_nested_container_independently_layoutable(self) -> None:
+        def field(field_id: str, name: str) -> dict[str, object]:
+            return {
+                "kind": "field",
+                "id": field_id,
+                "name": name,
+                "props": {"data_type": "text"},
+            }
+
+        items = build_print_items(
+            [{
+                "kind": "container",
+                "id": "crossmatching",
+                "name": "Crossmatching Details",
+                "children": [
+                    field("immediate_spin", "Immediate Spin"),
+                    field("albumin", "Albumin"),
+                    field("anti_human", "Anti Human Globulin"),
+                    field("remarks", "Remarks"),
+                    {
+                        "kind": "container",
+                        "id": "vital_signs",
+                        "name": "Vital Signs",
+                        "children": [
+                            field("blood_pressure", "Blood Pressure"),
+                            field("pulse_rate", "Pulse Rate"),
+                        ],
+                    },
+                    field("released_by", "Released By"),
+                    field("released_to", "Released To"),
+                ],
+            }],
+            values={},
+            asset_by_field={},
+            record_id=1,
+            print_config={"result_layout": "compact_grid"},
+        )
+
+        crossmatching = items[0]
+        block_run = crossmatching["items"][0]
+        self.assertEqual(crossmatching["kind"], "section")
+        self.assertEqual(block_run["kind"], "block_run")
+        self.assertEqual(
+            [item["kind"] for item in block_run["items"]],
+            ["field_grid", "group", "field_run"],
+        )
+        vital_signs = block_run["items"][1]
+        self.assertEqual(vital_signs["name"], "Vital Signs")
+
+        preference = {
+            "blocks": {
+                block_run["id"]: {
+                    "block_ids": block_run["block_ids"],
+                    "mode": "manual",
+                    "spans": {
+                        block_run["block_ids"][0]: 2,
+                        vital_signs["id"]: 4,
+                        block_run["block_ids"][2]: 2,
+                    },
+                }
+            }
+        }
+        safe_preference = filter_print_layout_preference_for_items(
+            preference,
+            items,
+            field_grid_units=4,
+        )
+        self.assertEqual(safe_preference["blocks"][block_run["id"]]["mode"], "manual")
+
+        apply_print_layout_preference(items, safe_preference, field_grid_units=4)
+        layout = block_run["layout"]
+        self.assertEqual(layout["presentation"], "grid")
+        self.assertEqual(layout["spans"][vital_signs["id"]], 4)
+
+        environment = Environment(loader=FileSystemLoader(ROOT / "app" / "naic_builder" / "templates"))
+        rendered = environment.get_template("records/_print_document.html").module.render_print_items(items)
+        self.assertIn('data-layout-kind="block_run"', rendered)
+        self.assertIn(f'data-block-id="{vital_signs["id"]}"', rendered)
+
     def test_print_layout_editor_uses_explicit_modes_and_scopes_to_direct_children(self) -> None:
         editor_source = (
             ROOT / "app" / "naic_builder" / "templates" / "records" / "print.html"
@@ -1928,8 +2007,10 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn('querySelectorAll(":scope > [data-print-grid-cell]")', editor_source)
         self.assertIn('cell.closest("[data-print-layout-grid]") !== grid', editor_source)
         self.assertIn('defaultGridMode(activeLayoutGrid)', editor_source)
+        self.assertIn('const blockIds', editor_source)
+        self.assertIn('blocks[gridId]', editor_source)
         self.assertIn(
-            ".print-container-run.print-layout-grid {\n  display: grid;",
+            ".print-container-run.print-layout-grid,\n.print-block-run.print-layout-grid {\n  display: grid;",
             (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
         )
         self.assertIn(
@@ -1973,10 +2054,26 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                                 "mode": "manual",
                                 "spans": {"name": 4, "age": 2, "sex": 2, "exam": 2},
                             }
-                        }
+                        },
+                        "blocks": {
+                            "root/crossmatching:blocks:0": {
+                                "block_ids": [
+                                    "root/crossmatching:0",
+                                    "root/crossmatching/vital_signs",
+                                    "root/crossmatching:run:0",
+                                ],
+                                "mode": "manual",
+                                "spans": {
+                                    "root/crossmatching:0": 2,
+                                    "root/crossmatching/vital_signs": 4,
+                                    "root/crossmatching:run:0": 2,
+                                },
+                            }
+                        },
                     },
                 )
                 self.assertEqual(preference["grids"]["root/patient:0"]["mode"], "manual")
+                self.assertEqual(preference["blocks"]["root/crossmatching:blocks:0"]["mode"], "manual")
                 session.refresh(user)
                 saved = user_print_layout_preference(
                     user,
@@ -1985,6 +2082,10 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                     paper_size="a5",
                 )
                 self.assertEqual(saved["grids"]["root/patient:0"]["spans"]["name"], 4)
+                self.assertEqual(
+                    saved["blocks"]["root/crossmatching:blocks:0"]["spans"]["root/crossmatching/vital_signs"],
+                    4,
+                )
                 self.assertEqual(
                     user_print_layout_preference(
                         user,

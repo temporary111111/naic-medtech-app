@@ -138,7 +138,7 @@ DEFAULT_PRINT_TEMPLATE_ID = "modern_portrait"
 DEFAULT_PRINT_TEXT_SIZE = "standard"
 DEFAULT_PRINT_PAPER_SIZE = "a4"
 PRINT_PROFILE_VERSION = 2
-PRINT_LAYOUT_PREFERENCE_VERSION = 3
+PRINT_LAYOUT_PREFERENCE_VERSION = 4
 PRINT_LAYOUT_MODES = {"preserve", "balance", "manual"}
 PRINT_CONTAINER_LAYOUT_MODES = {"flow", "balance", "manual"}
 PRINT_TEXT_SIZE_DETAILS = {
@@ -1325,10 +1325,42 @@ def normalize_print_layout_preference(value: Any) -> dict[str, Any]:
             "order": normalize_print_layout_order(raw_run.get("order")),
         }
 
+    raw_blocks = raw_preference.get("blocks") if isinstance(raw_preference.get("blocks"), dict) else {}
+    blocks: dict[str, dict[str, Any]] = {}
+    for raw_run_id, raw_run in raw_blocks.items():
+        run_id = compact_text(raw_run_id)
+        if not run_id or len(run_id) > 480 or not isinstance(raw_run, dict):
+            continue
+        block_ids: list[str] = []
+        for raw_block_id in normalize_items(raw_run.get("block_ids")):
+            block_id = compact_text(raw_block_id)
+            if block_id and block_id not in block_ids:
+                block_ids.append(block_id)
+        if len(block_ids) < 2:
+            continue
+
+        raw_spans = raw_run.get("spans") if isinstance(raw_run.get("spans"), dict) else {}
+        spans: dict[str, int] = {}
+        for block_id in block_ids:
+            try:
+                span = int(raw_spans.get(block_id) or 0)
+            except (TypeError, ValueError):
+                span = 0
+            if 1 <= span <= 12:
+                spans[block_id] = span
+
+        blocks[run_id] = {
+            "block_ids": block_ids,
+            "mode": normalize_print_container_layout_mode(raw_run.get("mode")),
+            "spans": spans,
+            "order": normalize_print_layout_order(raw_run.get("order")),
+        }
+
     return {
         "version": PRINT_LAYOUT_PREFERENCE_VERSION,
         "grids": grids,
         "containers": containers,
+        "blocks": blocks,
     }
 
 
@@ -1343,7 +1375,7 @@ def user_print_layout_preferences(user: User | None) -> dict[str, dict[str, Any]
     for raw_key, raw_preference in raw_profiles.items():
         profile_key = compact_text(raw_key)
         preference = normalize_print_layout_preference(raw_preference)
-        if profile_key and (preference["grids"] or preference["containers"]):
+        if profile_key and (preference["grids"] or preference["containers"] or preference["blocks"]):
             profiles[profile_key] = preference
     return profiles
 
@@ -1374,7 +1406,7 @@ def save_user_print_layout_preference(
     profile_key = print_layout_profile_key(form_id, template_id, paper_size)
     profiles = user_print_layout_preferences(user)
     normalized_preference = normalize_print_layout_preference(preference)
-    if normalized_preference["grids"] or normalized_preference["containers"]:
+    if normalized_preference["grids"] or normalized_preference["containers"] or normalized_preference["blocks"]:
         profiles[profile_key] = normalized_preference
     else:
         profiles.pop(profile_key, None)
@@ -4623,6 +4655,10 @@ def print_layout_container_run_id(layout_path: str, run_index: int) -> str:
     return f"{compact_text(layout_path) or 'root'}:containers:{max(0, run_index)}"
 
 
+def print_layout_block_run_id(layout_path: str, run_index: int) -> str:
+    return f"{compact_text(layout_path) or 'root'}:blocks:{max(0, run_index)}"
+
+
 def compact_print_field_runs(
     items: list[dict[str, Any]],
     print_config: dict[str, Any],
@@ -4709,6 +4745,54 @@ def compact_print_container_runs(
 
     for item in items:
         if is_print_container_item(item):
+            run.append(item)
+            continue
+        flush_run()
+        compacted.append(item)
+    flush_run()
+    return compacted
+
+
+def is_print_layout_block_item(item: dict[str, Any]) -> bool:
+    return (
+        compact_text(item.get("kind")) in {"section", "group", "field_grid", "field_run", "container_run"}
+        and bool(compact_text(item.get("id")))
+    )
+
+
+def compact_print_block_runs(
+    items: list[dict[str, Any]],
+    *,
+    layout_path: str = "root",
+) -> list[dict[str, Any]]:
+    """Wrap mixed, same-level printable blocks for optional reflow in print preview.
+
+    Field grids/runs and containers retain their own internal layout editors. This
+    outer wrapper only gives an admin a way to position a nested container beside
+    its same-level field groups without changing the form schema.
+    """
+    compacted: list[dict[str, Any]] = []
+    run: list[dict[str, Any]] = []
+    run_index = 0
+
+    def flush_run() -> None:
+        nonlocal run, run_index
+        if len(run) >= 2:
+            compacted.append(
+                {
+                    "kind": "block_run",
+                    "id": print_layout_block_run_id(layout_path, run_index),
+                    "block_ids": [compact_text(item.get("id")) for item in run],
+                    "items": run,
+                }
+            )
+            run_index += 1
+        else:
+            compacted.extend(run)
+        run = []
+
+    for item in items:
+        if is_print_layout_block_item(item):
             run.append(item)
             continue
         flush_run()
@@ -4820,8 +4904,11 @@ def build_print_items(
             )
             continue
 
-    return compact_print_container_runs(
-        compact_print_field_runs(items, config, layout_path=layout_path),
+    return compact_print_block_runs(
+        compact_print_container_runs(
+            compact_print_field_runs(items, config, layout_path=layout_path),
+            layout_path=layout_path,
+        ),
         layout_path=layout_path,
     )
 
@@ -5067,6 +5154,56 @@ def normalized_print_container_run_layout(
     }
 
 
+def normalized_print_block_run_layout(
+    run_item: dict[str, Any],
+    preference: dict[str, Any],
+    *,
+    field_grid_units: int,
+) -> dict[str, Any]:
+    block_ids = [compact_text(block_id) for block_id in normalize_items(run_item.get("block_ids"))]
+    block_ids = [block_id for block_id in block_ids if block_id]
+    run_id = compact_text(run_item.get("id"))
+    raw_blocks = preference.get("blocks") if isinstance(preference.get("blocks"), dict) else {}
+    raw_layout = raw_blocks.get(run_id) if isinstance(raw_blocks.get(run_id), dict) else {}
+    raw_block_ids = [compact_text(block_id) for block_id in normalize_items(raw_layout.get("block_ids"))]
+    is_matching_run = bool(
+        run_id
+        and len(block_ids) >= 2
+        and raw_block_ids == block_ids
+    )
+    mode = normalize_print_container_layout_mode(raw_layout.get("mode")) if is_matching_run else "flow"
+    order = (
+        matching_print_layout_order(raw_layout.get("order"), block_ids)
+        if is_matching_run
+        else block_ids
+    )
+    allowed_spans = print_layout_allowed_spans(field_grid_units)
+    spans = {block_id: 2 for block_id in block_ids}
+
+    if mode == "balance":
+        spans = balanced_print_grid_spans(block_ids, field_grid_units)
+    elif mode == "manual":
+        raw_spans = raw_layout.get("spans") if isinstance(raw_layout.get("spans"), dict) else {}
+        for block_id in block_ids:
+            try:
+                span = int(raw_spans.get(block_id) or 2)
+            except (TypeError, ValueError):
+                span = 2
+            spans[block_id] = span if span in allowed_spans else 2
+
+    return {
+        "id": run_id,
+        "block_ids": block_ids,
+        "mode": mode,
+        "presentation": "grid" if mode in {"balance", "manual"} else "flow",
+        "order": order,
+        "spans": spans,
+        "units": field_grid_units,
+        "allowed_spans": sorted(allowed_spans),
+        "placeholder_spans": [],
+    }
+
+
 def apply_print_layout_preference(
     items: list[dict[str, Any]],
     preference: dict[str, Any] | None,
@@ -5113,6 +5250,17 @@ def apply_print_layout_preference(
                 item["layout"],
                 item_ids_key="container_ids",
             )
+        if kind == "block_run":
+            item["layout"] = normalized_print_block_run_layout(
+                item,
+                normalized_preference,
+                field_grid_units=field_grid_units,
+            )
+            apply_print_layout_item_order(
+                item,
+                item["layout"],
+                item_ids_key="block_ids",
+            )
         child_items = item.get("items")
         if isinstance(child_items, list):
             apply_print_layout_preference(
@@ -5132,6 +5280,7 @@ def filter_print_layout_preference_for_items(
     normalized_preference = normalize_print_layout_preference(preference)
     valid_grids: dict[str, dict[str, Any]] = {}
     valid_containers: dict[str, dict[str, Any]] = {}
+    valid_blocks: dict[str, dict[str, Any]] = {}
 
     def collect(item_list: list[dict[str, Any]]) -> None:
         for item in item_list:
@@ -5186,6 +5335,24 @@ def filter_print_layout_preference_for_items(
                 if isinstance(child_items, list):
                     collect(child_items)
                 continue
+            if kind == "block_run":
+                layout = normalized_print_block_run_layout(
+                    item,
+                    normalized_preference,
+                    field_grid_units=field_grid_units,
+                )
+                has_custom_order = layout["order"] != layout["block_ids"]
+                if layout["mode"] != "flow" or has_custom_order:
+                    valid_blocks[layout["id"]] = {
+                        "block_ids": layout["block_ids"],
+                        "mode": layout["mode"],
+                        "spans": layout["spans"] if layout["mode"] == "manual" else {},
+                        "order": layout["order"] if has_custom_order else [],
+                    }
+                child_items = item.get("items")
+                if isinstance(child_items, list):
+                    collect(child_items)
+                continue
             child_items = item.get("items")
             if isinstance(child_items, list):
                 collect(child_items)
@@ -5195,6 +5362,7 @@ def filter_print_layout_preference_for_items(
         "version": PRINT_LAYOUT_PREFERENCE_VERSION,
         "grids": valid_grids,
         "containers": valid_containers,
+        "blocks": valid_blocks,
     }
 
 
@@ -5450,6 +5618,42 @@ def print_container_run_fit_units(item: dict[str, Any]) -> float:
     return total_height + current_height
 
 
+def print_block_run_fit_units(item: dict[str, Any]) -> float:
+    layout = item.get("layout") if isinstance(item.get("layout"), dict) else {}
+    child_items = [child for child in normalize_items(item.get("items")) if isinstance(child, dict)]
+    if compact_text(layout.get("presentation")) != "grid":
+        return print_item_fit_units(child_items)
+    try:
+        units = max(2, int(layout.get("units") or 4))
+    except (TypeError, ValueError):
+        units = 4
+    allowed_spans = print_layout_allowed_spans(units)
+    spans = layout.get("spans") if isinstance(layout.get("spans"), dict) else {}
+    current_width = 0
+    current_height = 0.0
+    total_height = 0.0
+
+    for child in child_items:
+        block_id = compact_text(child.get("id"))
+        try:
+            span = int(spans.get(block_id) or 2)
+        except (TypeError, ValueError):
+            span = 2
+        if span not in allowed_spans:
+            span = 2
+        if current_width and current_width + span > units:
+            total_height += current_height
+            current_width = 0
+            current_height = 0.0
+        current_width += span
+        current_height = max(current_height, print_item_fit_units([child]))
+        if current_width == units:
+            total_height += current_height
+            current_width = 0
+            current_height = 0.0
+    return total_height + current_height
+
+
 def print_item_fit_units(items: list[dict[str, Any]]) -> float:
     units = 0.0
     for item in normalize_items(items):
@@ -5491,6 +5695,8 @@ def print_item_fit_units(items: list[dict[str, Any]]) -> float:
             units += 0.45 + (row_count * 0.95) + (reference_count * 0.15)
         elif kind == "container_run":
             units += print_container_run_fit_units(item)
+        elif kind == "block_run":
+            units += print_block_run_fit_units(item)
         elif kind == "table":
             try:
                 sample_rows = int(item.get("sample_rows") or 3)
