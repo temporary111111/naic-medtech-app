@@ -6,7 +6,7 @@
   <title>Print Record | {{ document.form_name }}</title>
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
-  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260730-print-layout-drop-guide-v18">
+  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260730-print-layout-history-v19">
   {% set presentation = document.template or {} %}
   {% set record_meta = document["record"] or {} %}
 </head>
@@ -64,6 +64,10 @@
         <span data-layout-editor-hint>Select a field or container.</span>
       </div>
       <div class="print-layout-editor-actions">
+        <div class="print-layout-history" role="group" aria-label="Layout history">
+          <button type="button" data-layout-undo disabled aria-label="Undo last layout change" title="Undo last layout change"><span aria-hidden="true">&#8630;</span></button>
+          <button type="button" data-layout-redo disabled aria-label="Redo last layout change" title="Redo last layout change"><span aria-hidden="true">&#8631;</span></button>
+        </div>
         <div class="print-layout-mode" data-layout-mode hidden role="group" aria-label="Layout mode">
           <span>Layout</span>
           <button type="button" data-layout-flow hidden>Rows</button>
@@ -229,6 +233,8 @@
       const layoutFlowButton = document.querySelector("[data-layout-flow]");
       const layoutGridButton = document.querySelector("[data-layout-grid]");
       const resetLayoutButton = document.querySelector("[data-layout-reset]");
+      const undoLayoutButton = document.querySelector("[data-layout-undo]");
+      const redoLayoutButton = document.querySelector("[data-layout-redo]");
       const saveLayoutButton = document.querySelector("[data-layout-save]");
       const layoutHint = document.querySelector("[data-layout-editor-hint]");
       const layoutStatus = document.querySelector("[data-layout-editor-status]");
@@ -242,6 +248,8 @@
       let activeLayoutCell = null;
       let activeResize = null;
       let activeMove = null;
+      const layoutHistory = [];
+      let layoutHistoryIndex = -1;
 
       const clearMoveDropIndicator = () => {
         if (!activeMove?.dropTarget) return;
@@ -459,6 +467,76 @@
         layoutStatus.textContent = message;
         layoutStatus.dataset.status = isError ? "error" : "success";
       };
+      const layoutHistorySnapshot = () => ({
+        grids: layoutGrids.map((grid) => {
+          const spans = {};
+          gridCells(grid).forEach((cell) => {
+            const itemId = layoutItemId(grid, cell);
+            if (itemId) spans[itemId] = Number.parseInt(cell.dataset.printSpan || "2", 10) || 2;
+          });
+          return {
+            presentation: layoutPresentation(grid),
+            mode: grid.dataset.gridMode || "preserve",
+            order: layoutItemIds(grid),
+            spans,
+          };
+        }),
+      });
+      const updateLayoutHistoryControls = () => {
+        if (undoLayoutButton) undoLayoutButton.disabled = !layoutEditing || layoutHistoryIndex <= 0;
+        if (redoLayoutButton) {
+          redoLayoutButton.disabled = !layoutEditing || layoutHistoryIndex >= layoutHistory.length - 1;
+        }
+      };
+      const restoreLayoutHistorySnapshot = (snapshot) => {
+        if (!snapshot) return;
+        snapshot.grids.forEach((savedGrid, index) => {
+          const grid = layoutGrids[index];
+          if (!grid) return;
+          const cellsById = new Map(gridCells(grid).map((cell) => [layoutItemId(grid, cell), cell]));
+          savedGrid.order.forEach((itemId) => {
+            const cell = cellsById.get(itemId);
+            if (cell) grid.append(cell);
+          });
+          gridCells(grid).forEach((cell) => {
+            const itemId = layoutItemId(grid, cell);
+            setCellSpan(cell, savedGrid.spans[itemId] || Number.parseInt(cell.dataset.baseSpan || "2", 10) || 2);
+          });
+          grid.dataset.gridMode = savedGrid.mode;
+          setGridPresentation(grid, savedGrid.presentation);
+          updatePlaceholders(grid, savedGrid.mode);
+        });
+        setActiveGrid(activeLayoutGrid);
+      };
+      const resetLayoutHistory = () => {
+        layoutHistory.splice(0, layoutHistory.length, layoutHistorySnapshot());
+        layoutHistoryIndex = 0;
+        updateLayoutHistoryControls();
+      };
+      const recordLayoutHistory = () => {
+        if (!layoutEditing) return;
+        const snapshot = layoutHistorySnapshot();
+        if (JSON.stringify(layoutHistory[layoutHistoryIndex]) === JSON.stringify(snapshot)) return;
+        layoutHistory.splice(layoutHistoryIndex + 1);
+        layoutHistory.push(snapshot);
+        if (layoutHistory.length > 31) layoutHistory.shift();
+        layoutHistoryIndex = layoutHistory.length - 1;
+        updateLayoutHistoryControls();
+      };
+      const undoLayoutChange = () => {
+        if (!layoutEditing || layoutHistoryIndex <= 0) return;
+        layoutHistoryIndex -= 1;
+        restoreLayoutHistorySnapshot(layoutHistory[layoutHistoryIndex]);
+        updateLayoutHistoryControls();
+        setLayoutStatus("Layout change undone.");
+      };
+      const redoLayoutChange = () => {
+        if (!layoutEditing || layoutHistoryIndex >= layoutHistory.length - 1) return;
+        layoutHistoryIndex += 1;
+        restoreLayoutHistorySnapshot(layoutHistory[layoutHistoryIndex]);
+        updateLayoutHistoryControls();
+        setLayoutStatus("Layout change redone.");
+      };
       const openEditor = () => {
         if (!layoutEditor) return;
         if (moreMenu) moreMenu.open = false;
@@ -466,6 +544,7 @@
         layoutEditor.hidden = false;
         document.body.classList.add("is-layout-editing");
         setActiveGrid(null);
+        resetLayoutHistory();
         setLayoutStatus("");
         layoutEditor.scrollIntoView({ behavior: "smooth", block: "nearest" });
       };
@@ -477,23 +556,30 @@
         activeMove = null;
         document.body.classList.remove("is-layout-editing", "is-layout-resizing", "is-layout-moving");
         if (layoutEditor) layoutEditor.hidden = true;
+        layoutHistory.length = 0;
+        layoutHistoryIndex = -1;
+        updateLayoutHistoryControls();
       };
 
       const activateBlockRunItem = (run, itemId) => {
         const grid = run.querySelector("[data-print-layout-grid][data-layout-kind='block_run']");
         if (!grid || !itemId) return false;
-        if (layoutPresentation(grid) !== "grid") setGridMode(grid, "manual");
+        const activated = layoutPresentation(grid) !== "grid";
+        if (activated) setGridMode(grid, "manual");
         const cell = gridCells(grid).find((candidate) => (
           (candidate.dataset.layoutItemId || candidate.dataset.blockId || "") === itemId
         ));
         if (!cell) return false;
         activeLayoutCell = cell;
         setActiveGrid(grid);
+        if (activated) recordLayoutHistory();
         return true;
       };
 
       openLayoutEditor?.addEventListener("click", openEditor);
       doneLayoutEditor?.addEventListener("click", closeEditor);
+      undoLayoutButton?.addEventListener("click", undoLayoutChange);
+      redoLayoutButton?.addEventListener("click", redoLayoutChange);
       resetLayoutButton?.addEventListener("click", () => {
         if (!activeLayoutGrid) return;
         gridCells(activeLayoutGrid)
@@ -507,16 +593,19 @@
           defaultGridMode(activeLayoutGrid),
         );
         setActiveGrid(activeLayoutGrid);
+        recordLayoutHistory();
       });
       layoutFlowButton?.addEventListener("click", () => {
         if (!activeLayoutGrid || activeLayoutGrid.dataset.defaultPresentation === "grid") return;
         setGridMode(activeLayoutGrid, defaultGridMode(activeLayoutGrid));
         setActiveGrid(activeLayoutGrid);
+        recordLayoutHistory();
       });
       layoutGridButton?.addEventListener("click", () => {
         if (!activeLayoutGrid || layoutPresentation(activeLayoutGrid) === "grid") return;
         setGridMode(activeLayoutGrid, "manual");
         setActiveGrid(activeLayoutGrid);
+        recordLayoutHistory();
       });
       layoutRuns.forEach((run) => {
         run.addEventListener("click", (event) => {
@@ -614,12 +703,28 @@
           move.cell.classList.remove("is-layout-cell-moving");
           activeMove = null;
           document.body.classList.remove("is-layout-moving");
+          recordLayoutHistory();
           return;
         }
         if (!activeResize || event.pointerId !== activeResize.pointerId) return;
         activeResize.cell.releasePointerCapture?.(event.pointerId);
         activeResize = null;
         document.body.classList.remove("is-layout-resizing");
+        recordLayoutHistory();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (!layoutEditing || event.defaultPrevented || event.altKey || (!event.ctrlKey && !event.metaKey)) return;
+        const target = event.target;
+        if (target instanceof HTMLElement && target.closest("input, select, textarea, [contenteditable='true']")) return;
+        const key = event.key.toLowerCase();
+        if (key === "z") {
+          event.preventDefault();
+          if (event.shiftKey) redoLayoutChange();
+          else undoLayoutChange();
+        } else if (key === "y") {
+          event.preventDefault();
+          redoLayoutChange();
+        }
       });
       saveLayoutButton?.addEventListener("click", async () => {
         if (!layoutRecordId || !layoutTemplateId || !layoutPaperSize) return;

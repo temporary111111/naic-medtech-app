@@ -2122,6 +2122,11 @@ body.is-layout-editing .print-block-run-grid.print-layout-grid > .print-grid-cel
   gap: 6px;
 }
 
+.print-layout-history {
+  display: inline-flex;
+  gap: 3px;
+}
+
 .print-layout-mode {
   display: inline-flex;
   align-items: stretch;
@@ -2183,6 +2188,13 @@ body.is-layout-editing .print-block-run-grid.print-layout-grid > .print-grid-cel
 .print-layout-editor-actions button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.print-layout-history > button {
+  min-width: 27px;
+  padding: 3px;
+  font-size: 16px;
+  line-height: 1;
 }
 
 .print-layout-editor-actions button.is-primary {

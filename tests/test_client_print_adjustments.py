@@ -2039,6 +2039,12 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn('data-layout-move-handle', editor_source)
         self.assertIn('setMoveDropIndicator', editor_source)
         self.assertIn('clearMoveDropIndicator', editor_source)
+        self.assertIn('data-layout-undo', editor_source)
+        self.assertIn('data-layout-redo', editor_source)
+        self.assertIn('recordLayoutHistory', editor_source)
+        self.assertIn('restoreLayoutHistorySnapshot', editor_source)
+        self.assertIn('layoutHistory.length > 31', editor_source)
+        self.assertIn('key === "z"', editor_source)
         self.assertIn('activateBlockRunItem', editor_source)
         self.assertIn(
             ".print-container-run.print-layout-grid,\n.print-block-run-grid.print-layout-grid {\n  display: grid;",
