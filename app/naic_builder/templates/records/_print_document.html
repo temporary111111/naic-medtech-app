@@ -18,12 +18,18 @@
 
 {% macro render_print_field_result(item) %}
   {% set display = item["display"] or {} %}
+  {% if display.kind == "image" %}
+  <span class="print-result-image">
+    {{ render_print_field_answer(item) }}
+  </span>
+  {% else %}
   <span class="print-result-inline">
     {{ render_print_field_answer(item) }}
-    {% if display.kind != "image" and display.text and item.unit_hint %}
+    {% if display.text and item.unit_hint %}
     <span class="print-result-unit">{{ item.unit_hint }}</span>
     {% endif %}
   </span>
+  {% endif %}
 {% endmacro %}
 
 {% macro render_print_layout_move_handle(label) %}

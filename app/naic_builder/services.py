@@ -4645,6 +4645,12 @@ def print_layout_field_run_id(layout_path: str, run_index: int) -> str:
     return f"{compact_text(layout_path) or 'root'}:run:{max(0, run_index)}"
 
 
+def print_layout_standalone_field_run_id(layout_path: str, field_id: str) -> str:
+    path = compact_text(layout_path) or "root"
+    identifier = compact_text(field_id) or "field"
+    return f"{path}:field:{identifier}"
+
+
 def print_layout_container_id(layout_path: str, container_id: str) -> str:
     path = compact_text(layout_path) or "root"
     identifier = compact_text(container_id) or "container"
@@ -4704,6 +4710,20 @@ def compact_print_field_runs(
             run.append(item)
             continue
         flush_run()
+        if compact_text(item.get("kind")) == "field":
+            # Images are intentionally excluded from compact result grids to
+            # preserve their full-size print treatment. Keep each one in a
+            # one-field run so it remains selectable in Adjust layout.
+            field_id = compact_text(item.get("id"))
+            compacted.append(
+                {
+                    "kind": "field_run",
+                    "id": print_layout_standalone_field_run_id(layout_path, field_id),
+                    "field_ids": [field_id] if field_id else [],
+                    "items": [item],
+                }
+            )
+            continue
         compacted.append(item)
     flush_run()
     return compacted

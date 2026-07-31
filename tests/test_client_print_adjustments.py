@@ -1707,6 +1707,44 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(changed_items[0]["layout"]["mode"], "rows")
         self.assertEqual(changed_items[0]["layout"]["presentation"], "rows")
 
+    def test_uploaded_image_field_uses_a_selectable_standalone_field_run(self) -> None:
+        blocks = [{
+            "kind": "field",
+            "id": "result_image",
+            "name": "Result Image",
+            "props": {"data_type": "image"},
+        }]
+        items = build_print_items(
+            blocks,
+            values={"result_image": {"asset_id": 7}},
+            asset_by_field={"result_image": {"id": 7, "original_filename": "result.png"}},
+            record_id=1,
+        )
+
+        self.assertEqual(items[0]["kind"], "field_run")
+        self.assertEqual(items[0]["id"], "root:field:result_image")
+        self.assertEqual(items[0]["field_ids"], ["result_image"])
+
+        preference = {
+            "grids": {
+                "root:field:result_image": {
+                    "field_ids": ["result_image"],
+                    "mode": "manual",
+                    "spans": {"result_image": 4},
+                }
+            }
+        }
+        apply_print_layout_preference(items, preference, field_grid_units=4)
+        self.assertEqual(items[0]["layout"]["presentation"], "grid")
+        self.assertEqual(items[0]["layout"]["spans"]["result_image"], 4)
+
+        environment = Environment(loader=FileSystemLoader(ROOT / "app" / "naic_builder" / "templates"))
+        rendered = environment.get_template("records/_print_document.html").module.render_print_items(items)
+        self.assertIn('data-print-layout-grid', rendered)
+        self.assertIn('data-print-grid-cell data-field-id="result_image"', rendered)
+        self.assertIn('class="print-result-image"', rendered)
+        self.assertIn('class="print-image', rendered)
+
     def test_field_run_template_preserves_rows_until_grid_presentation_is_selected(self) -> None:
         environment = Environment(loader=FileSystemLoader(ROOT / "app" / "naic_builder" / "templates"))
         macro = environment.get_template("records/_print_document.html").module.render_print_page

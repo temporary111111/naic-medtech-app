@@ -1069,6 +1069,18 @@ body {
   flex-wrap: nowrap;
 }
 
+.print-result-image {
+  display: grid;
+  justify-items: start;
+  gap: 3px;
+  max-width: 100%;
+}
+
+.print-result-image .print-image-meta {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .print-result-unit {
   color: var(--muted);
   font-size: 11px;
