@@ -1739,6 +1739,51 @@ async def save_record_print_layout(
     return JSONResponse({"layout": saved, "message": "Print layout saved for this profile."})
 
 
+@app.post("/records/{record_id}/print-fit")
+async def estimate_record_print_fit(
+    record_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> JSONResponse:
+    record = get_record_or_none(session, record_id)
+    if record is None or record.status == "deleted":
+        raise HTTPException(status_code=404, detail="Record not found.")
+    if record.status != "completed":
+        raise HTTPException(status_code=400, detail="Complete the record before checking its print fit.")
+
+    try:
+        payload = await request.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid print fit payload.") from exc
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Invalid print fit payload.")
+
+    profile = normalize_print_profile(
+        template_id=payload.get("template_id"),
+        text_size=payload.get("text_size"),
+        paper_size=payload.get("paper_size"),
+    )
+    base_document = build_record_print_document(
+        record,
+        template_id=profile["template_id"],
+        text_size=profile["text_size"],
+        paper_size=profile["paper_size"],
+    )
+    preference = filter_print_layout_preference_for_items(
+        payload.get("layout"),
+        base_document["items"],
+        field_grid_units=int(base_document["template"]["field_grid_units"]),
+    )
+    document = build_record_print_document(
+        record,
+        template_id=profile["template_id"],
+        text_size=profile["text_size"],
+        paper_size=profile["paper_size"],
+        print_layout_preference=preference,
+    )
+    return JSONResponse({"fit": document["fit_estimate"]})
+
+
 @app.get("/forms", response_class=HTMLResponse)
 def forms_library(request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
     library_tree = list_library_tree(session)

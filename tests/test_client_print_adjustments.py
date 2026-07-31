@@ -1758,6 +1758,19 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn('target.matches("[data-record-image-upload]")', records_source)
         self.assertIn("asset_by_field_id", records_source)
 
+    def test_print_page_keeps_a_live_one_page_fit_check_after_layout_adjustments(self) -> None:
+        print_template = (ROOT / "app" / "naic_builder" / "templates" / "records" / "print.html").read_text(encoding="utf-8")
+
+        self.assertIn("data-print-fit-status", print_template)
+        self.assertIn("data-print-requires-one-page", print_template)
+        self.assertIn("renderPrintFitEstimate", print_template)
+        self.assertIn("schedulePrintFitCheck", print_template)
+        self.assertIn('requiresOnePage ? "Legacy A5"', print_template)
+        self.assertIn('`${prefix}: May need 2 pages`', print_template)
+        self.assertIn("data-print-action", print_template)
+        self.assertIn('data-print-action onclick="window.print()"', print_template)
+        self.assertNotIn("data-print-action{% if not fit.can_print %}", print_template)
+
     def test_field_run_template_preserves_rows_until_grid_presentation_is_selected(self) -> None:
         environment = Environment(loader=FileSystemLoader(ROOT / "app" / "naic_builder" / "templates"))
         macro = environment.get_template("records/_print_document.html").module.render_print_page

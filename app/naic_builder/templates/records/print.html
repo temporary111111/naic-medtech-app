@@ -6,11 +6,11 @@
   <title>Print Record | {{ document.form_name }}</title>
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
-  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260731-print-cell-borders-v22">
+  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260731-print-fit-model-v24">
   {% set presentation = document.template or {} %}
   {% set record_meta = document["record"] or {} %}
 </head>
-<body class="print-template-{{ document.print_config.template_id | replace('_', '-') }} print-paper-{{ presentation.paper_size }} print-text-{{ document.print_config.text_size | replace('_', '-') }} print-density-{{ document.print_config.density }} print-font-{{ (document.print_config.font_family or 'arial_narrow') | replace('_', '-') }}" data-print-record-id="{{ record_meta.id }}" data-print-template-id="{{ document.print_config.template_id }}" data-print-paper-size="{{ presentation.paper_size }}" style="--accent: {{ document.print_config.accent_color }}; --accent-ink: {{ document.print_accent_ink or '#ffffff' }}; --print-page-width: {{ presentation.page_width_mm }}mm; --print-page-height: {{ presentation.page_height_mm }}mm;">
+<body class="print-template-{{ document.print_config.template_id | replace('_', '-') }} print-paper-{{ presentation.paper_size }} print-text-{{ document.print_config.text_size | replace('_', '-') }} print-density-{{ document.print_config.density }} print-font-{{ (document.print_config.font_family or 'arial_narrow') | replace('_', '-') }}" data-print-record-id="{{ record_meta.id }}" data-print-template-id="{{ document.print_config.template_id }}" data-print-paper-size="{{ presentation.paper_size }}" data-print-text-size="{{ document.print_config.text_size }}" data-print-paper-label="{{ presentation.paper_size_label }}" data-print-requires-one-page="{{ 'true' if presentation.requires_one_page else 'false' }}" style="--accent: {{ document.print_config.accent_color }}; --accent-ink: {{ document.print_accent_ink or '#ffffff' }}; --print-page-width: {{ presentation.page_width_mm }}mm; --print-page-height: {{ presentation.page_height_mm }}mm;">
   {% if presentation.requires_one_page %}
   <style>@page { size: {{ presentation.page_css_size }} landscape; margin: 4mm 6mm; }</style>
   {% elif presentation.orientation_key == "landscape" %}
@@ -31,15 +31,10 @@
         </div>
       </div>
       <div class="print-command-actions">
-        {% if fit.status and fit.status != "likely" %}
-        <div class="print-fit-notice" data-fit="{{ fit.status }}">
-          <strong>{{ fit.label }}</strong>
-          <span>{{ fit.detail }}</span>
-        </div>
-        {% endif %}
         <button class="print-active-profile" type="button" data-open-print-settings aria-haspopup="dialog" aria-label="Change print settings" title="Change print settings">
           <span>Print setup</span>
           <strong>{{ presentation.style_label }} | {{ presentation.orientation }} | {{ presentation.text_size_label }} | {{ presentation.paper_size_label }}</strong>
+          <small class="print-fit-status" data-print-fit-status data-fit="{{ fit.status or 'likely' }}" title="{{ fit.detail or 'Use browser print preview for final confirmation.' }}"><span data-print-fit-label>{{ fit.label or 'One-page check' }}</span></small>
         </button>
         <button class="print-link print-layout-command" type="button" data-open-layout-editor>Adjust layout</button>
         <details class="print-more-menu">
@@ -54,7 +49,7 @@
             <a href="/records/new">Choose form</a>
           </div>
         </details>
-        <button class="print-button" type="button"{% if not fit.can_print %} disabled title="{{ fit.detail }}"{% else %} onclick="window.print()"{% endif %}>Print / Save PDF</button>
+        <button class="print-button" type="button" data-print-action onclick="window.print()">Print / Save PDF</button>
       </div>
     </header>
 
@@ -225,6 +220,66 @@
       syncOrientation();
       syncTextSize();
 
+      const printFitStatus = document.querySelector("[data-print-fit-status]");
+      const printFitLabel = document.querySelector("[data-print-fit-label]");
+      const fitRecordId = document.body.dataset.printRecordId || "";
+      const fitTemplateId = document.body.dataset.printTemplateId || "";
+      const fitPaperSize = document.body.dataset.printPaperSize || "";
+      const fitTextSize = document.body.dataset.printTextSize || "";
+      const requiresOnePage = document.body.dataset.printRequiresOnePage === "true";
+      let queuedPrintFitCheck = 0;
+      let printFitRequestId = 0;
+
+      const setPrintFitStatus = (status, label, detail) => {
+        if (!printFitStatus || !printFitLabel) return;
+        printFitStatus.dataset.fit = status;
+        printFitLabel.textContent = label;
+        printFitStatus.title = detail;
+        printFitStatus.setAttribute("aria-label", detail);
+      };
+
+      const renderPrintFitEstimate = (fit) => {
+        const status = ["likely", "tight", "long"].includes(fit?.status) ? fit.status : "tight";
+        const prefix = requiresOnePage ? "Legacy A5" : "One-page";
+        const labels = {
+          likely: `${prefix}: Likely one page`,
+          tight: `${prefix}: Check print preview`,
+          long: `${prefix}: May need 2 pages`,
+        };
+        setPrintFitStatus(
+          status,
+          labels[status],
+          fit?.detail || "Use the browser print preview for final confirmation.",
+        );
+      };
+
+      const schedulePrintFitCheck = () => {
+        window.clearTimeout(queuedPrintFitCheck);
+        queuedPrintFitCheck = window.setTimeout(async () => {
+          if (!fitRecordId || !fitTemplateId || !fitPaperSize) return;
+          const requestId = ++printFitRequestId;
+          try {
+            const response = await fetch(`/records/${fitRecordId}/print-fit`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                template_id: fitTemplateId,
+                paper_size: fitPaperSize,
+                text_size: fitTextSize,
+                layout: currentLayoutPreference(),
+              }),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.detail || "Could not refresh the print fit estimate.");
+            if (requestId === printFitRequestId) renderPrintFitEstimate(result.fit);
+          } catch (error) {
+            if (requestId === printFitRequestId) {
+              printFitStatus.title = error.message || "Could not refresh the print fit estimate.";
+            }
+          }
+        }, 120);
+      };
+
       const layoutEditor = document.querySelector("[data-print-layout-editor]");
       const openLayoutEditor = document.querySelector("[data-open-layout-editor]");
       const doneLayoutEditor = document.querySelector("[data-layout-done]");
@@ -376,6 +431,7 @@
         if (mode === defaultGridMode(grid) && grid.dataset.defaultPresentation !== "grid") {
           setGridPresentation(grid, grid.dataset.defaultPresentation || "rows");
           updatePlaceholders(grid, mode);
+          schedulePrintFitCheck();
           return;
         }
         setGridPresentation(grid, "grid");
@@ -391,6 +447,7 @@
           }
         }
         updatePlaceholders(grid, mode);
+        schedulePrintFitCheck();
       };
       const layoutCellLabel = (cell) => {
         if (!cell) return "";
@@ -507,6 +564,7 @@
           updatePlaceholders(grid, savedGrid.mode);
         });
         setActiveGrid(activeLayoutGrid);
+        schedulePrintFitCheck();
       };
       const resetLayoutHistory = () => {
         layoutHistory.splice(0, layoutHistory.length, layoutHistorySnapshot());
@@ -704,6 +762,7 @@
           activeMove = null;
           document.body.classList.remove("is-layout-moving");
           recordLayoutHistory();
+          schedulePrintFitCheck();
           return;
         }
         if (!activeResize || event.pointerId !== activeResize.pointerId) return;
@@ -711,6 +770,7 @@
         activeResize = null;
         document.body.classList.remove("is-layout-resizing");
         recordLayoutHistory();
+        schedulePrintFitCheck();
       });
       document.addEventListener("keydown", (event) => {
         if (!layoutEditing || event.defaultPrevented || event.altKey || (!event.ctrlKey && !event.metaKey)) return;
@@ -749,6 +809,7 @@
           saveLayoutButton.disabled = false;
         }
       });
+      schedulePrintFitCheck();
     })();
   </script>
 </body>
