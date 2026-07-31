@@ -1915,6 +1915,24 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn("containers[gridId]", editor_source)
         self.assertIn(".print-container-run.print-layout-grid", stylesheet)
 
+    def test_print_layout_editor_uses_explicit_modes_and_scopes_to_direct_children(self) -> None:
+        editor_source = (
+            ROOT / "app" / "naic_builder" / "templates" / "records" / "print.html"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('data-layout-flow', editor_source)
+        self.assertIn('data-layout-grid', editor_source)
+        self.assertIn('Restore default', editor_source)
+        self.assertNotIn('data-layout-arrange', editor_source)
+        self.assertNotIn('data-layout-balance', editor_source)
+        self.assertIn('querySelectorAll(":scope > [data-print-grid-cell]")', editor_source)
+        self.assertIn('cell.closest("[data-print-layout-grid]") !== grid', editor_source)
+        self.assertIn('defaultGridMode(activeLayoutGrid)', editor_source)
+        self.assertIn(
+            ".print-container-run.print-layout-grid {\n  display: grid;",
+            (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
+        )
+
     def test_user_print_layout_preference_is_personal_and_profile_scoped(self) -> None:
         engine = create_engine("sqlite://")
         Base.metadata.create_all(engine)

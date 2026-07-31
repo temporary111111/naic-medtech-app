@@ -6,7 +6,7 @@
   <title>Print Record | {{ document.form_name }}</title>
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
-  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260730-adjustable-print-layout-v7">
+  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260730-adjustable-print-layout-v10">
   {% set presentation = document.template or {} %}
   {% set record_meta = document["record"] or {} %}
 </head>
@@ -61,11 +61,15 @@
     <section class="print-layout-editor" data-print-layout-editor hidden aria-labelledby="print-layout-editor-title">
       <div class="print-layout-editor-copy">
         <strong id="print-layout-editor-title">Layout editing</strong>
-        <span data-layout-editor-hint>Click a field or container, then drag its border.</span>
+        <span data-layout-editor-hint>Select a field or container.</span>
       </div>
       <div class="print-layout-editor-actions">
-        <button type="button" data-layout-balance disabled>Balance final row</button>
-        <button type="button" data-layout-reset disabled title="Restore the selected grid">Reset grid</button>
+        <div class="print-layout-mode" data-layout-mode hidden role="group" aria-label="Layout mode">
+          <span>Layout</span>
+          <button type="button" data-layout-flow hidden>Rows</button>
+          <button type="button" data-layout-grid>Columns</button>
+        </div>
+        <button type="button" data-layout-reset disabled title="Restore the selected layout to the form default">Restore default</button>
         <button type="button" data-layout-save title="Save for this form and print profile">Save default</button>
         <button type="button" class="is-primary" data-layout-done>Done</button>
       </div>
@@ -220,7 +224,10 @@
       const layoutEditor = document.querySelector("[data-print-layout-editor]");
       const openLayoutEditor = document.querySelector("[data-open-layout-editor]");
       const doneLayoutEditor = document.querySelector("[data-layout-done]");
-      const balanceLayoutButton = document.querySelector("[data-layout-balance]");
+      const layoutEditorTitle = document.querySelector("#print-layout-editor-title");
+      const layoutMode = document.querySelector("[data-layout-mode]");
+      const layoutFlowButton = document.querySelector("[data-layout-flow]");
+      const layoutGridButton = document.querySelector("[data-layout-grid]");
       const resetLayoutButton = document.querySelector("[data-layout-reset]");
       const saveLayoutButton = document.querySelector("[data-layout-save]");
       const layoutHint = document.querySelector("[data-layout-editor-hint]");
@@ -234,7 +241,7 @@
       let activeLayoutCell = null;
       let activeResize = null;
 
-      const gridCells = (grid) => Array.from(grid.querySelectorAll("[data-print-grid-cell]"));
+      const gridCells = (grid) => Array.from(grid.querySelectorAll(":scope > [data-print-grid-cell]"));
       const gridUnits = (grid) => Math.max(2, Number.parseInt(grid.dataset.gridUnits || "2", 10) || 2);
       const allowedSpans = (grid) => {
         const units = gridUnits(grid);
@@ -340,6 +347,10 @@
         }
         updatePlaceholders(grid, mode);
       };
+      const layoutCellLabel = (cell) => {
+        if (!cell) return "";
+        return cell.querySelector(".print-section-title, .print-group-title, .print-row-name strong, .print-grid-cell-head strong")?.textContent?.trim() || "";
+      };
       const setActiveGrid = (grid) => {
         activeLayoutGrid = grid;
         layoutGrids.forEach((item) => item.classList.toggle("is-layout-active", item === grid));
@@ -348,15 +359,34 @@
           gridCells(item).forEach((cell) => cell.classList.toggle("is-layout-cell-active", cell === activeLayoutCell));
         });
         const usesFlowLayout = grid && layoutPresentation(grid) !== "grid";
-        [balanceLayoutButton, resetLayoutButton].forEach((button) => {
-          if (button) button.disabled = !grid || usesFlowLayout;
-        });
+        const usesDefaultGrid = grid?.dataset.defaultPresentation === "grid";
+        if (layoutMode) layoutMode.hidden = !grid;
+        if (layoutFlowButton) {
+          layoutFlowButton.hidden = !grid || usesDefaultGrid;
+          layoutFlowButton.textContent = grid?.dataset.layoutKind === "container_run" ? "Stacked" : "Rows";
+          layoutFlowButton.classList.toggle("is-selected", Boolean(grid) && usesFlowLayout);
+          layoutFlowButton.setAttribute("aria-pressed", String(Boolean(grid) && usesFlowLayout));
+        }
+        if (layoutGridButton) {
+          layoutGridButton.hidden = !grid;
+          layoutGridButton.classList.toggle("is-selected", Boolean(grid) && !usesFlowLayout);
+          layoutGridButton.setAttribute("aria-pressed", String(Boolean(grid) && !usesFlowLayout));
+        }
+        if (resetLayoutButton) resetLayoutButton.disabled = !grid;
+        if (layoutEditorTitle) {
+          const label = layoutCellLabel(activeLayoutCell);
+          layoutEditorTitle.textContent = label ? `Editing: ${label}` : "Layout editing";
+        }
         if (layoutHint) {
           layoutHint.textContent = !grid
-            ? "Click a field or container, then drag its border."
-            : grid.dataset.layoutKind === "container_run"
-              ? "Drag the selected container border."
-              : "Drag the selected field border.";
+            ? "Select a field or container."
+            : grid.dataset.layoutKind === "container_run" && !usesFlowLayout
+                  ? "Drag the selected container border."
+                  : grid.dataset.layoutKind === "container_run"
+                    ? "Choose Columns to resize the selected containers."
+                    : usesFlowLayout
+                      ? "Choose Columns to resize the selected fields."
+                      : "Drag the selected field border.";
         }
       };
       const currentLayoutPreference = () => {
@@ -396,7 +426,7 @@
         layoutEditing = true;
         layoutEditor.hidden = false;
         document.body.classList.add("is-layout-editing");
-        setActiveGrid(activeLayoutGrid || layoutGrids[0] || null);
+        setActiveGrid(null);
         setLayoutStatus("");
         layoutEditor.scrollIntoView({ behavior: "smooth", block: "nearest" });
       };
@@ -423,33 +453,31 @@
         );
         setActiveGrid(activeLayoutGrid);
       });
-      balanceLayoutButton?.addEventListener("click", () => {
-        if (activeLayoutGrid) setGridMode(activeLayoutGrid, "balance");
+      layoutFlowButton?.addEventListener("click", () => {
+        if (!activeLayoutGrid || activeLayoutGrid.dataset.defaultPresentation === "grid") return;
+        setGridMode(activeLayoutGrid, defaultGridMode(activeLayoutGrid));
+        setActiveGrid(activeLayoutGrid);
+      });
+      layoutGridButton?.addEventListener("click", () => {
+        if (!activeLayoutGrid || layoutPresentation(activeLayoutGrid) === "grid") return;
+        setGridMode(activeLayoutGrid, "manual");
+        setActiveGrid(activeLayoutGrid);
       });
       layoutGrids.forEach((grid) => {
         grid.addEventListener("click", (event) => {
           const cell = event.target.closest("[data-print-grid-cell]");
-          if (layoutEditing && cell) {
-            activeLayoutCell = cell;
-            setActiveGrid(grid);
-            if (layoutPresentation(grid) !== "grid") {
-              setGridMode(grid, "manual");
-              setActiveGrid(grid);
-            }
-          }
+          if (!layoutEditing || !cell || cell.closest("[data-print-layout-grid]") !== grid) return;
+          activeLayoutCell = cell;
+          setActiveGrid(grid);
         });
         grid.addEventListener("pointerdown", (event) => {
           const cell = event.target.closest("[data-print-grid-cell]");
-          if (!layoutEditing || !cell) return;
+          if (!layoutEditing || !cell || cell.closest("[data-print-layout-grid]") !== grid) return;
           activeLayoutCell = cell;
           setActiveGrid(grid);
           let cellRect = cell.getBoundingClientRect();
           if (event.clientX < cellRect.right - 12) return;
-          if (layoutPresentation(grid) !== "grid") {
-            setGridMode(grid, "manual");
-            setActiveGrid(grid);
-            return;
-          }
+          if (layoutPresentation(grid) !== "grid") return;
           event.preventDefault();
           cell.setPointerCapture?.(event.pointerId);
           activeResize = {

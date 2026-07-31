@@ -2050,6 +2050,7 @@ body {
 .print-field-grid.print-layout-grid,
 .print-field-run.print-layout-grid,
 .print-container-run.print-layout-grid {
+  display: grid;
   grid-template-columns: repeat(var(--print-grid-units), minmax(0, 1fr)) !important;
   gap: 1px;
   overflow: hidden;
@@ -2139,6 +2140,47 @@ body {
   gap: 6px;
 }
 
+.print-layout-mode {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.print-layout-mode > span,
+.print-layout-mode > button {
+  min-height: 27px;
+  padding: 4px 8px;
+  border: 1px solid #aebbb5;
+  font-family: inherit;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.print-layout-mode > span {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 4px 0 0 4px;
+  border-right: 0;
+  color: var(--muted);
+  background: #edf2ef;
+}
+
+.print-layout-editor-actions .print-layout-mode > button {
+  margin-left: -1px;
+  border-radius: 0;
+}
+
+.print-layout-editor-actions .print-layout-mode > button:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.print-layout-mode > button.is-selected {
+  position: relative;
+  z-index: 1;
+  border-color: #146b62;
+  color: #fff;
+  background: #146b62;
+}
+
 .print-layout-editor-actions button {
   min-height: 27px;
   padding: 4px 8px;
@@ -2180,33 +2222,29 @@ body {
   color: #a33131;
 }
 
-body.is-layout-editing [data-print-layout-grid] {
-  outline: 1px dashed rgba(30, 93, 82, 0.48);
+body.is-layout-editing [data-print-layout-grid].is-layout-active {
+  outline: 2px solid #146b62;
   outline-offset: 3px;
 }
 
-body.is-layout-editing [data-print-layout-grid].is-layout-active {
-  outline: 2px solid var(--accent);
-}
-
-body.is-layout-editing [data-print-layout-grid] > [data-print-grid-cell] {
+body.is-layout-editing [data-print-layout-grid].is-layout-active > [data-print-grid-cell] {
   position: relative;
   cursor: col-resize;
 }
 
-body.is-layout-editing [data-print-layout-grid] > [data-print-grid-cell]::after {
+body.is-layout-editing [data-print-layout-grid].is-layout-active > [data-print-grid-cell]::after {
   position: absolute;
   z-index: 2;
   top: 0;
   right: 0;
   bottom: 0;
   width: 4px;
-  background: rgba(30, 93, 82, 0.3);
+  background: rgba(20, 107, 98, 0.34);
   content: "";
 }
 
 body.is-layout-editing [data-print-grid-cell].is-layout-cell-active {
-  outline: 2px solid color-mix(in srgb, var(--accent) 72%, #fff 28%);
+  outline: 2px solid #146b62;
   outline-offset: -2px;
 }
 
