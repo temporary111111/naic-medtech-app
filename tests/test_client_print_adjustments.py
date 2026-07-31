@@ -870,8 +870,8 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn('print-group print-container-depth-3 is-deep has-title', rendered)
 
         print_css = (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8")
-        self.assertIn(".print-group.has-title", print_css)
-        self.assertIn(".print-group.is-deep.has-title", print_css)
+        self.assertNotIn(".print-group.has-title {", print_css)
+        self.assertNotIn(".print-group.is-deep.has-title {", print_css)
 
     def test_blood_bank_seed_uses_approved_container_names(self) -> None:
         schema = json.loads(
