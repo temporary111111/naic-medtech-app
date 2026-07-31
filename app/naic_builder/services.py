@@ -138,7 +138,7 @@ DEFAULT_PRINT_TEMPLATE_ID = "modern_portrait"
 DEFAULT_PRINT_TEXT_SIZE = "standard"
 DEFAULT_PRINT_PAPER_SIZE = "a4"
 PRINT_PROFILE_VERSION = 2
-PRINT_LAYOUT_PREFERENCE_VERSION = 4
+PRINT_LAYOUT_PREFERENCE_VERSION = 5
 PRINT_LAYOUT_MODES = {"preserve", "balance", "manual"}
 PRINT_CONTAINER_LAYOUT_MODES = {"flow", "balance", "manual"}
 PRINT_TEXT_SIZE_DETAILS = {
@@ -4765,25 +4765,48 @@ def compact_print_block_runs(
     *,
     layout_path: str = "root",
 ) -> list[dict[str, Any]]:
-    """Wrap mixed, same-level printable blocks for optional reflow in print preview.
+    """Add an optional direct-sibling layout layer without changing default print.
 
-    Field grids/runs and containers retain their own internal layout editors. This
-    outer wrapper only gives an admin a way to position a nested container beside
-    its same-level field groups without changing the form schema.
+    Field compaction is useful for the normal report, but it must not become a
+    hidden constraint in the layout editor. A mixed run therefore keeps both its
+    compact default representation and the original direct sibling items. The
+    latter is used only after the user explicitly customizes that print area.
     """
     compacted: list[dict[str, Any]] = []
     run: list[dict[str, Any]] = []
     run_index = 0
 
+    def direct_items(run_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        direct: list[dict[str, Any]] = []
+        for run_item in run_items:
+            kind = compact_text(run_item.get("kind"))
+            if kind in {"field_grid", "field_run", "container_run"}:
+                direct.extend(
+                    child
+                    for child in normalize_items(run_item.get("items"))
+                    if isinstance(child, dict)
+                )
+            else:
+                direct.append(run_item)
+        return direct
+
     def flush_run() -> None:
         nonlocal run, run_index
-        if len(run) >= 2:
+        direct = direct_items(run)
+        block_ids = [compact_text(item.get("id")) for item in direct]
+        if (
+            len(run) >= 2
+            and len(direct) >= 2
+            and all(block_ids)
+            and len(set(block_ids)) == len(block_ids)
+        ):
             compacted.append(
                 {
                     "kind": "block_run",
                     "id": print_layout_block_run_id(layout_path, run_index),
-                    "block_ids": [compact_text(item.get("id")) for item in run],
-                    "items": run,
+                    "block_ids": block_ids,
+                    "items": direct,
+                    "default_items": run,
                 }
             )
             run_index += 1
@@ -5251,6 +5274,16 @@ def apply_print_layout_preference(
                 item_ids_key="container_ids",
             )
         if kind == "block_run":
+            # The compact default items own the nested field/container layouts.
+            # Apply those first, then apply the direct-sibling order and spans to
+            # the custom layout layer itself.
+            default_items = item.get("default_items")
+            if isinstance(default_items, list):
+                apply_print_layout_preference(
+                    default_items,
+                    normalized_preference,
+                    field_grid_units=field_grid_units,
+                )
             item["layout"] = normalized_print_block_run_layout(
                 item,
                 normalized_preference,
@@ -5261,6 +5294,7 @@ def apply_print_layout_preference(
                 item["layout"],
                 item_ids_key="block_ids",
             )
+            continue
         child_items = item.get("items")
         if isinstance(child_items, list):
             apply_print_layout_preference(
@@ -5349,9 +5383,9 @@ def filter_print_layout_preference_for_items(
                         "spans": layout["spans"] if layout["mode"] == "manual" else {},
                         "order": layout["order"] if has_custom_order else [],
                     }
-                child_items = item.get("items")
-                if isinstance(child_items, list):
-                    collect(child_items)
+                default_items = item.get("default_items")
+                if isinstance(default_items, list):
+                    collect(default_items)
                 continue
             child_items = item.get("items")
             if isinstance(child_items, list):
@@ -5622,7 +5656,12 @@ def print_block_run_fit_units(item: dict[str, Any]) -> float:
     layout = item.get("layout") if isinstance(item.get("layout"), dict) else {}
     child_items = [child for child in normalize_items(item.get("items")) if isinstance(child, dict)]
     if compact_text(layout.get("presentation")) != "grid":
-        return print_item_fit_units(child_items)
+        default_items = [
+            child
+            for child in normalize_items(item.get("default_items"))
+            if isinstance(child, dict)
+        ]
+        return print_item_fit_units(default_items or child_items)
     try:
         units = max(2, int(layout.get("units") or 4))
     except (TypeError, ValueError):

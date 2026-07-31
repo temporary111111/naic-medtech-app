@@ -6,7 +6,7 @@
   <title>Print Record | {{ document.form_name }}</title>
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
-  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260730-mixed-print-block-layout-v15">
+  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260730-direct-sibling-layout-v16">
   {% set presentation = document.template or {} %}
   {% set record_meta = document["record"] or {} %}
 </head>
@@ -233,6 +233,7 @@
       const layoutHint = document.querySelector("[data-layout-editor-hint]");
       const layoutStatus = document.querySelector("[data-layout-editor-status]");
       const layoutGrids = Array.from(document.querySelectorAll("[data-print-layout-grid]"));
+      const layoutRuns = Array.from(document.querySelectorAll("[data-layout-run]"));
       const layoutRecordId = document.body.dataset.printRecordId;
       const layoutTemplateId = document.body.dataset.printTemplateId;
       const layoutPaperSize = document.body.dataset.printPaperSize;
@@ -240,6 +241,7 @@
       let activeLayoutGrid = null;
       let activeLayoutCell = null;
       let activeResize = null;
+      let activeMove = null;
 
       const gridCells = (grid) => Array.from(grid.querySelectorAll(":scope > [data-print-grid-cell]"));
       const gridUnits = (grid) => Math.max(2, Number.parseInt(grid.dataset.gridUnits || "2", 10) || 2);
@@ -259,6 +261,10 @@
       };
       const layoutPresentation = (grid) => grid.dataset.layoutPresentation || "grid";
       const defaultGridMode = (grid) => grid.dataset.defaultMode || "preserve";
+      const syncLayoutRunView = (grid) => {
+        const run = grid.closest("[data-layout-run]");
+        if (run) run.classList.toggle("is-layout-run-custom", layoutPresentation(grid) === "grid");
+      };
       const setGridPresentation = (grid, presentation) => {
         const isGrid = presentation === "grid";
         grid.dataset.layoutPresentation = isGrid ? "grid" : presentation;
@@ -268,14 +274,22 @@
         } else {
           grid.style.removeProperty("--print-grid-units");
         }
+        syncLayoutRunView(grid);
       };
       const fieldIds = (grid) => gridCells(grid).map((cell) => cell.dataset.fieldId || "").filter(Boolean);
       const containerIds = (grid) => gridCells(grid).map((cell) => cell.dataset.containerId || "").filter(Boolean);
-      const blockIds = (grid) => gridCells(grid).map((cell) => cell.dataset.blockId || "").filter(Boolean);
+      const blockIds = (grid) => gridCells(grid).map((cell) => (
+        cell.dataset.layoutItemId || cell.dataset.blockId || ""
+      )).filter(Boolean);
       const layoutItemIds = (grid) => {
         if (grid.dataset.layoutKind === "container_run") return containerIds(grid);
         if (grid.dataset.layoutKind === "block_run") return blockIds(grid);
         return fieldIds(grid);
+      };
+      const layoutItemId = (grid, cell) => {
+        if (grid.dataset.layoutKind === "container_run") return cell.dataset.containerId || "";
+        if (grid.dataset.layoutKind === "block_run") return cell.dataset.layoutItemId || cell.dataset.blockId || "";
+        return cell.dataset.fieldId || "";
       };
       const hasCustomOrder = (grid) => gridCells(grid).some((cell, index) => {
         const originalIndex = Number.parseInt(cell.dataset.originalIndex || String(index), 10);
@@ -385,9 +399,9 @@
           layoutHint.textContent = !grid
             ? "Select a field or container."
             : usesStackedLayout && !usesFlowLayout
-                  ? "Drag the selected block border."
+                  ? "Drag the handle to move an item, or its right edge to resize."
                   : usesStackedLayout
-                    ? "Choose Columns to arrange the selected blocks."
+                    ? "Choose Columns to arrange the selected items."
                     : usesFlowLayout
                       ? "Choose Columns to resize the selected fields."
                       : "Drag the selected field border.";
@@ -404,13 +418,9 @@
           if (mode === defaultGridMode(grid) && !orderChanged) return;
           const spans = {};
           gridCells(grid).forEach((cell) => {
-            const layoutItemId = grid.dataset.layoutKind === "container_run"
-              ? cell.dataset.containerId || ""
-              : grid.dataset.layoutKind === "block_run"
-                ? cell.dataset.blockId || ""
-                : cell.dataset.fieldId || "";
-            if (layoutItemId) {
-              spans[layoutItemId] = Number.parseInt(cell.dataset.printSpan || "2", 10) || 2;
+            const itemId = layoutItemId(grid, cell);
+            if (itemId) {
+              spans[itemId] = Number.parseInt(cell.dataset.printSpan || "2", 10) || 2;
             }
           });
           const gridId = grid.dataset.gridId || "";
@@ -442,8 +452,23 @@
       const closeEditor = () => {
         layoutEditing = false;
         activeResize = null;
-        document.body.classList.remove("is-layout-editing", "is-layout-resizing");
+        activeMove?.cell.classList.remove("is-layout-cell-moving");
+        activeMove = null;
+        document.body.classList.remove("is-layout-editing", "is-layout-resizing", "is-layout-moving");
         if (layoutEditor) layoutEditor.hidden = true;
+      };
+
+      const activateBlockRunItem = (run, itemId) => {
+        const grid = run.querySelector("[data-print-layout-grid][data-layout-kind='block_run']");
+        if (!grid || !itemId) return false;
+        if (layoutPresentation(grid) !== "grid") setGridMode(grid, "manual");
+        const cell = gridCells(grid).find((candidate) => (
+          (candidate.dataset.layoutItemId || candidate.dataset.blockId || "") === itemId
+        ));
+        if (!cell) return false;
+        activeLayoutCell = cell;
+        setActiveGrid(grid);
+        return true;
       };
 
       openLayoutEditor?.addEventListener("click", openEditor);
@@ -472,6 +497,17 @@
         setGridMode(activeLayoutGrid, "manual");
         setActiveGrid(activeLayoutGrid);
       });
+      layoutRuns.forEach((run) => {
+        run.addEventListener("click", (event) => {
+          if (!layoutEditing || event.target.closest(".print-block-run-grid")) return;
+          if (event.target.closest("[data-layout-run]") !== run) return;
+          let source = event.target.closest("[data-layout-source-id]");
+          while (source && run.contains(source)) {
+            if (activateBlockRunItem(run, source.dataset.layoutSourceId || "")) return;
+            source = source.parentElement?.closest("[data-layout-source-id]") || null;
+          }
+        });
+      });
       layoutGrids.forEach((grid) => {
         grid.addEventListener("click", (event) => {
           const cell = event.target.closest("[data-print-grid-cell]");
@@ -484,7 +520,15 @@
           if (!layoutEditing || !cell || cell.closest("[data-print-layout-grid]") !== grid) return;
           activeLayoutCell = cell;
           setActiveGrid(grid);
-          let cellRect = cell.getBoundingClientRect();
+          if (event.target.closest("[data-layout-move-handle]")) {
+            event.preventDefault();
+            cell.setPointerCapture?.(event.pointerId);
+            activeMove = { grid, cell, pointerId: event.pointerId };
+            cell.classList.add("is-layout-cell-moving");
+            document.body.classList.add("is-layout-moving");
+            return;
+          }
+          const cellRect = cell.getBoundingClientRect();
           if (event.clientX < cellRect.right - 12) return;
           if (layoutPresentation(grid) !== "grid") return;
           event.preventDefault();
@@ -500,6 +544,22 @@
         });
       });
       document.addEventListener("pointermove", (event) => {
+        if (activeMove && event.pointerId === activeMove.pointerId) {
+          const target = document.elementFromPoint(event.clientX, event.clientY)
+            ?.closest("[data-print-grid-cell]");
+          if (
+            target
+            && target !== activeMove.cell
+            && target.closest("[data-print-layout-grid]") === activeMove.grid
+          ) {
+            const rect = target.getBoundingClientRect();
+            const targetAfter = event.clientY > rect.top + (rect.height / 2)
+              || (Math.abs(event.clientY - (rect.top + (rect.height / 2))) < rect.height / 4
+                && event.clientX > rect.left + (rect.width / 2));
+            activeMove.grid.insertBefore(activeMove.cell, targetAfter ? target.nextElementSibling : target);
+          }
+          return;
+        }
         if (!activeResize || event.pointerId !== activeResize.pointerId) return;
         const gridRect = activeResize.grid.getBoundingClientRect();
         const unitWidth = gridRect.width / gridUnits(activeResize.grid);
@@ -510,6 +570,13 @@
         updatePlaceholders(activeResize.grid, "manual");
       });
       document.addEventListener("pointerup", (event) => {
+        if (activeMove && event.pointerId === activeMove.pointerId) {
+          activeMove.cell.releasePointerCapture?.(event.pointerId);
+          activeMove.cell.classList.remove("is-layout-cell-moving");
+          activeMove = null;
+          document.body.classList.remove("is-layout-moving");
+          return;
+        }
         if (!activeResize || event.pointerId !== activeResize.pointerId) return;
         activeResize.cell.releasePointerCapture?.(event.pointerId);
         activeResize = null;

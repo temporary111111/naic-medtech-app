@@ -1985,7 +1985,7 @@ body {
 .print-field-grid.print-layout-grid,
 .print-field-run.print-layout-grid,
 .print-container-run.print-layout-grid,
-.print-block-run.print-layout-grid {
+.print-block-run-grid.print-layout-grid {
   display: grid;
   grid-template-columns: repeat(var(--print-grid-units), minmax(0, 1fr)) !important;
   gap: 1px;
@@ -2013,7 +2013,7 @@ body {
 }
 
 body.is-layout-editing .print-container-run.print-layout-grid,
-body.is-layout-editing .print-block-run.print-layout-grid {
+body.is-layout-editing .print-block-run-grid.print-layout-grid {
   background: var(--line-soft);
 }
 
@@ -2041,18 +2041,38 @@ body.is-layout-editing .print-block-run.print-layout-grid {
 
 /* The grid remains visible while editing, but a finished report stays white. */
 body.is-layout-editing .print-container-run.print-layout-grid > .print-container-run-item,
-body.is-layout-editing .print-block-run.print-layout-grid > .print-block-run-item {
+body.is-layout-editing .print-block-run-grid.print-layout-grid > .print-block-run-item,
+body.is-layout-editing .print-block-run-grid.print-layout-grid > .print-grid-cell {
   background: transparent;
 }
 
-.print-block-run.print-layout-grid {
+.print-block-run-grid {
+  display: none;
+}
+
+.print-block-run.is-layout-run-custom > .print-block-run-default {
+  display: none;
+}
+
+.print-block-run.is-layout-run-custom > .print-block-run-grid {
+  display: grid;
+}
+
+.print-block-run-grid.print-layout-grid {
   background: var(--paper);
 }
 
-.print-block-run.print-layout-grid > .print-block-run-item {
+.print-block-run-grid.print-layout-grid > .print-block-run-item,
+.print-block-run-grid.print-layout-grid > .print-grid-cell {
   grid-column: span var(--print-grid-span, 2);
   min-width: 0;
+  border: 0;
   background: var(--paper);
+}
+
+.print-block-run-grid.print-layout-grid > .print-grid-cell {
+  display: grid;
+  gap: 4px;
 }
 
 .print-container-run.print-layout-grid > .print-container-run-item > .print-section,
@@ -2203,6 +2223,45 @@ body.is-layout-editing [data-print-layout-grid].is-layout-active > [data-print-g
   width: 4px;
   background: rgba(20, 107, 98, 0.34);
   content: "";
+}
+
+.print-layout-move-handle {
+  display: none;
+}
+
+body.is-layout-editing [data-print-layout-grid].is-layout-active > [data-print-grid-cell] {
+  padding-top: 20px;
+}
+
+body.is-layout-editing [data-print-layout-grid].is-layout-active > [data-print-grid-cell] > .print-layout-move-handle {
+  position: absolute;
+  z-index: 3;
+  top: 3px;
+  left: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 14px;
+  padding: 0;
+  border: 1px solid #77a39c;
+  border-radius: 3px;
+  color: #0f5c53;
+  font: inherit;
+  font-size: 10px;
+  line-height: 1;
+  background: #fff;
+  cursor: grab;
+}
+
+body.is-layout-editing [data-print-layout-grid].is-layout-active > [data-print-grid-cell].is-layout-cell-moving {
+  opacity: 0.45;
+}
+
+body.is-layout-moving,
+body.is-layout-moving * {
+  cursor: grabbing !important;
+  user-select: none;
 }
 
 body.is-layout-editing [data-print-grid-cell].is-layout-cell-active {

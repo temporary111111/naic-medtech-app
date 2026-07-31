@@ -1090,8 +1090,12 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             },
         )
         self.assertEqual(printed[0]["kind"], "block_run")
-        self.assertEqual([item["kind"] for item in printed[0]["items"]], ["field_run", "section"])
-        self.assertEqual(printed[0]["items"][0]["items"][0]["kind"], "field")
+        self.assertEqual([item["kind"] for item in printed[0]["items"]], ["field", "section"])
+        self.assertEqual(
+            [item["kind"] for item in printed[0]["default_items"]],
+            ["field_run", "section"],
+        )
+        self.assertEqual(printed[0]["default_items"][0]["items"][0]["kind"], "field")
         self.assertEqual(printed[0]["items"][1]["items"][0]["kind"], "group")
 
     def test_saved_v1_form_version_upgrades_without_losing_legacy_archive(self) -> None:
@@ -1959,10 +1963,21 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(block_run["kind"], "block_run")
         self.assertEqual(
             [item["kind"] for item in block_run["items"]],
+            ["field", "field", "field", "field", "group", "field", "field"],
+        )
+        self.assertEqual(
+            [item["kind"] for item in block_run["default_items"]],
             ["field_grid", "group", "field_run"],
         )
-        vital_signs = block_run["items"][1]
+        immediate_spin = block_run["items"][0]
+        vital_signs = block_run["items"][4]
         self.assertEqual(vital_signs["name"], "Vital Signs")
+
+        environment = Environment(loader=FileSystemLoader(ROOT / "app" / "naic_builder" / "templates"))
+        default_rendered = environment.get_template("records/_print_document.html").module.render_print_items(items)
+        self.assertIn('class="print-block-run-default"', default_rendered)
+        self.assertIn('class="print-field-grid print-layout-grid"', default_rendered)
+        self.assertNotIn('is-layout-run-custom', default_rendered)
 
         preference = {
             "blocks": {
@@ -1970,10 +1985,18 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                     "block_ids": block_run["block_ids"],
                     "mode": "manual",
                     "spans": {
-                        block_run["block_ids"][0]: 2,
-                        vital_signs["id"]: 4,
-                        block_run["block_ids"][2]: 2,
+                        immediate_spin["id"]: 4,
+                        vital_signs["id"]: 2,
                     },
+                    "order": [
+                        immediate_spin["id"],
+                        vital_signs["id"],
+                        *[
+                            block_id
+                            for block_id in block_run["block_ids"]
+                            if block_id not in {immediate_spin["id"], vital_signs["id"]}
+                        ],
+                    ],
                 }
             }
         }
@@ -1987,12 +2010,16 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         apply_print_layout_preference(items, safe_preference, field_grid_units=4)
         layout = block_run["layout"]
         self.assertEqual(layout["presentation"], "grid")
-        self.assertEqual(layout["spans"][vital_signs["id"]], 4)
+        self.assertEqual(layout["spans"][immediate_spin["id"]], 4)
+        self.assertEqual(block_run["items"][0]["id"], immediate_spin["id"])
+        self.assertEqual(block_run["items"][1]["id"], vital_signs["id"])
 
-        environment = Environment(loader=FileSystemLoader(ROOT / "app" / "naic_builder" / "templates"))
         rendered = environment.get_template("records/_print_document.html").module.render_print_items(items)
         self.assertIn('data-layout-kind="block_run"', rendered)
+        self.assertIn('is-layout-run-custom', rendered)
+        self.assertIn(f'data-layout-item-id="{immediate_spin["id"]}"', rendered)
         self.assertIn(f'data-block-id="{vital_signs["id"]}"', rendered)
+        self.assertIn('class="print-layout-move-handle"', rendered)
 
     def test_print_layout_editor_uses_explicit_modes_and_scopes_to_direct_children(self) -> None:
         editor_source = (
@@ -2009,8 +2036,10 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn('defaultGridMode(activeLayoutGrid)', editor_source)
         self.assertIn('const blockIds', editor_source)
         self.assertIn('blocks[gridId]', editor_source)
+        self.assertIn('data-layout-move-handle', editor_source)
+        self.assertIn('activateBlockRunItem', editor_source)
         self.assertIn(
-            ".print-container-run.print-layout-grid,\n.print-block-run.print-layout-grid {\n  display: grid;",
+            ".print-container-run.print-layout-grid,\n.print-block-run-grid.print-layout-grid {\n  display: grid;",
             (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
         )
         self.assertIn(
