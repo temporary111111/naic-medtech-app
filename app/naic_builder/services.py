@@ -571,6 +571,37 @@ HBA1C_FIELD_DEFAULTS = {
         "normal_value": None,
     },
 }
+HBA1C_LEGACY_A5_LAYOUT_DEFAULT = {
+    "version": PRINT_LAYOUT_PREFERENCE_VERSION,
+    "grids": {
+        "root/form.hba1c.patient_information:0": {
+            "field_ids": [
+                "form.hba1c.patient_information.name",
+                "form.hba1c.patient_information.age",
+                "form.hba1c.patient_information.sex",
+                "form.hba1c.patient_information.date_or_datetime",
+                "form.hba1c.examination",
+                "form.hba1c.patient_information.requesting_physician",
+                "form.hba1c.patient_information.room",
+                "form.hba1c.patient_information.case_number",
+            ],
+            "mode": "manual",
+            "spans": {
+                "form.hba1c.patient_information.name": 2,
+                "form.hba1c.patient_information.age": 2,
+                "form.hba1c.patient_information.sex": 2,
+                "form.hba1c.patient_information.date_or_datetime": 2,
+                "form.hba1c.examination": 2,
+                "form.hba1c.patient_information.requesting_physician": 2,
+                "form.hba1c.patient_information.room": 3,
+                "form.hba1c.patient_information.case_number": 3,
+            },
+            "order": [],
+        },
+    },
+    "containers": {},
+    "blocks": {},
+}
 PRO_TIME_APTT_FORM_KEY = "pro_time_aptt"
 DEFAULT_PRO_TIME_APTT_DEFAULTS_META_KEY = "default_pro_time_aptt_defaults_v2"
 PRO_TIME_APTT_CONTAINER_FIELD_DEFAULTS = {
@@ -3308,7 +3339,15 @@ def ensure_default_hba1c_layout(block_schema: dict[str, Any]) -> bool:
     if compact_text(meta.get("form_key")) != HBA1C_FORM_KEY:
         return False
     if meta.get(DEFAULT_HBA1C_LAYOUT_META_KEY) is True:
-        return False
+        if not ensure_form_print_layout_default(
+            meta,
+            template_id="legacy_landscape",
+            paper_size="a5",
+            layout=HBA1C_LEGACY_A5_LAYOUT_DEFAULT,
+        ):
+            return False
+        block_schema["meta"] = meta
+        return True
 
     details, _ = ensure_default_top_level_container(
         block_schema,
@@ -3323,6 +3362,12 @@ def ensure_default_hba1c_layout(block_schema: dict[str, Any]) -> bool:
         {"details": HBA1C_FIELD_DEFAULTS},
     )
     meta[DEFAULT_HBA1C_LAYOUT_META_KEY] = True
+    ensure_form_print_layout_default(
+        meta,
+        template_id="legacy_landscape",
+        paper_size="a5",
+        layout=HBA1C_LEGACY_A5_LAYOUT_DEFAULT,
+    )
     block_schema["meta"] = meta
     return True
 
@@ -3631,13 +3676,26 @@ def set_default_blood_gas_container(
 
 
 def ensure_default_blood_gas_print_layout(meta: dict[str, Any]) -> bool:
+    return ensure_form_print_layout_default(
+        meta,
+        template_id="legacy_landscape",
+        paper_size="a5",
+        layout=BLOOD_GAS_LEGACY_A5_LAYOUT_DEFAULT,
+    )
+
+
+def ensure_form_print_layout_default(
+    meta: dict[str, Any],
+    *,
+    template_id: str,
+    paper_size: str,
+    layout: dict[str, Any],
+) -> bool:
     defaults = normalize_form_print_layout_defaults(meta.get("print_layout_defaults"))
-    profile_key = print_layout_default_profile_key("legacy_landscape", "a5")
+    profile_key = print_layout_default_profile_key(template_id, paper_size)
     if profile_key in defaults["profiles"]:
         return False
-    defaults["profiles"][profile_key] = normalize_print_layout_preference(
-        BLOOD_GAS_LEGACY_A5_LAYOUT_DEFAULT
-    )
+    defaults["profiles"][profile_key] = normalize_print_layout_preference(layout)
     meta["print_layout_defaults"] = defaults
     return True
 

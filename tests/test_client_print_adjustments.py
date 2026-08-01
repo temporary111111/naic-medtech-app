@@ -729,6 +729,20 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         ensure_reference_examination_in_patient_info(block_schema, reference_form_slugs())
 
         self.assertTrue(ensure_default_hba1c_layout(block_schema))
+        legacy_layout = block_schema["meta"]["print_layout_defaults"]["profiles"]["legacy_landscape:a5"]
+        self.assertEqual(
+            legacy_layout["grids"]["root/form.hba1c.patient_information:0"]["spans"],
+            {
+                "form.hba1c.patient_information.name": 2,
+                "form.hba1c.patient_information.age": 2,
+                "form.hba1c.patient_information.sex": 2,
+                "form.hba1c.patient_information.date_or_datetime": 2,
+                "form.hba1c.examination": 2,
+                "form.hba1c.patient_information.requesting_physician": 2,
+                "form.hba1c.patient_information.room": 3,
+                "form.hba1c.patient_information.case_number": 3,
+            },
+        )
         details = next(block for block in block_schema["blocks"] if block["props"]["key"] == "details")
         result = next(child for child in details["children"] if child["props"]["key"] == "result")
         self.assertEqual(result["props"]["normal_min"], "4.0")
@@ -740,6 +754,10 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(build_print_reference(result["props"]), "4.0 to 5.6 %")
         self.assertEqual(evaluate_print_abnormal(result["props"], "4.0"), (False, None))
         self.assertEqual(evaluate_print_abnormal(result["props"], "5.7"), (True, "high"))
+        legacy_layout["grids"]["root/form.hba1c.patient_information:0"]["spans"][
+            "form.hba1c.patient_information.name"
+        ] = 6
+        self.assertFalse(ensure_default_hba1c_layout(block_schema))
 
     def test_blood_chemistry_defaults_use_workbook_ranges(self) -> None:
         schema = json.loads(
