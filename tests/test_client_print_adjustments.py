@@ -380,6 +380,27 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                     )
                     patient_field_keys = [child["props"]["key"] for child in patient_info["children"]]
                     self.assertIn("examination", patient_field_keys, definition.slug)
+
+                blood_bank = session.scalar(
+                    select(FormDefinition).where(FormDefinition.slug == "blood_bank")
+                )
+                self.assertIsNotNone(blood_bank)
+                legacy_layout = form_version_print_layout_preference(
+                    current_version(blood_bank),
+                    template_id="legacy_landscape",
+                    paper_size="a5",
+                )
+                self.assertEqual(
+                    legacy_layout["grids"]["root/form.blood_bank.details:0"]["mode"],
+                    "manual",
+                )
+                self.assertEqual(
+                    legacy_layout["grids"]["root/form.blood_bank.details:0"]["spans"][
+                        "form.blood_bank.serial_number"
+                    ],
+                    6,
+                )
+                self.assertEqual(ensure_blood_bank_defaults(session), 0)
         finally:
             engine.dispose()
 
@@ -1091,6 +1112,32 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(
             next(child["name"] for child in crossmatching["children"] if child["kind"] == "container"),
             "Vital Signs",
+        )
+        legacy_layout = block_schema["meta"]["print_layout_defaults"]["profiles"]["legacy_landscape:a5"]
+        self.assertEqual(
+            legacy_layout["containers"]["root:containers:0"]["spans"],
+            {
+                "root/form.blood_bank.patient_information": 6,
+                "root/form.blood_bank.details": 2,
+                "root/form.blood_bank.type_of_crossmatching": 4,
+            },
+        )
+        crossmatching_layout = legacy_layout["blocks"]["root/form.blood_bank.type_of_crossmatching:blocks:0"]
+        self.assertLess(
+            crossmatching_layout["order"].index(
+                "root/form.blood_bank.type_of_crossmatching/form.blood_bank.type_of_crossmatching.vital_signs"
+            ),
+            crossmatching_layout["order"].index("form.blood_bank.type_of_crossmatching.remarks"),
+        )
+        legacy_layout["grids"]["root/form.blood_bank.patient_information:0"]["spans"][
+            "form.blood_bank.patient_information.name"
+        ] = 6
+        self.assertFalse(ensure_default_blood_bank_layout(block_schema))
+        self.assertEqual(
+            legacy_layout["grids"]["root/form.blood_bank.patient_information:0"]["spans"][
+                "form.blood_bank.patient_information.name"
+            ],
+            6,
         )
 
     def test_top_level_builder_actions_keep_fields_and_containers_flexible(self) -> None:

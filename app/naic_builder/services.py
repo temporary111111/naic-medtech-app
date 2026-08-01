@@ -296,6 +296,127 @@ DEFAULT_PATIENT_INFO_MATERIALIZED_META_KEY = "default_patient_info_materialized"
 DEFAULT_EXAMINATION_IN_PATIENT_INFO_META_KEY = "default_examination_in_patient_info_v1"
 BLOOD_BANK_FORM_KEY = "blood_bank"
 DEFAULT_BLOOD_BANK_DEFAULTS_META_KEY = "default_blood_bank_defaults_v1"
+# This is a builder-owned starting point for the clinic's historical Blood Bank
+# sheet. It deliberately belongs to Legacy Landscape / A5 only: other print
+# profiles retain the generic responsive layout until an admin configures them.
+BLOOD_BANK_LEGACY_A5_LAYOUT_DEFAULT = {
+    "version": PRINT_LAYOUT_PREFERENCE_VERSION,
+    "grids": {
+        "root/form.blood_bank.patient_information:0": {
+            "field_ids": [
+                "form.blood_bank.patient_information.name",
+                "form.blood_bank.patient_information.age",
+                "form.blood_bank.patient_information.sex",
+                "form.blood_bank.patient_information.date_or_datetime",
+                "form.blood_bank.examination",
+                "form.blood_bank.patient_information.requesting_physician",
+                "form.blood_bank.patient_information.room",
+                "form.blood_bank.patient_information.case_number",
+            ],
+            "mode": "manual",
+            "spans": {
+                "form.blood_bank.patient_information.name": 2,
+                "form.blood_bank.patient_information.age": 2,
+                "form.blood_bank.patient_information.sex": 2,
+                "form.blood_bank.patient_information.date_or_datetime": 2,
+                "form.blood_bank.examination": 2,
+                "form.blood_bank.patient_information.requesting_physician": 2,
+                "form.blood_bank.patient_information.room": 2,
+                "form.blood_bank.patient_information.case_number": 4,
+            },
+            "order": [],
+        },
+        "root/form.blood_bank.details:0": {
+            "field_ids": [
+                "form.blood_bank.patient_s_blood_type",
+                "form.blood_bank.blood_component",
+                "form.blood_bank.donor_s_blood_type",
+                "form.blood_bank.source_of_blood",
+                "form.blood_bank.serial_number",
+                "form.blood_bank.date_extracted",
+                "form.blood_bank.date_expiry",
+            ],
+            "mode": "manual",
+            "spans": {
+                "form.blood_bank.patient_s_blood_type": 3,
+                "form.blood_bank.blood_component": 3,
+                "form.blood_bank.donor_s_blood_type": 3,
+                "form.blood_bank.source_of_blood": 3,
+                "form.blood_bank.serial_number": 6,
+                "form.blood_bank.date_extracted": 3,
+                "form.blood_bank.date_expiry": 3,
+            },
+            "order": [],
+        },
+        "root/form.blood_bank.type_of_crossmatching/form.blood_bank.type_of_crossmatching.vital_signs:0": {
+            "field_ids": [
+                "form.blood_bank.type_of_crossmatching.vital_signs.blood_pressure",
+                "form.blood_bank.type_of_crossmatching.vital_signs.pulse_rate",
+                "form.blood_bank.type_of_crossmatching.vital_signs.respiratory_rate",
+                "form.blood_bank.type_of_crossmatching.vital_signs.temperature",
+            ],
+            "mode": "manual",
+            "spans": {
+                "form.blood_bank.type_of_crossmatching.vital_signs.blood_pressure": 3,
+                "form.blood_bank.type_of_crossmatching.vital_signs.pulse_rate": 3,
+                "form.blood_bank.type_of_crossmatching.vital_signs.respiratory_rate": 3,
+                "form.blood_bank.type_of_crossmatching.vital_signs.temperature": 3,
+            },
+            "order": [],
+        },
+    },
+    "containers": {
+        "root:containers:0": {
+            "container_ids": [
+                "root/form.blood_bank.patient_information",
+                "root/form.blood_bank.details",
+                "root/form.blood_bank.type_of_crossmatching",
+            ],
+            "mode": "manual",
+            "spans": {
+                "root/form.blood_bank.patient_information": 6,
+                "root/form.blood_bank.details": 2,
+                "root/form.blood_bank.type_of_crossmatching": 4,
+            },
+            "order": [],
+        },
+    },
+    "blocks": {
+        "root/form.blood_bank.type_of_crossmatching:blocks:0": {
+            "block_ids": [
+                "form.blood_bank.type_of_crossmatching.immediate_spin_saline_phase",
+                "form.blood_bank.type_of_crossmatching.albumin_phase_37_deg_c",
+                "form.blood_bank.type_of_crossmatching.anti_human_globilin_phase",
+                "form.blood_bank.type_of_crossmatching.remarks",
+                "root/form.blood_bank.type_of_crossmatching/form.blood_bank.type_of_crossmatching.vital_signs",
+                "form.blood_bank.type_of_crossmatching.released_by",
+                "form.blood_bank.type_of_crossmatching.released_to",
+                "form.blood_bank.type_of_crossmatching.release_date_time",
+            ],
+            "mode": "manual",
+            "spans": {
+                "form.blood_bank.type_of_crossmatching.immediate_spin_saline_phase": 2,
+                "form.blood_bank.type_of_crossmatching.albumin_phase_37_deg_c": 2,
+                "form.blood_bank.type_of_crossmatching.anti_human_globilin_phase": 2,
+                "form.blood_bank.type_of_crossmatching.remarks": 3,
+                "root/form.blood_bank.type_of_crossmatching/form.blood_bank.type_of_crossmatching.vital_signs": 6,
+                "form.blood_bank.type_of_crossmatching.released_by": 3,
+                "form.blood_bank.type_of_crossmatching.released_to": 3,
+                "form.blood_bank.type_of_crossmatching.release_date_time": 3,
+            },
+            "order": [
+                "form.blood_bank.type_of_crossmatching.immediate_spin_saline_phase",
+                "form.blood_bank.type_of_crossmatching.albumin_phase_37_deg_c",
+                "form.blood_bank.type_of_crossmatching.anti_human_globilin_phase",
+                "root/form.blood_bank.type_of_crossmatching/form.blood_bank.type_of_crossmatching.vital_signs",
+                "form.blood_bank.type_of_crossmatching.remarks",
+                "form.blood_bank.type_of_crossmatching.released_by",
+                "form.blood_bank.type_of_crossmatching.released_to",
+                "form.blood_bank.type_of_crossmatching.release_date_time",
+            ],
+        },
+    },
+}
 BLOOD_GAS_ANALYSIS_FORM_KEY = "blood_gas_analysis"
 DEFAULT_BLOOD_GAS_LAYOUT_META_KEY = "default_blood_gas_layout_v2"
 BLOOD_GAS_NUMERIC_RANGES = {
@@ -3149,8 +3270,6 @@ def ensure_default_blood_bank_layout(block_schema: dict[str, Any]) -> bool:
     meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
     if compact_text(meta.get("form_key")) != BLOOD_BANK_FORM_KEY:
         return False
-    if meta.get(DEFAULT_BLOOD_BANK_DEFAULTS_META_KEY) is True:
-        return False
 
     crossmatching = find_top_level_block_by_key(
         normalize_items(block_schema.get("blocks")),
@@ -3158,9 +3277,25 @@ def ensure_default_blood_bank_layout(block_schema: dict[str, Any]) -> bool:
     )
     if crossmatching is None:
         return False
-    ensure_default_release_datetime_field(block_schema, container=crossmatching)
-    resequence_block_orders(normalize_items(crossmatching.get("children")))
-    meta[DEFAULT_BLOOD_BANK_DEFAULTS_META_KEY] = True
+
+    changed = False
+    if meta.get(DEFAULT_BLOOD_BANK_DEFAULTS_META_KEY) is not True:
+        ensure_default_release_datetime_field(block_schema, container=crossmatching)
+        resequence_block_orders(normalize_items(crossmatching.get("children")))
+        meta[DEFAULT_BLOOD_BANK_DEFAULTS_META_KEY] = True
+        changed = True
+
+    defaults = normalize_form_print_layout_defaults(meta.get("print_layout_defaults"))
+    profile_key = print_layout_default_profile_key("legacy_landscape", "a5")
+    if profile_key not in defaults["profiles"]:
+        defaults["profiles"][profile_key] = normalize_print_layout_preference(
+            BLOOD_BANK_LEGACY_A5_LAYOUT_DEFAULT
+        )
+        meta["print_layout_defaults"] = defaults
+        changed = True
+
+    if not changed:
+        return False
     block_schema["meta"] = meta
     return True
 
