@@ -1710,14 +1710,6 @@ function findLocationOptionByNodeKey(nodeKey) {
   return availableLocationOptions().find((option) => compactText(option.node_key) === key) || null;
 }
 
-function findLocationOptionByFolderPathLabel(folderPathLabel) {
-  const label = compactText(folderPathLabel);
-  if (!label) {
-    return null;
-  }
-  return availableLocationOptions().find((option) => compactText(option.folder_path_label) === label) || null;
-}
-
 function isTopLevelDraftLocation(draft = state.draft) {
   if (!draft) {
     return true;
@@ -1742,21 +1734,6 @@ function displayLocationName(draft = state.draft) {
     return matchedOption.folder_path_label;
   }
   return isTopLevelDraftLocation(draft) ? "Top level" : compactLocationName(draft) || "Top level";
-}
-
-function editableLocationValue(draft = state.draft) {
-  if (!draft) {
-    return "";
-  }
-  const explicitPath = compactLocationPathLabel(draft);
-  if (explicitPath && explicitPath !== "Top level") {
-    return explicitPath;
-  }
-  const matchedOption = findLocationOptionByNodeKey(draft.library_parent_node_key);
-  if (matchedOption?.folder_path_label) {
-    return matchedOption.folder_path_label;
-  }
-  return isTopLevelDraftLocation(draft) ? "" : compactLocationName(draft);
 }
 
 function syncDraftLocationState(draft = state.draft) {
@@ -1787,46 +1764,42 @@ function syncDraftLocationState(draft = state.draft) {
     return;
   }
 
-  const freeform = explicitPath || explicitName;
-  if (!freeform || isTopLevelLocationName(freeform)) {
-    draft.location_name = "Top level";
-    draft.location_path_label = "Top level";
-    draft.location_node_key = null;
-    draft.location_kind = "top_level";
+  draft.library_parent_node_key = null;
+  draft.location_name = "Top level";
+  draft.location_path_label = "Top level";
+  draft.location_node_key = null;
+  draft.location_kind = "top_level";
+}
+
+function renderLocationSelectOptions(draft = state.draft) {
+  const selectedNodeKey = findLocationOptionByNodeKey(draft?.library_parent_node_key)?.node_key || "";
+  return [
+    `<option value=""${selectedNodeKey ? "" : " selected"}>Top level</option>`,
+    ...availableLocationOptions().map((option) => {
+      const nodeKey = compactText(option.node_key);
+      const label = compactText(option.folder_path_label) || compactText(option.name) || "Untitled Folder";
+      return `<option value="${escapeHtml(nodeKey)}"${nodeKey === selectedNodeKey ? " selected" : ""}>${escapeHtml(label)}</option>`;
+    }),
+  ].join("");
+}
+
+function selectDraftLocation(nodeKey, draft = state.draft) {
+  if (!draft || typeof draft !== "object") {
     return;
   }
 
-  draft.location_name = compactText(freeform);
-  draft.location_path_label = compactText(freeform);
-  draft.location_node_key = null;
-  draft.location_kind = "folder";
-}
-
-function availableLocationNames() {
-  const names = new Set();
-  availableLocationOptions().forEach((option) => {
-    const label = compactText(option.folder_path_label);
-    if (label) {
-      names.add(label);
-    }
-  });
-  const currentLocation = displayLocationName(state.draft);
-  if (currentLocation && currentLocation !== "Top level") {
-    names.add(currentLocation);
+  draft.library_new_container_name = null;
+  const matchedOption = findLocationOptionByNodeKey(nodeKey);
+  if (matchedOption) {
+    draft.library_parent_node_key = matchedOption.node_key;
+    draft.location_name = compactText(matchedOption.name) || "Top level";
+    draft.location_path_label = compactText(matchedOption.folder_path_label) || draft.location_name;
+  } else {
+    draft.library_parent_node_key = null;
+    draft.location_name = "Top level";
+    draft.location_path_label = "Top level";
   }
-  return [...names].filter(Boolean).sort((a, b) => a.localeCompare(b));
-}
-
-function renderLocationSuggestions() {
-  const names = availableLocationNames();
-  if (!names.length) {
-    return "";
-  }
-  return `
-    <datalist id="locationSuggestions">
-      ${names.map((name) => `<option value="${escapeHtml(name)}"></option>`).join("")}
-    </datalist>
-  `;
+  syncDraftLocationState(draft);
 }
 
 function renderHelpPopover(label, text) {
@@ -3640,7 +3613,6 @@ function renderFormSetupCard(options = {}) {
   const setupOpen = focusMode ? true : state.ui.setupOpen;
   const formName = state.draft.name || "Untitled Form";
   const locationName = displayLocationName(state.draft);
-  const locationInputValue = editableLocationValue(state.draft);
   const currentVersion = currentVersionLabel();
   return `
     <section class="editor-card">
@@ -3676,10 +3648,11 @@ function renderFormSetupCard(options = {}) {
           </label>
           <label>
             <span>Location</span>
-            <input list="locationSuggestions" data-bind="location_name" value="${escapeHtml(locationInputValue)}" placeholder="Top level or choose a folder">
+            <select data-action="form-location">
+              ${renderLocationSelectOptions(state.draft)}
+            </select>
           </label>
         </div>
-        ${renderLocationSuggestions()}
         ${renderRecordIdentitySettings()}
         ${state.ui.advancedMode ? `
           <details class="advanced">
@@ -5266,28 +5239,6 @@ function handleRootInput(event) {
         setDraftFormKey(slugify(rawValue), state.draft);
       }
       syncDraftLocationState(state.draft);
-    } else if (bind === "location_name") {
-      if (state.draft.library_new_container_name) {
-        state.draft.library_new_container_name = compactText(rawValue) || null;
-        state.draft.location_name = compactText(rawValue);
-        state.draft.location_path_label = compactText(rawValue);
-      } else {
-        const matchedLocation = findLocationOptionByFolderPathLabel(rawValue);
-        if (matchedLocation) {
-          state.draft.library_parent_node_key = matchedLocation.node_key;
-          state.draft.location_name = matchedLocation.name;
-          state.draft.location_path_label = matchedLocation.folder_path_label;
-        } else if (isTopLevelLocationName(rawValue)) {
-          state.draft.library_parent_node_key = null;
-          state.draft.location_name = "Top level";
-          state.draft.location_path_label = "Top level";
-        } else {
-          state.draft.library_parent_node_key = null;
-          state.draft.location_name = compactText(rawValue);
-          state.draft.location_path_label = compactText(rawValue);
-        }
-      }
-      syncDraftLocationState(state.draft);
     }
   }
 
@@ -5514,6 +5465,11 @@ async function handleEditorClick(event) {
 }
 
 function handleEditorChange(event) {
+  if (event.target.dataset.action === "form-location") {
+    selectDraftLocation(event.target.value);
+    touch({ full: true, source: "blocks" });
+    return;
+  }
   if (event.target.dataset.action === "signatory-field") {
     updateDraftSignatorySlot(
       compactText(event.target.dataset.id),

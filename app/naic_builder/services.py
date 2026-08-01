@@ -7397,13 +7397,15 @@ def resolve_form_location_metadata(
     explicit_location_name = normalize_location_name_input(location_name)
 
     if pending_container_name:
+        if resolved_parent_key:
+            resolved_parent_key = resolve_target_container(session, resolved_parent_key).node_key
         resolved_parent_key = ensure_container_node(session, pending_container_name, resolved_parent_key).node_key
     elif (
         not resolved_parent_key
         and explicit_location_name
         and explicit_location_name != "Top level"
     ):
-        resolved_parent_key = ensure_container_node(session, explicit_location_name, None).node_key
+        raise ValueError("Select an existing folder from the library.")
 
     target_parent = resolve_target_container(session, resolved_parent_key)
     existing_node = existing_definition.library_node if existing_definition is not None else None

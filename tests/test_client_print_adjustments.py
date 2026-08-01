@@ -36,6 +36,7 @@ from naic_builder.services import (
     build_print_reference,
     build_print_summary_items,
     build_signatory_snapshot,
+    create_container,
     current_version,
     effective_record_print_presentation,
     default_signatory_slots,
@@ -96,6 +97,7 @@ from naic_builder.services import (
     print_template_id_for,
     print_text_size_options,
     reference_form_slugs,
+    resolve_form_location_metadata,
     sample_print_value_for_field,
     save_user_print_preferences,
     save_user_print_layout_preference,
@@ -116,6 +118,50 @@ def tearDownModule() -> None:
 
 
 class ClientPrintAdjustmentTests(unittest.TestCase):
+    def test_builder_location_picker_uses_existing_folders_only(self) -> None:
+        engine = create_engine("sqlite://")
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine)
+
+        try:
+            with Session() as session:
+                session.info[SKIP_CHANGE_BACKUP_SESSION_KEY] = True
+                folder = create_container(session, "Routine Tests")
+
+                selected = resolve_form_location_metadata(
+                    session,
+                    form_name="Example Form",
+                    location_name="Routine Tests",
+                    library_parent_node_key=folder.node_key,
+                    library_new_container_name=None,
+                )
+                self.assertEqual(selected["resolved_parent_key"], folder.node_key)
+
+                with self.assertRaisesRegex(ValueError, "Select an existing folder"):
+                    resolve_form_location_metadata(
+                        session,
+                        form_name="Example Form",
+                        location_name="Accidental Folder",
+                        library_parent_node_key=None,
+                        library_new_container_name=None,
+                    )
+
+                explicit_new_folder = resolve_form_location_metadata(
+                    session,
+                    form_name="Example Form",
+                    location_name="Special Tests",
+                    library_parent_node_key=None,
+                    library_new_container_name="Special Tests",
+                )
+                self.assertTrue(explicit_new_folder["resolved_parent_key"])
+        finally:
+            engine.dispose()
+
+        builder_source = (ROOT / "app" / "naic_builder" / "static" / "app.js").read_text(encoding="utf-8")
+        self.assertIn('<select data-action="form-location">', builder_source)
+        self.assertNotIn('data-bind="location_name"', builder_source)
+        self.assertNotIn('function renderLocationSuggestions()', builder_source)
+
     def test_shared_patient_information_defaults_are_consistent(self) -> None:
         fields = {field["key"]: field for field in default_patient_info_legacy_group()["fields"]}
         self.assertEqual(fields["age"]["data_type"], "number")
