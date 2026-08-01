@@ -1,0 +1,35 @@
+- main [ref=e2]:
+  - generic [ref=e7]:
+    - generic [ref=e8]:
+      - generic [ref=e11]:
+        - paragraph [ref=e12]: Clinic workspace
+        - heading "Naic Doctors Hospital | Laboratory Records System" [level=1] [ref=e13]
+      - paragraph [ref=e14]: A focused records and laboratory results workspace for daily clinic work.
+      - generic "System highlights" [ref=e15]:
+        - generic [ref=e16]: Local-first
+        - generic [ref=e17]: Records protected
+        - generic [ref=e18]: LAN-ready
+    - generic [ref=e19]:
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - paragraph [ref=e22]: Secure access
+          - heading "Sign in" [level=2] [ref=e23]
+          - paragraph [ref=e24]: Use your email or login ID to continue.
+        - generic [ref=e25]:
+          - generic [ref=e26]:
+            - generic [ref=e27]: Email or login ID
+            - textbox "Email or login ID" [ref=e28]:
+              - /placeholder: example@clinic.com or medtech01
+          - generic [ref=e29]:
+            - generic [ref=e30]: Password
+            - generic [ref=e31]:
+              - textbox "Password" [ref=e32]
+              - button "Show password" [ref=e33] [cursor=pointer]: Show
+        - generic [ref=e34]:
+          - button "Sign in" [ref=e35] [cursor=pointer]
+          - link "Request access" [ref=e36] [cursor=pointer]:
+            - /url: /request-account
+      - generic [ref=e37]:
+        - generic [ref=e38]: Pending accounts wait for admin approval.
+        - button "Switch to dark mode" [ref=e39]:
+          - generic [ref=e42]: Dark

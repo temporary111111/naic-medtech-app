@@ -6,7 +6,7 @@
   <title>Print Record | {{ document.form_name }}</title>
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
-  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260731-monochrome-print-ui">
+  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260801-responsive-cells">
   {% set presentation = document.template or {} %}
   {% set record_meta = document["record"] or {} %}
 </head>
@@ -385,6 +385,24 @@
       const setCellSpan = (cell, span) => {
         cell.dataset.printSpan = String(span);
         cell.style.setProperty("--print-grid-span", String(span));
+        window.requestAnimationFrame(() => syncResponsiveFieldRunCell(cell));
+      };
+      const isResponsiveFieldRunCell = (cell) => {
+        const grid = cell?.closest("[data-print-layout-grid]");
+        return Boolean(
+          cell?.classList.contains("print-row")
+          && !cell.classList.contains("print-field-run-placeholder")
+          && grid?.dataset.layoutKind === "field_run"
+          && grid?.dataset.layoutPresentation === "grid",
+        );
+      };
+      const syncResponsiveFieldRunCell = (cell) => {
+        if (!cell) return;
+        const isCompact = isResponsiveFieldRunCell(cell) && cell.getBoundingClientRect().width < 296;
+        cell.classList.toggle("is-layout-cell-compact", isCompact);
+      };
+      const syncResponsiveFieldRunCells = (grid) => {
+        gridCells(grid).forEach((cell) => syncResponsiveFieldRunCell(cell));
       };
       const layoutPresentation = (grid) => grid.dataset.layoutPresentation || "grid";
       const defaultGridMode = (grid) => grid.dataset.defaultMode || "preserve";
@@ -402,6 +420,7 @@
           grid.style.removeProperty("--print-grid-units");
         }
         syncLayoutRunView(grid);
+        window.requestAnimationFrame(() => syncResponsiveFieldRunCells(grid));
       };
       const fieldIds = (grid) => gridCells(grid).map((cell) => cell.dataset.fieldId || "").filter(Boolean);
       const containerIds = (grid) => gridCells(grid).map((cell) => cell.dataset.containerId || "").filter(Boolean);
@@ -685,6 +704,20 @@
         if (activated) recordLayoutHistory();
         return true;
       };
+
+      const layoutCellSizeObserver = typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver((entries) => {
+            entries.forEach((entry) => syncResponsiveFieldRunCell(entry.target));
+          });
+      if (layoutCellSizeObserver) {
+        layoutGrids.forEach((grid) => {
+          gridCells(grid).forEach((cell) => {
+            layoutCellSizeObserver.observe(cell);
+            syncResponsiveFieldRunCell(cell);
+          });
+        });
+      }
 
       openLayoutEditor?.addEventListener("click", openEditor);
       doneLayoutEditor?.addEventListener("click", closeEditor);

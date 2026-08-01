@@ -1,0 +1,140 @@
+- main [ref=f1e2]:
+  - generic [ref=f1e3]:
+    - generic [ref=f1e4]:
+      - link "Back" [ref=f1e5] [cursor=pointer]:
+        - /url: /records/109
+        - generic [ref=f1e6]: ←
+      - strong [ref=f1e9]: Blood Gas Analysis
+    - generic [ref=f1e10]:
+      - button "Change print settings" [ref=f1e11] [cursor=pointer]:
+        - generic [ref=f1e12]: Print setup
+        - strong [ref=f1e13]: Legacy | landscape | Standard | A5
+        - generic "Legacy A5 is configured to print this record on one page." [ref=f1e14]: Likely 1 page
+      - button "Adjust layout" [ref=f1e15] [cursor=pointer]
+      - button "Refresh print preview" [ref=f1e16] [cursor=pointer]
+      - group [ref=f1e22]:
+        - generic "More record actions" [ref=f1e23] [cursor=pointer]: ...
+      - button "Print / Save PDF" [ref=f1e25] [cursor=pointer]
+  - generic [ref=f1e27]:
+    - generic [ref=f1e28]:
+      - img "Naic Doctors Hospital" [ref=f1e29]
+      - heading "Blood Gas Analysis" [level=1] [ref=f1e31]
+      - generic [ref=f1e32]:
+        - strong [ref=f1e33]: Naic Doctors Hospital
+        - generic [ref=f1e34]: Makati
+        - generic [ref=f1e35]: 0912131213132 | naic-medtech@gmail.com
+        - generic [ref=f1e36]: "DOH License No.: 12142324232"
+    - generic [ref=f1e38]:
+      - article [ref=f1e39]:
+        - generic [ref=f1e40]:
+          - heading "Patient Information" [level=2] [ref=f1e42]
+          - generic [ref=f1e44]:
+            - article [ref=f1e45]:
+              - strong [ref=f1e47]: Name
+              - generic [ref=f1e48]: fds
+            - article [ref=f1e51]:
+              - strong [ref=f1e53]: Age
+              - generic [ref=f1e54]: No value recorded.
+            - article [ref=f1e57]:
+              - strong [ref=f1e59]: Sex
+              - generic [ref=f1e60]: Male
+            - article [ref=f1e63]:
+              - strong [ref=f1e65]: Date & Time
+              - generic [ref=f1e66]: 08/01/2026 07:29 AM
+            - article [ref=f1e69]:
+              - strong [ref=f1e71]: Examination
+              - generic [ref=f1e72]: No value recorded.
+            - article [ref=f1e75]:
+              - strong [ref=f1e77]: Requesting Physician
+              - generic [ref=f1e78]: No value recorded.
+            - article [ref=f1e81]:
+              - strong [ref=f1e83]: Room
+              - generic [ref=f1e84]: No value recorded.
+            - article [ref=f1e87]:
+              - strong [ref=f1e89]: Case Number
+              - generic [ref=f1e90]: "232"
+      - article [ref=f1e93]:
+        - generic [ref=f1e94]:
+          - heading "Blood Gas Values" [level=2] [ref=f1e96]
+          - generic [ref=f1e99]:
+            - article [ref=f1e100]:
+              - generic [ref=f1e101]:
+                - heading "ABG" [level=3] [ref=f1e103]
+                - generic [ref=f1e105]:
+                  - article [ref=f1e106]:
+                    - strong [ref=f1e108]: pH
+                    - generic [ref=f1e109]:
+                      - generic [ref=f1e110]: No value recorded.
+                      - generic [ref=f1e112]: "Normal values: 7.35 to 7.45"
+                  - article [ref=f1e113]:
+                    - strong [ref=f1e115]: pO2
+                    - generic [ref=f1e116]:
+                      - generic [ref=f1e117]: No value recorded.
+                      - generic [ref=f1e119]: "Normal values: 80 to 105 mmHg"
+                  - article [ref=f1e120]:
+                    - strong [ref=f1e122]: pCO2
+                    - generic [ref=f1e123]:
+                      - generic [ref=f1e124]: No value recorded.
+                      - generic [ref=f1e126]: "Normal values: 35.0 to 45.0 mmHg"
+            - article [ref=f1e127]:
+              - strong [ref=f1e129]: NOTE
+              - generic [ref=f1e130]: No value recorded.
+      - article [ref=f1e133]:
+        - generic [ref=f1e134]:
+          - heading "Calculated Values" [level=2] [ref=f1e136]
+          - generic [ref=f1e138]:
+            - article [ref=f1e139]:
+              - generic [ref=f1e140]:
+                - heading "Oximetry" [level=3] [ref=f1e142]
+                - article [ref=f1e145]:
+                  - strong [ref=f1e147]: sO2
+                  - generic [ref=f1e148]:
+                    - generic [ref=f1e149]:
+                      - generic [ref=f1e150]: "2232323"
+                      - generic [ref=f1e151]: "%"
+                    - generic [ref=f1e152]: "Normal values: 95 to 100 %"
+            - article [ref=f1e153]:
+              - generic [ref=f1e154]:
+                - heading "Acid-Base Status" [level=3] [ref=f1e156]
+                - generic [ref=f1e158]:
+                  - article [ref=f1e159]:
+                    - strong [ref=f1e161]: HCO3
+                    - generic [ref=f1e163]:
+                      - generic [ref=f1e164]: "32323232"
+                      - generic [ref=f1e165]: mmol/L
+                    - generic [ref=f1e166]: "Normal values: 22 to 28 mmol/L"
+                  - article [ref=f1e167]:
+                    - strong [ref=f1e169]: BE(ecf)
+                    - generic [ref=f1e171]:
+                      - generic [ref=f1e172]: "323232323"
+                      - generic [ref=f1e173]: mmol/L
+                    - generic [ref=f1e174]: "Normal values: -2 to +2 mmol/L"
+                  - article [ref=f1e175]:
+                    - strong [ref=f1e177]: pO2(A-a)
+                    - generic [ref=f1e179]:
+                      - generic [ref=f1e180]: "323232"
+                      - generic [ref=f1e181]: mmHg
+                    - generic [ref=f1e182]: "Normal values: 5 to 10 mmHg"
+                  - article [ref=f1e183]:
+                    - strong [ref=f1e185]: TCO2
+                    - generic [ref=f1e187]:
+                      - generic [ref=f1e188]: "2323232"
+                      - generic [ref=f1e189]: mmol/L
+                    - generic [ref=f1e190]: "Normal values: 23 to 29 mmol/L"
+    - generic [ref=f1e191]:
+      - generic [ref=f1e192]:
+        - strong [ref=f1e193]: "Analyzed by:"
+        - generic [ref=f1e195]:
+          - generic [ref=f1e196]: Andrea Coleen A. Avellones, RMT
+          - generic [ref=f1e197]: Lic. No. 0119501
+        - generic [ref=f1e199]: Medical Technologist (RMT)
+      - generic [ref=f1e200]:
+        - strong [ref=f1e201]: "Verified by:"
+        - generic [ref=f1e203]:
+          - generic [ref=f1e204]: Andrea Coleen A. Avellones, RMT
+          - generic [ref=f1e205]: Lic. No. 0119501
+        - generic [ref=f1e207]: Medical Technologist (RMT)
+      - generic [ref=f1e208]:
+        - strong [ref=f1e209]: "Noted by:"
+        - img "default-pathologist-stamp.png" [ref=f1e211]
+        - generic [ref=f1e213]: Pathologist

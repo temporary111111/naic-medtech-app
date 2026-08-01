@@ -66,6 +66,7 @@ body {
 .print-font-times-new-roman .print-eyebrow,
 .print-font-times-new-roman .print-meta-grid span,
 .print-font-times-new-roman .print-grid-cell-head span,
+.print-font-times-new-roman .print-row-result small,
 .print-font-times-new-roman .print-grid-cell small,
 .print-font-times-new-roman .print-signature-label,
 .print-font-times-new-roman .print-table th {
@@ -1104,6 +1105,7 @@ body {
   min-width: 0;
 }
 
+.print-row-result small,
 .print-grid-cell small {
   color: var(--muted);
   font-size: 8.5px;
@@ -1387,9 +1389,11 @@ body {
 
 .print-template-modern-portrait.print-text-large .print-result-unit,
 .print-template-modern-portrait.print-text-large .print-row-name span,
+.print-template-modern-portrait.print-text-large .print-row-result small,
 .print-template-modern-portrait.print-text-large .print-grid-cell small,
 .print-template-classic-portrait.print-text-large .print-result-unit,
 .print-template-classic-portrait.print-text-large .print-row-name span,
+.print-template-classic-portrait.print-text-large .print-row-result small,
 .print-template-classic-portrait.print-text-large .print-grid-cell small {
   font-size: 11px;
 }
@@ -1738,9 +1742,11 @@ body {
 
 .print-template-modern-landscape.print-text-large .print-result-unit,
 .print-template-modern-landscape.print-text-large .print-row-name span,
+.print-template-modern-landscape.print-text-large .print-row-result small,
 .print-template-modern-landscape.print-text-large .print-grid-cell small,
 .print-template-classic-landscape.print-text-large .print-result-unit,
 .print-template-classic-landscape.print-text-large .print-row-name span,
+.print-template-classic-landscape.print-text-large .print-row-result small,
 .print-template-classic-landscape.print-text-large .print-grid-cell small {
   font-size: 10.5px;
 }
@@ -1925,6 +1931,7 @@ body {
 
 .print-template-legacy-landscape.print-text-large .print-result-unit,
 .print-template-legacy-landscape.print-text-large .print-row-name span,
+.print-template-legacy-landscape.print-text-large .print-row-result small,
 .print-template-legacy-landscape.print-text-large .print-grid-cell small {
   font-size: 10.5px;
 }
@@ -2137,8 +2144,14 @@ body.is-layout-editing .print-block-run-grid.print-layout-grid {
 }
 
 .print-field-run.print-layout-grid > .print-row {
-  grid-template-columns: minmax(0, 1fr) !important;
+  /* Keep labels and results side by side while there is room. The editor
+     marks narrow cells as compact so the same content can stack cleanly. */
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr) !important;
   gap: 4px;
+}
+
+.print-field-run.print-layout-grid > .print-row.is-layout-cell-compact {
+  grid-template-columns: minmax(0, 1fr) !important;
 }
 
 .print-field-run.print-layout-grid > .print-field-run-placeholder {
@@ -2616,6 +2629,7 @@ body.is-layout-resizing * {
   }
 
   .print-grid-cell-head span,
+  .print-row-result small,
   .print-grid-cell small {
     font-size: 8px;
   }
@@ -2737,9 +2751,11 @@ body.is-layout-resizing * {
 
   .print-template-modern-portrait.print-text-large .print-result-unit,
   .print-template-modern-portrait.print-text-large .print-row-name span,
+  .print-template-modern-portrait.print-text-large .print-row-result small,
   .print-template-modern-portrait.print-text-large .print-grid-cell small,
   .print-template-classic-portrait.print-text-large .print-result-unit,
   .print-template-classic-portrait.print-text-large .print-row-name span,
+  .print-template-classic-portrait.print-text-large .print-row-result small,
   .print-template-classic-portrait.print-text-large .print-grid-cell small {
     font-size: 10px;
   }
@@ -2987,6 +3003,7 @@ body.is-layout-resizing * {
 
   .print-template-modern-landscape.print-text-large .print-result-unit,
   .print-template-modern-landscape.print-text-large .print-row-name span,
+  .print-template-modern-landscape.print-text-large .print-row-result small,
   .print-template-modern-landscape.print-text-large .print-grid-cell small {
     font-size: 9px;
   }
@@ -3009,6 +3026,7 @@ body.is-layout-resizing * {
 
   .print-template-classic-landscape.print-text-large .print-result-unit,
   .print-template-classic-landscape.print-text-large .print-row-name span,
+  .print-template-classic-landscape.print-text-large .print-row-result small,
   .print-template-classic-landscape.print-text-large .print-grid-cell small {
     font-size: 8.2px;
   }
@@ -3149,6 +3167,7 @@ body.is-layout-resizing * {
 
   .print-template-legacy-landscape.print-text-large .print-result-unit,
   .print-template-legacy-landscape.print-text-large .print-row-name span,
+  .print-template-legacy-landscape.print-text-large .print-row-result small,
   .print-template-legacy-landscape.print-text-large .print-grid-cell small {
     font-size: 8.2px;
   }
@@ -3245,6 +3264,7 @@ body.is-layout-resizing * {
 
   .print-template-legacy-landscape.print-paper-a5 .print-result-unit,
   .print-template-legacy-landscape.print-paper-a5 .print-row-name span,
+  .print-template-legacy-landscape.print-paper-a5 .print-row-result small,
   .print-template-legacy-landscape.print-paper-a5 .print-grid-cell small {
     font-size: 6.8px;
     line-height: 1.1;

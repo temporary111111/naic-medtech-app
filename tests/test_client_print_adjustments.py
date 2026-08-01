@@ -1769,6 +1769,14 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn('class="print-result-unit">bpm', html)
         self.assertIn('class="print-result-unit">deg C', html)
         self.assertEqual(html.count("Normal values: 60 - 100"), 2)
+        row_name_at = html.index('<strong>PULSE RATE</strong>')
+        row_result_at = html.index('class="print-answer">-2')
+        row_reference_at = html.index("Normal values: 60 - 100")
+        self.assertLess(row_name_at, row_result_at)
+        self.assertLess(row_result_at, row_reference_at)
+        grid_result_at = html.index('class="print-answer">4')
+        grid_reference_at = html.index("Normal values: 60 - 100", grid_result_at)
+        self.assertLess(grid_result_at, grid_reference_at)
         self.assertNotIn("Reference: 60 - 100", html)
         self.assertIn("DOH License No.: 03-123456-10", html)
         label_at = html.index('class="print-signature-label">Analyzed by:')
@@ -2375,6 +2383,9 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn('layoutHistory.length > 31', editor_source)
         self.assertIn('key === "z"', editor_source)
         self.assertIn('activateBlockRunItem', editor_source)
+        self.assertIn('const syncResponsiveFieldRunCell = (cell) => {', editor_source)
+        self.assertIn('new ResizeObserver((entries) => {', editor_source)
+        self.assertIn('cell.getBoundingClientRect().width < 296', editor_source)
         self.assertIn(
             ".print-container-run.print-layout-grid,\n.print-block-run-grid.print-layout-grid {\n  display: grid;",
             (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
@@ -2401,6 +2412,10 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         )
         self.assertIn(
             'is-layout-drop-after-column',
+            (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
+        )
+        self.assertIn(
+            '.print-field-run.print-layout-grid > .print-row.is-layout-cell-compact',
             (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
         )
         self.assertNotIn(

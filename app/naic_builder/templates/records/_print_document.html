@@ -151,12 +151,12 @@
         {{ render_print_layout_move_handle(field.name) }}
         <div class="print-row-name">
           <strong>{{ field.name }}</strong>
-          {% if field.reference_text %}
-          <span class="{% if field.is_abnormal %}is-abnormal{% endif %}">Normal values: {{ field.reference_text }}</span>
-          {% endif %}
         </div>
         <div class="print-row-result">
           {{ render_print_field_result(field) }}
+          {% if field.reference_text %}
+          <small class="{% if field.is_abnormal %}is-abnormal{% endif %}">Normal values: {{ field.reference_text }}</small>
+          {% endif %}
         </div>
       </article>
       {% endfor %}
@@ -170,13 +170,13 @@
     <article class="print-row" data-layout-source-id="{{ item.id }}">
       <div class="print-row-name">
         <strong>{{ item.name }}</strong>
-        {% if item.reference_text %}
-        <span class="{% if item.is_abnormal %}is-abnormal{% endif %}">Normal values: {{ item.reference_text }}</span>
-        {% endif %}
       </div>
 
       <div class="print-row-result">
         {{ render_print_field_result(item) }}
+        {% if item.reference_text %}
+        <small class="{% if item.is_abnormal %}is-abnormal{% endif %}">Normal values: {{ item.reference_text }}</small>
+        {% endif %}
       </div>
     </article>
     {% elif item.kind == "note" %}
