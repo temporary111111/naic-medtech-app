@@ -511,6 +511,10 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                     microbiology_layout["grids"]["root/form.microbiology.details:0"]["spans"],
                     {"form.microbiology.result": 6},
                 )
+                self.assertEqual(
+                    len(schemas["microbiology"]["meta"]["print_layout_defaults"]["profiles"]),
+                    20,
+                )
 
                 self.assertEqual(
                     [option["name"] for option in hiv_fields["test_result"]["props"]["options"] if option["is_normal"]],
