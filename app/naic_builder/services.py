@@ -447,6 +447,30 @@ def legacy_a5_patient_information_grid(form_key: str) -> dict[str, dict[str, Any
             "order": [],
         },
     }
+
+
+def qualitative_result_legacy_a5_layout(
+    form_key: str,
+    detail_field_keys: tuple[str, ...],
+    *,
+    spans: dict[str, int] | None = None,
+) -> dict[str, Any]:
+    prefix = f"form.{form_key}"
+    field_ids = [f"{prefix}.{field_key}" for field_key in detail_field_keys]
+    return {
+        "version": PRINT_LAYOUT_PREFERENCE_VERSION,
+        "grids": {
+            **legacy_a5_patient_information_grid(form_key),
+            f"root/{prefix}.details:0": {
+                "field_ids": field_ids,
+                "mode": "manual",
+                "spans": spans or {field_id: 6 for field_id in field_ids},
+                "order": [],
+            },
+        },
+        "containers": {},
+        "blocks": {},
+    }
 BLOOD_GAS_ANALYSIS_FORM_KEY = "blood_gas_analysis"
 DEFAULT_BLOOD_GAS_LAYOUT_META_KEY = "default_blood_gas_layout_v2"
 # This preserves the old ABG sheet's important visual relationship without
@@ -691,6 +715,10 @@ COVID_19_ANTIGEN_RAPID_TEST_FORM_KEY = "covid_19_antigen_rapid_test"
 DEFAULT_COVID_19_ANTIGEN_RAPID_TEST_DEFAULTS_META_KEY = "default_covid_19_antigen_rapid_test_defaults_v2"
 MICROBIOLOGY_FORM_KEY = "microbiology"
 DEFAULT_MICROBIOLOGY_DEFAULTS_META_KEY = "default_microbiology_defaults_v1"
+MICROBIOLOGY_LEGACY_A5_LAYOUT_DEFAULT = qualitative_result_legacy_a5_layout(
+    MICROBIOLOGY_FORM_KEY,
+    ("result",),
+)
 CARDIACI_FORM_KEY = "cardiaci"
 DEFAULT_CARDIACI_DEFAULTS_META_KEY = "default_cardiaci_defaults_v1"
 CARDIACI_FIELD_DEFAULTS = {
@@ -3599,6 +3627,7 @@ def ensure_default_qualitative_result_layout(
     detail_field_keys: tuple[str, ...],
     normal_choice_options: dict[str, tuple[str, ...]],
     result_image: dict[str, Any] | None = None,
+    print_layout: dict[str, Any] | None = None,
 ) -> bool:
     if not isinstance(block_schema, dict):
         return False
@@ -3607,7 +3636,15 @@ def ensure_default_qualitative_result_layout(
     if compact_text(meta.get("form_key")) != form_key:
         return False
     if meta.get(meta_key) is True:
-        return False
+        if print_layout is None or not ensure_form_print_layout_default(
+            meta,
+            template_id="legacy_landscape",
+            paper_size="a5",
+            layout=print_layout,
+        ):
+            return False
+        block_schema["meta"] = meta
+        return True
 
     details, _ = ensure_default_top_level_container(
         block_schema,
@@ -3639,6 +3676,13 @@ def ensure_default_qualitative_result_layout(
         resequence_block_orders(normalize_items(details.get("children")))
 
     meta[meta_key] = True
+    if print_layout is not None:
+        ensure_form_print_layout_default(
+            meta,
+            template_id="legacy_landscape",
+            paper_size="a5",
+            layout=print_layout,
+        )
     block_schema["meta"] = meta
     return True
 
@@ -3674,6 +3718,7 @@ def ensure_default_microbiology_layout(block_schema: dict[str, Any]) -> bool:
         details_name="Microbiology Details",
         detail_field_keys=("result",),
         normal_choice_options={"result": ("NO FUNGAL ELEMENTS SEEN",)},
+        print_layout=MICROBIOLOGY_LEGACY_A5_LAYOUT_DEFAULT,
     )
 
 

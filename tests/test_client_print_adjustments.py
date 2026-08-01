@@ -458,6 +458,21 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                 hiv_fields = fields_by_key(schemas["hiv_1_and_2_testing"]["blocks"])
                 covid_fields = fields_by_key(schemas["covid_19_antigen_rapid_test"]["blocks"])
                 microbiology_fields = fields_by_key(schemas["microbiology"]["blocks"])
+                microbiology_definition = next(
+                    definition
+                    for definition in session.scalars(select(FormDefinition)).all()
+                    if definition.slug == "microbiology"
+                )
+                microbiology_layout = form_version_print_layout_preference(
+                    current_version(microbiology_definition),
+                    template_id="legacy_landscape",
+                    paper_size="a5",
+                )
+
+                self.assertEqual(
+                    microbiology_layout["grids"]["root/form.microbiology.details:0"]["spans"],
+                    {"form.microbiology.result": 6},
+                )
 
                 self.assertEqual(
                     [option["name"] for option in hiv_fields["test_result"]["props"]["options"] if option["is_normal"]],
