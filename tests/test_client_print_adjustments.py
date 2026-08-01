@@ -400,7 +400,25 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                     ],
                     6,
                 )
+                blood_gas = session.scalar(
+                    select(FormDefinition).where(FormDefinition.slug == "blood_gas_analysis")
+                )
+                self.assertIsNotNone(blood_gas)
+                blood_gas_layout = form_version_print_layout_preference(
+                    current_version(blood_gas),
+                    template_id="legacy_landscape",
+                    paper_size="a5",
+                )
+                self.assertEqual(
+                    blood_gas_layout["containers"]["root:containers:0"]["spans"],
+                    {
+                        "root/form.blood_gas_analysis.patient_information": 6,
+                        "root/form.blood_gas_analysis.blood_gas_values": 2,
+                        "root/form.blood_gas_analysis.calculated_values": 4,
+                    },
+                )
                 self.assertEqual(ensure_blood_bank_defaults(session), 0)
+                self.assertEqual(ensure_blood_gas_analysis_defaults(session), 0)
         finally:
             engine.dispose()
 
@@ -500,6 +518,15 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         ensure_reference_examination_in_patient_info(block_schema, reference_form_slugs())
 
         self.assertTrue(ensure_default_blood_gas_analysis_layout(block_schema))
+        legacy_layout = block_schema["meta"]["print_layout_defaults"]["profiles"]["legacy_landscape:a5"]
+        self.assertEqual(
+            legacy_layout["containers"]["root:containers:0"]["spans"],
+            {
+                "root/form.blood_gas_analysis.patient_information": 6,
+                "root/form.blood_gas_analysis.blood_gas_values": 2,
+                "root/form.blood_gas_analysis.calculated_values": 4,
+            },
+        )
         top_level = {block["props"]["key"]: block for block in block_schema["blocks"]}
         self.assertEqual(
             [block["props"]["key"] for block in block_schema["blocks"]],
@@ -570,6 +597,15 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         )
         self.assertTrue(legacy_a5_fit["requires_one_page"])
         self.assertTrue(legacy_a5_fit["can_print"])
+        preview_with_layout = build_form_print_preview_document(
+            form_name="Blood Gas Analysis",
+            block_schema=block_schema,
+            template_id="legacy_landscape",
+            paper_size="a5",
+            print_layout_preference=legacy_layout,
+        )
+        self.assertTrue(preview_with_layout["fit_estimate"]["requires_one_page"])
+        self.assertTrue(preview_with_layout["fit_estimate"]["can_print"])
 
         fields = {}
 
@@ -591,6 +627,16 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(evaluate_print_abnormal(fields["ph"]["props"], "7.35"), (False, None))
         self.assertEqual(evaluate_print_abnormal(fields["ph"]["props"], "7.46"), (True, "high"))
         self.assertEqual(evaluate_print_abnormal(fields["be_ecf"]["props"], "-2.1"), (True, "low"))
+        legacy_layout["containers"]["root:containers:0"]["spans"][
+            "root/form.blood_gas_analysis.blood_gas_values"
+        ] = 6
+        self.assertFalse(ensure_default_blood_gas_analysis_layout(block_schema))
+        self.assertEqual(
+            legacy_layout["containers"]["root:containers:0"]["spans"][
+                "root/form.blood_gas_analysis.blood_gas_values"
+            ],
+            6,
+        )
 
     def test_hematology_defaults_use_approved_layout_and_ranges(self) -> None:
         schema = json.loads(

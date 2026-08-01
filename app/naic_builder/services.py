@@ -419,6 +419,70 @@ BLOOD_BANK_LEGACY_A5_LAYOUT_DEFAULT = {
 }
 BLOOD_GAS_ANALYSIS_FORM_KEY = "blood_gas_analysis"
 DEFAULT_BLOOD_GAS_LAYOUT_META_KEY = "default_blood_gas_layout_v2"
+# This preserves the old ABG sheet's important visual relationship without
+# turning the dynamic form into a static eight-column Word template.
+BLOOD_GAS_LEGACY_A5_LAYOUT_DEFAULT = {
+    "version": PRINT_LAYOUT_PREFERENCE_VERSION,
+    "grids": {
+        "root/form.blood_gas_analysis.patient_information:0": {
+            "field_ids": [
+                "form.blood_gas_analysis.patient_information.name",
+                "form.blood_gas_analysis.patient_information.age",
+                "form.blood_gas_analysis.patient_information.sex",
+                "form.blood_gas_analysis.patient_information.date_or_datetime",
+                "form.blood_gas_analysis.examination",
+                "form.blood_gas_analysis.patient_information.requesting_physician",
+                "form.blood_gas_analysis.patient_information.room",
+                "form.blood_gas_analysis.patient_information.case_number",
+            ],
+            "mode": "manual",
+            "spans": {
+                "form.blood_gas_analysis.patient_information.name": 2,
+                "form.blood_gas_analysis.patient_information.age": 2,
+                "form.blood_gas_analysis.patient_information.sex": 2,
+                "form.blood_gas_analysis.patient_information.date_or_datetime": 2,
+                "form.blood_gas_analysis.examination": 2,
+                "form.blood_gas_analysis.patient_information.requesting_physician": 2,
+                "form.blood_gas_analysis.patient_information.room": 3,
+                "form.blood_gas_analysis.patient_information.case_number": 3,
+            },
+            "order": [],
+        },
+        "root/form.blood_gas_analysis.calculated_values/form.blood_gas_analysis.calculated_values_acid_base_status:0": {
+            "field_ids": [
+                "form.blood_gas_analysis.calculated_values_acid_base_status.hco3",
+                "form.blood_gas_analysis.calculated_values_acid_base_status.be_ecf",
+                "form.blood_gas_analysis.calculated_values_acid_base_status.po2_a_a",
+                "form.blood_gas_analysis.calculated_values_acid_base_status.tco2",
+            ],
+            "mode": "manual",
+            "spans": {
+                "form.blood_gas_analysis.calculated_values_acid_base_status.hco3": 3,
+                "form.blood_gas_analysis.calculated_values_acid_base_status.be_ecf": 3,
+                "form.blood_gas_analysis.calculated_values_acid_base_status.po2_a_a": 3,
+                "form.blood_gas_analysis.calculated_values_acid_base_status.tco2": 3,
+            },
+            "order": [],
+        },
+    },
+    "containers": {
+        "root:containers:0": {
+            "container_ids": [
+                "root/form.blood_gas_analysis.patient_information",
+                "root/form.blood_gas_analysis.blood_gas_values",
+                "root/form.blood_gas_analysis.calculated_values",
+            ],
+            "mode": "manual",
+            "spans": {
+                "root/form.blood_gas_analysis.patient_information": 6,
+                "root/form.blood_gas_analysis.blood_gas_values": 2,
+                "root/form.blood_gas_analysis.calculated_values": 4,
+            },
+            "order": [],
+        },
+    },
+    "blocks": {},
+}
 BLOOD_GAS_NUMERIC_RANGES = {
     "ph": ("7.35", "7.45"),
     "po2": ("80", "105"),
@@ -3566,6 +3630,18 @@ def set_default_blood_gas_container(
     block["props"] = props
 
 
+def ensure_default_blood_gas_print_layout(meta: dict[str, Any]) -> bool:
+    defaults = normalize_form_print_layout_defaults(meta.get("print_layout_defaults"))
+    profile_key = print_layout_default_profile_key("legacy_landscape", "a5")
+    if profile_key in defaults["profiles"]:
+        return False
+    defaults["profiles"][profile_key] = normalize_print_layout_preference(
+        BLOOD_GAS_LEGACY_A5_LAYOUT_DEFAULT
+    )
+    meta["print_layout_defaults"] = defaults
+    return True
+
+
 def ensure_default_blood_gas_analysis_layout(block_schema: dict[str, Any]) -> bool:
     if not isinstance(block_schema, dict):
         return False
@@ -3574,7 +3650,10 @@ def ensure_default_blood_gas_analysis_layout(block_schema: dict[str, Any]) -> bo
     if compact_text(meta.get("form_key")) != BLOOD_GAS_ANALYSIS_FORM_KEY:
         return False
     if meta.get(DEFAULT_BLOOD_GAS_LAYOUT_META_KEY) is True:
-        return False
+        if not ensure_default_blood_gas_print_layout(meta):
+            return False
+        block_schema["meta"] = meta
+        return True
 
     changed = configure_blood_gas_numeric_ranges(block_schema)
     blocks = normalize_items(block_schema.get("blocks"))
@@ -3645,6 +3724,7 @@ def ensure_default_blood_gas_analysis_layout(block_schema: dict[str, Any]) -> bo
         changed = True
 
     meta[DEFAULT_BLOOD_GAS_LAYOUT_META_KEY] = True
+    ensure_default_blood_gas_print_layout(meta)
     block_schema["meta"] = meta
     return True
 
