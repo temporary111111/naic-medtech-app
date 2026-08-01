@@ -956,6 +956,19 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         block_schema = build_block_storage_document_from_legacy_storage(ogtt)
         ensure_reference_examination_in_patient_info(block_schema, reference_form_slugs())
         self.assertTrue(ensure_default_ogtt_layout(block_schema))
+        legacy_layout = block_schema["meta"]["print_layout_defaults"]["profiles"][
+            "legacy_landscape:a5"
+        ]
+        self.assertEqual(
+            legacy_layout["containers"]["root:containers:0"]["spans"],
+            {
+                "root/form.ogtt.patient_information": 6,
+                "root/form.ogtt.50g_oral_glucose_tolerance": 3,
+                "root/form.ogtt.75g_oral_glucose_tolerance": 3,
+                "root/form.ogtt.100g_oral_glucose_tolerance": 3,
+                "root/form.ogtt.additional_tests": 3,
+            },
+        )
         containers = {block["props"]["key"]: block for block in block_schema["blocks"]}
 
         expected_ranges = {

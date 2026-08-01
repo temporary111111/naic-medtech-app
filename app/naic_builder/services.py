@@ -722,6 +722,31 @@ CARDIACI_LEGACY_A5_LAYOUT_DEFAULT = {
 }
 OGTT_FORM_KEY = "ogtt"
 DEFAULT_OGTT_DEFAULTS_META_KEY = "default_ogtt_defaults_v1"
+OGTT_LEGACY_A5_LAYOUT_DEFAULT = {
+    "version": PRINT_LAYOUT_PREFERENCE_VERSION,
+    "grids": legacy_a5_patient_information_grid(OGTT_FORM_KEY),
+    "containers": {
+        "root:containers:0": {
+            "container_ids": [
+                "root/form.ogtt.patient_information",
+                "root/form.ogtt.50g_oral_glucose_tolerance",
+                "root/form.ogtt.75g_oral_glucose_tolerance",
+                "root/form.ogtt.100g_oral_glucose_tolerance",
+                "root/form.ogtt.additional_tests",
+            ],
+            "mode": "manual",
+            "spans": {
+                "root/form.ogtt.patient_information": 6,
+                "root/form.ogtt.50g_oral_glucose_tolerance": 3,
+                "root/form.ogtt.75g_oral_glucose_tolerance": 3,
+                "root/form.ogtt.100g_oral_glucose_tolerance": 3,
+                "root/form.ogtt.additional_tests": 3,
+            },
+            "order": [],
+        },
+    },
+    "blocks": {},
+}
 OGTT_CONTAINER_FIELD_DEFAULTS = {
     "50g_oral_glucose_tolerance": {
         "1st_hour": {
@@ -3813,7 +3838,15 @@ def ensure_default_ogtt_layout(block_schema: dict[str, Any]) -> bool:
     if compact_text(meta.get("form_key")) != OGTT_FORM_KEY:
         return False
     if meta.get(DEFAULT_OGTT_DEFAULTS_META_KEY) is True:
-        return False
+        if not ensure_form_print_layout_default(
+            meta,
+            template_id="legacy_landscape",
+            paper_size="a5",
+            layout=OGTT_LEGACY_A5_LAYOUT_DEFAULT,
+        ):
+            return False
+        block_schema["meta"] = meta
+        return True
 
     blocks = normalize_items(block_schema.get("blocks"))
     if any(
@@ -3823,6 +3856,12 @@ def ensure_default_ogtt_layout(block_schema: dict[str, Any]) -> bool:
         return False
     configure_container_field_properties(block_schema, OGTT_CONTAINER_FIELD_DEFAULTS)
     meta[DEFAULT_OGTT_DEFAULTS_META_KEY] = True
+    ensure_form_print_layout_default(
+        meta,
+        template_id="legacy_landscape",
+        paper_size="a5",
+        layout=OGTT_LEGACY_A5_LAYOUT_DEFAULT,
+    )
     block_schema["meta"] = meta
     return True
 
