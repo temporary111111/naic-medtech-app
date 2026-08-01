@@ -2101,6 +2101,8 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn('Reset selection', editor_source)
         self.assertIn('Restore form default', editor_source)
         self.assertIn('Save record layout', editor_source)
+        self.assertIn('data-layout-restore-form title="Remove this record setup and use the form-version default"{% if not record_has_print_presentation %} hidden{% endif %}', editor_source)
+        self.assertIn('restoreFormDefaultButton.hidden = false;', editor_source)
         self.assertNotIn('data-layout-arrange', editor_source)
         self.assertNotIn('data-layout-balance', editor_source)
         self.assertIn('querySelectorAll(":scope > [data-print-grid-cell]")', editor_source)

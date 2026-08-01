@@ -82,10 +82,10 @@
           <button type="button" data-layout-grid>Columns</button>
         </div>
         <button type="button" data-layout-reset disabled title="Restore the selected grid to its saved state">Reset selection</button>
-        {% if is_form_layout_builder and form_has_print_layout_default %}
-        <button type="button" data-layout-restore-form title="Remove this default and use the automatic layout">Use automatic layout</button>
-        {% elif record_has_print_presentation %}
-        <button type="button" data-layout-restore-form title="Remove this record setup and use the form-version default">Restore form default</button>
+        {% if is_form_layout_builder %}
+        <button type="button" data-layout-restore-form title="Remove this default and use the automatic layout"{% if not form_has_print_layout_default %} hidden{% endif %}>Use automatic layout</button>
+        {% else %}
+        <button type="button" data-layout-restore-form title="Remove this record setup and use the form-version default"{% if not record_has_print_presentation %} hidden{% endif %}>Restore form default</button>
         {% endif %}
         <button type="button" data-layout-save title="Save this print setup and layout">{{ 'Save form default' if is_form_layout_builder else 'Save record layout' }}</button>
         <button type="button" class="is-primary" data-layout-done>Done</button>
@@ -829,6 +829,10 @@
           });
           const result = await response.json();
           if (!response.ok) throw new Error(result.detail || "Could not save the print layout.");
+          if (restoreFormDefaultButton) {
+            restoreFormDefaultButton.hidden = false;
+            restoreFormDefaultButton.disabled = false;
+          }
           setLayoutStatus(result.message || "Print setup and layout saved for this record.");
         } catch (error) {
           setLayoutStatus(error.message || "Could not save the print layout.", true);
