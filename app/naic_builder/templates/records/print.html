@@ -45,6 +45,14 @@
         </div>
         {% endif %}
         {% if not is_form_layout_builder %}
+        <button class="print-command-refresh" type="button" data-print-refresh aria-label="Refresh print preview" title="Refresh print preview">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 12a9 9 0 0 1 15.5-6.2L21 8" />
+            <path d="M21 3v5h-5" />
+            <path d="M21 12a9 9 0 0 1-15.5 6.2L3 16" />
+            <path d="M3 21v-5h5" />
+          </svg>
+        </button>
         <details class="print-more-menu">
           <summary aria-label="More record actions" title="More record actions"><span aria-hidden="true">...</span></summary>
           <div class="print-more-panel">
@@ -176,6 +184,7 @@
       const openSettingsButton = document.querySelector("[data-open-print-settings]");
       const closeSettingsButton = document.querySelector("[data-close-print-settings]");
       const moreMenu = document.querySelector(".print-more-menu");
+      const printRefreshButton = document.querySelector("[data-print-refresh]");
       if (settingsDialog && openSettingsButton) {
         openSettingsButton.addEventListener("click", () => {
           if (moreMenu) moreMenu.open = false;
@@ -332,6 +341,14 @@
       let activeMove = null;
       const layoutHistory = [];
       let layoutHistoryIndex = -1;
+
+      printRefreshButton?.addEventListener("click", () => {
+        if (layoutEditing && layoutHistoryIndex > 0) {
+          const confirmed = window.confirm("Discard unsaved layout changes and refresh this print preview?");
+          if (!confirmed) return;
+        }
+        window.location.reload();
+      });
 
       const clearMoveDropIndicator = () => {
         if (!activeMove?.dropTarget) return;
