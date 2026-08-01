@@ -21,6 +21,7 @@
   const zoomDecreaseButtons = Array.from(document.querySelectorAll("[data-app-zoom-decrease]"));
   const zoomIncreaseButtons = Array.from(document.querySelectorAll("[data-app-zoom-increase]"));
   const zoomResetButtons = Array.from(document.querySelectorAll("[data-app-zoom-reset]"));
+  const refreshButtons = Array.from(document.querySelectorAll("[data-app-refresh]"));
 
   let modalResolver = null;
   let modalReturnFocus = null;
@@ -333,6 +334,12 @@
         applyZoom(input.value);
         input.blur();
       }
+    });
+  });
+
+  refreshButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      window.location.reload();
     });
   });
 
