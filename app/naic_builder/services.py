@@ -4174,12 +4174,7 @@ def ensure_default_ogtt_layout(block_schema: dict[str, Any]) -> bool:
     if compact_text(meta.get("form_key")) != OGTT_FORM_KEY:
         return False
     if meta.get(DEFAULT_OGTT_DEFAULTS_META_KEY) is True:
-        if not ensure_form_print_layout_default(
-            meta,
-            template_id="legacy_landscape",
-            paper_size="a5",
-            layout=OGTT_LEGACY_A5_LAYOUT_DEFAULT,
-        ):
+        if not ensure_form_print_layout_profile_matrix(meta, OGTT_LEGACY_A5_LAYOUT_DEFAULT):
             return False
         block_schema["meta"] = meta
         return True
@@ -4192,12 +4187,7 @@ def ensure_default_ogtt_layout(block_schema: dict[str, Any]) -> bool:
         return False
     configure_container_field_properties(block_schema, OGTT_CONTAINER_FIELD_DEFAULTS)
     meta[DEFAULT_OGTT_DEFAULTS_META_KEY] = True
-    ensure_form_print_layout_default(
-        meta,
-        template_id="legacy_landscape",
-        paper_size="a5",
-        layout=OGTT_LEGACY_A5_LAYOUT_DEFAULT,
-    )
+    ensure_form_print_layout_profile_matrix(meta, OGTT_LEGACY_A5_LAYOUT_DEFAULT)
     block_schema["meta"] = meta
     return True
 
