@@ -705,6 +705,29 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         ensure_reference_examination_in_patient_info(block_schema, reference_form_slugs())
 
         self.assertTrue(ensure_default_hematology_layout(block_schema))
+        legacy_layout = block_schema["meta"]["print_layout_defaults"]["profiles"][
+            "legacy_landscape:a5"
+        ]
+        self.assertEqual(
+            legacy_layout["blocks"]["root/form.hematology.details:blocks:0"]["spans"][
+                "root/form.hematology.details/form.hematology.differential_count"
+            ],
+            6,
+        )
+        self.assertEqual(
+            legacy_layout["grids"][
+                "root/form.hematology.details/form.hematology.differential_count:0"
+            ]["spans"],
+            {
+                "form.hematology.segmenters": 2,
+                "form.hematology.lymphocytes": 2,
+                "form.hematology.monocytes": 2,
+                "form.hematology.eosinophils": 2,
+                "form.hematology.stab": 2,
+                "form.hematology.e_s_r_m": 3,
+                "form.hematology.e_s_r_f": 3,
+            },
+        )
         details = next(
             block
             for block in block_schema["blocks"]

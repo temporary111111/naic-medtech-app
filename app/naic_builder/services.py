@@ -3569,6 +3569,73 @@ def ensure_default_top_level_container(
     return container, True
 
 
+HEMATOLOGY_LEGACY_A5_LAYOUT_DEFAULT = {
+    "version": PRINT_LAYOUT_PREFERENCE_VERSION,
+    "grids": {
+        **legacy_a5_patient_information_grid(HEMATOLOGY_FORM_KEY),
+        "root/form.hematology.details/form.hematology.differential_count:0": {
+            "field_ids": [
+                "form.hematology.segmenters",
+                "form.hematology.lymphocytes",
+                "form.hematology.monocytes",
+                "form.hematology.eosinophils",
+                "form.hematology.stab",
+                "form.hematology.e_s_r_m",
+                "form.hematology.e_s_r_f",
+            ],
+            "mode": "manual",
+            "spans": {
+                "form.hematology.segmenters": 2,
+                "form.hematology.lymphocytes": 2,
+                "form.hematology.monocytes": 2,
+                "form.hematology.eosinophils": 2,
+                "form.hematology.stab": 2,
+                "form.hematology.e_s_r_m": 3,
+                "form.hematology.e_s_r_f": 3,
+            },
+            "order": [],
+        },
+    },
+    "containers": {},
+    "blocks": {
+        "root/form.hematology.details:blocks:0": {
+            "block_ids": [
+                "form.hematology.rbc_count_m",
+                "form.hematology.rbc_count_f",
+                "form.hematology.wbc_count",
+                "form.hematology.hemoglobin_m",
+                "form.hematology.hemoglobin_f",
+                "form.hematology.hematocrit_m",
+                "form.hematology.hematocrit_f",
+                "form.hematology.platelet_count",
+                "form.hematology.clotting_time",
+                "form.hematology.bleeding_time",
+                "form.hematology.blood_typing",
+                "root/form.hematology.details/form.hematology.differential_count",
+                "form.hematology.others",
+            ],
+            "mode": "manual",
+            "spans": {
+                "form.hematology.rbc_count_m": 2,
+                "form.hematology.rbc_count_f": 2,
+                "form.hematology.wbc_count": 2,
+                "form.hematology.hemoglobin_m": 2,
+                "form.hematology.hemoglobin_f": 2,
+                "form.hematology.hematocrit_m": 2,
+                "form.hematology.hematocrit_f": 2,
+                "form.hematology.platelet_count": 2,
+                "form.hematology.clotting_time": 2,
+                "form.hematology.bleeding_time": 2,
+                "form.hematology.blood_typing": 2,
+                "root/form.hematology.details/form.hematology.differential_count": 6,
+                "form.hematology.others": 6,
+            },
+            "order": [],
+        },
+    },
+}
+
+
 def ensure_default_hematology_layout(block_schema: dict[str, Any]) -> bool:
     if not isinstance(block_schema, dict):
         return False
@@ -3577,7 +3644,15 @@ def ensure_default_hematology_layout(block_schema: dict[str, Any]) -> bool:
     if compact_text(meta.get("form_key")) != HEMATOLOGY_FORM_KEY:
         return False
     if meta.get(DEFAULT_HEMATOLOGY_LAYOUT_META_KEY) is True:
-        return False
+        if not ensure_form_print_layout_default(
+            meta,
+            template_id="legacy_landscape",
+            paper_size="a5",
+            layout=HEMATOLOGY_LEGACY_A5_LAYOUT_DEFAULT,
+        ):
+            return False
+        block_schema["meta"] = meta
+        return True
 
     changed = configure_default_field_properties(block_schema, HEMATOLOGY_FIELD_DEFAULTS)
     details, details_created = ensure_default_top_level_container(
@@ -3638,6 +3713,12 @@ def ensure_default_hematology_layout(block_schema: dict[str, Any]) -> bool:
         changed = True
 
     meta[DEFAULT_HEMATOLOGY_LAYOUT_META_KEY] = True
+    ensure_form_print_layout_default(
+        meta,
+        template_id="legacy_landscape",
+        paper_size="a5",
+        layout=HEMATOLOGY_LEGACY_A5_LAYOUT_DEFAULT,
+    )
     block_schema["meta"] = meta
     return True
 
