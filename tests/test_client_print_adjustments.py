@@ -458,6 +458,16 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                 hiv_fields = fields_by_key(schemas["hiv_1_and_2_testing"]["blocks"])
                 covid_fields = fields_by_key(schemas["covid_19_antigen_rapid_test"]["blocks"])
                 microbiology_fields = fields_by_key(schemas["microbiology"]["blocks"])
+                hiv_definition = next(
+                    definition
+                    for definition in session.scalars(select(FormDefinition)).all()
+                    if definition.slug == "hiv_1_and_2_testing"
+                )
+                hiv_layout = form_version_print_layout_preference(
+                    current_version(hiv_definition),
+                    template_id="legacy_landscape",
+                    paper_size="a5",
+                )
                 microbiology_definition = next(
                     definition
                     for definition in session.scalars(select(FormDefinition)).all()
@@ -469,6 +479,13 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                     paper_size="a5",
                 )
 
+                self.assertEqual(
+                    hiv_layout["grids"]["root/form.hiv_1_and_2_testing.details:0"]["spans"],
+                    {
+                        "form.hiv_1_and_2_testing.lot_number": 3,
+                        "form.hiv_1_and_2_testing.test_result": 3,
+                    },
+                )
                 self.assertEqual(
                     microbiology_layout["grids"]["root/form.microbiology.details:0"]["spans"],
                     {"form.microbiology.result": 6},

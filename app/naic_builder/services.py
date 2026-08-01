@@ -711,6 +711,14 @@ PRO_TIME_APTT_LEGACY_A5_LAYOUT_DEFAULT = {
 }
 HIV_1_AND_2_TESTING_FORM_KEY = "hiv_1_and_2_testing"
 DEFAULT_HIV_1_AND_2_TESTING_DEFAULTS_META_KEY = "default_hiv_1_and_2_testing_defaults_v1"
+HIV_1_AND_2_TESTING_LEGACY_A5_LAYOUT_DEFAULT = qualitative_result_legacy_a5_layout(
+    HIV_1_AND_2_TESTING_FORM_KEY,
+    ("lot_number", "test_result"),
+    spans={
+        "form.hiv_1_and_2_testing.lot_number": 3,
+        "form.hiv_1_and_2_testing.test_result": 3,
+    },
+)
 COVID_19_ANTIGEN_RAPID_TEST_FORM_KEY = "covid_19_antigen_rapid_test"
 DEFAULT_COVID_19_ANTIGEN_RAPID_TEST_DEFAULTS_META_KEY = "default_covid_19_antigen_rapid_test_defaults_v2"
 MICROBIOLOGY_FORM_KEY = "microbiology"
@@ -3695,6 +3703,7 @@ def ensure_default_hiv_1_and_2_testing_layout(block_schema: dict[str, Any]) -> b
         details_name="HIV 1&2 Testing Details",
         detail_field_keys=("lot_number", "test_result"),
         normal_choice_options={"test_result": ("NON-REACTIVE",)},
+        print_layout=HIV_1_AND_2_TESTING_LEGACY_A5_LAYOUT_DEFAULT,
     )
 
 
