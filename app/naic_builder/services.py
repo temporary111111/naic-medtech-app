@@ -1427,6 +1427,7 @@ def save_user_print_layout_preference(
     template_id: Any,
     paper_size: Any,
     preference: Any,
+    commit: bool = True,
 ) -> dict[str, Any]:
     profile_key = print_layout_profile_key(form_id, template_id, paper_size)
     profiles = user_print_layout_preferences(user)
@@ -1442,7 +1443,10 @@ def save_user_print_layout_preference(
         },
         ensure_ascii=False,
     )
-    save_user(session, user)
+    if commit:
+        save_user(session, user)
+    else:
+        session.add(user)
     return normalized_preference
 
 
@@ -1581,11 +1585,18 @@ def snapshot_completed_record_print_presentation(
     user: User | None,
 ) -> RecordPrintPresentation:
     profile = user_print_preferences(user)
-    layout = form_version_print_layout_preference(
+    form_layout = form_version_print_layout_preference(
         record.form_version,
         template_id=profile["template_id"],
         paper_size=profile["paper_size"],
     )
+    personal_layout = user_print_layout_preference(
+        user,
+        form_id=record.form_id,
+        template_id=profile["template_id"],
+        paper_size=profile["paper_size"],
+    )
+    layout = personal_layout if any(personal_layout[key] for key in ("grids", "containers", "blocks")) else form_layout
     return apply_record_print_presentation(
         session,
         record,

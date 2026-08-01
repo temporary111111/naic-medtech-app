@@ -138,6 +138,7 @@ from .services import (
     save_form_print_layout_default,
     save_signatory_stamp_image,
     save_user_avatar,
+    save_user_print_layout_preference,
     save_user_print_preferences,
     save_record_print_presentation,
     store_record_image_asset,
@@ -1792,6 +1793,15 @@ async def save_record_print_layout(
         document["items"],
         field_grid_units=int(document["template"]["field_grid_units"]),
     )
+    save_user_print_layout_preference(
+        session,
+        user,
+        form_id=record.form_id,
+        template_id=profile["template_id"],
+        paper_size=profile["paper_size"],
+        preference=preference,
+        commit=False,
+    )
     saved = save_record_print_presentation(
         session,
         record,
@@ -1799,7 +1809,10 @@ async def save_record_print_layout(
         profile=profile,
         layout=preference,
     )
-    return JSONResponse({"presentation": saved, "message": "Print setup and layout saved for this record."})
+    return JSONResponse({
+        "presentation": saved,
+        "message": "Layout saved for this record and future records using this print setup.",
+    })
 
 
 @app.delete("/records/{record_id}/print-presentation")

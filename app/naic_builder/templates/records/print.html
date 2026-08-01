@@ -87,7 +87,7 @@
         {% else %}
         <button type="button" data-layout-restore-form title="Remove this record setup and use the form-version default"{% if not record_has_print_presentation %} hidden{% endif %}>Restore form default</button>
         {% endif %}
-        <button type="button" data-layout-save title="Save this print setup and layout">{{ 'Save form default' if is_form_layout_builder else 'Save record layout' }}</button>
+        <button type="button" data-layout-save title="Save this layout for this record and future records using this print setup">{{ 'Save form default' if is_form_layout_builder else 'Save layout' }}</button>
         <button type="button" class="is-primary" data-layout-done>Done</button>
       </div>
       <p class="print-layout-editor-status" data-layout-editor-status role="status" aria-live="polite"></p>
@@ -843,7 +843,7 @@
             restoreFormDefaultButton.hidden = false;
             restoreFormDefaultButton.disabled = false;
           }
-          setLayoutStatus(result.message || "Print setup and layout saved for this record.");
+          setLayoutStatus(result.message || "Layout saved for this record and future records using this print setup.");
         } catch (error) {
           setLayoutStatus(error.message || "Could not save the print layout.", true);
         } finally {

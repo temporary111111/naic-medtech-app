@@ -2180,7 +2180,7 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn('data-layout-grid', editor_source)
         self.assertIn('Reset selection', editor_source)
         self.assertIn('Restore form default', editor_source)
-        self.assertIn('Save record layout', editor_source)
+        self.assertIn('Save layout', editor_source)
         self.assertIn('data-layout-restore-form title="Remove this record setup and use the form-version default"{% if not record_has_print_presentation %} hidden{% endif %}', editor_source)
         self.assertIn('restoreFormDefaultButton.hidden = false;', editor_source)
         self.assertIn('const directGridCellFromElement = (grid, element) => {', editor_source)
@@ -2446,6 +2446,44 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                         fallback_profile=profile,
                     )["source"],
                     "record",
+                )
+
+                personal_layout = {
+                    "grids": {
+                        "root/form.blood_bank.patient_information:0": {
+                            "field_ids": ["form.blood_bank.patient_information.name"],
+                            "mode": "manual",
+                            "spans": {"form.blood_bank.patient_information.name": 4},
+                        }
+                    }
+                }
+                save_user_print_layout_preference(
+                    session,
+                    owner,
+                    form_id=definition.id,
+                    template_id=profile["template_id"],
+                    paper_size=profile["paper_size"],
+                    preference=personal_layout,
+                )
+                personal_record = Record(
+                    record_key="PERSONAL-LAYOUT-RECORD",
+                    form_id=definition.id,
+                    form_version_id=updated_version.id,
+                    created_by_user_id=owner.id,
+                    status="completed",
+                )
+                session.add(personal_record)
+                session.commit()
+                snapshot_completed_record_print_presentation(
+                    session,
+                    personal_record,
+                    user=owner,
+                )
+                session.commit()
+                session.refresh(personal_record)
+                self.assertEqual(
+                    json.loads(personal_record.print_presentation.layout_json),
+                    normalize_print_layout_preference(personal_layout),
                 )
 
                 record_layout = {
