@@ -37,7 +37,7 @@ from .backup_schedule import (
     start_change_backup_worker,
     stop_change_backup_worker,
 )
-from .config import APP_TITLE, PRODUCT_ID, SESSION_SECRET, SIGNATORY_UPLOADS_DIR, STATIC_DIR, TEMPLATES_DIR
+from .config import APP_TITLE, ORGANIZATION_SHORT_NAME, PRODUCT_ID, SESSION_SECRET, SIGNATORY_UPLOADS_DIR, STATIC_DIR, TEMPLATES_DIR
 from .database import SessionLocal, ensure_runtime_schema, get_session
 from .desktop_settings import (
     BROWSER_PREFERENCE_OPTIONS,
@@ -193,6 +193,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title=APP_TITLE, lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+templates.env.globals["app_window_title"] = ORGANIZATION_SHORT_NAME
 
 
 PUBLIC_PATHS = {

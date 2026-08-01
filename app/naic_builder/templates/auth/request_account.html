@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Request Account | {{ app_title }}</title>
+  <title>{{ (request.state.clinic_profile or {}).get('clinic_name') or app_window_title }}</title>
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
   <link rel="manifest" href="{{ url_for('static', path='manifest.webmanifest') }}?v=20260606-app-icon-source">
