@@ -876,6 +876,50 @@ FECALYSIS_NORMAL_CHOICE_OPTIONS = {
     "fecal_occult_blood": ("NEGATIVE",),
     "parasites": ("NO OVA NOR PARASITES SEEN",),
 }
+URINE_FORM_KEY = "urine"
+DEFAULT_URINE_DEFAULTS_META_KEY = "default_urine_defaults_v1"
+URINE_LEGACY_A5_LAYOUT_DEFAULT = {
+    "version": PRINT_LAYOUT_PREFERENCE_VERSION,
+    "grids": {
+        **legacy_a5_patient_information_grid(URINE_FORM_KEY),
+        "root/form.urine.clinical_finding:0": {
+            "field_ids": [
+                "form.urine.sugar",
+                "form.urine.protein",
+            ],
+            "mode": "manual",
+            "spans": {
+                "form.urine.sugar": 3,
+                "form.urine.protein": 3,
+            },
+            "order": [],
+        },
+    },
+    "containers": {
+        "root:containers:0": {
+            "container_ids": [
+                "root/form.urine.patient_information",
+                "root/form.urine.macroscopic_finding",
+                "root/form.urine.microscopic_finding",
+                "root/form.urine.clinical_finding",
+            ],
+            "mode": "manual",
+            "spans": {
+                "root/form.urine.patient_information": 6,
+                "root/form.urine.macroscopic_finding": 2,
+                "root/form.urine.microscopic_finding": 4,
+                "root/form.urine.clinical_finding": 6,
+            },
+            "order": [
+                "root/form.urine.patient_information",
+                "root/form.urine.macroscopic_finding",
+                "root/form.urine.microscopic_finding",
+                "root/form.urine.clinical_finding",
+            ],
+        },
+    },
+    "blocks": {},
+}
 SEROLOGY_FORM_KEY = "serology"
 DEFAULT_SEROLOGY_DEFAULTS_META_KEY = "default_serology_defaults_v1"
 SEROLOGY_LEGACY_A5_LAYOUT_DEFAULT = {
@@ -3889,6 +3933,41 @@ def ensure_default_serology_layout(block_schema: dict[str, Any]) -> bool:
         template_id="legacy_landscape",
         paper_size="a5",
         layout=SEROLOGY_LEGACY_A5_LAYOUT_DEFAULT,
+    )
+    block_schema["meta"] = meta
+    return True
+
+
+def ensure_default_urine_layout(block_schema: dict[str, Any]) -> bool:
+    if not isinstance(block_schema, dict):
+        return False
+
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    if compact_text(meta.get("form_key")) != URINE_FORM_KEY:
+        return False
+    if meta.get(DEFAULT_URINE_DEFAULTS_META_KEY) is True:
+        if not ensure_form_print_layout_default(
+            meta,
+            template_id="legacy_landscape",
+            paper_size="a5",
+            layout=URINE_LEGACY_A5_LAYOUT_DEFAULT,
+        ):
+            return False
+        block_schema["meta"] = meta
+        return True
+
+    blocks = normalize_items(block_schema.get("blocks"))
+    if any(
+        find_top_level_block_by_key(blocks, container_key) is None
+        for container_key in ("macroscopic_finding", "clinical_finding", "microscopic_finding")
+    ):
+        return False
+    meta[DEFAULT_URINE_DEFAULTS_META_KEY] = True
+    ensure_form_print_layout_default(
+        meta,
+        template_id="legacy_landscape",
+        paper_size="a5",
+        layout=URINE_LEGACY_A5_LAYOUT_DEFAULT,
     )
     block_schema["meta"] = meta
     return True
@@ -8720,6 +8799,15 @@ def ensure_fecalysis_defaults(session: Session) -> int:
         form_key=FECALYSIS_FORM_KEY,
         layout=ensure_default_fecalysis_layout,
         summary="Applied approved Fecalysis defaults.",
+    )
+
+
+def ensure_urine_defaults(session: Session) -> int:
+    return ensure_qualitative_result_form_defaults(
+        session,
+        form_key=URINE_FORM_KEY,
+        layout=ensure_default_urine_layout,
+        summary="Applied approved Urine defaults.",
     )
 
 
