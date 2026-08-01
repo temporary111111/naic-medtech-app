@@ -572,6 +572,17 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
 
         self.assertTrue(ensure_default_blood_gas_analysis_layout(block_schema))
         legacy_layout = block_schema["meta"]["print_layout_defaults"]["profiles"]["legacy_landscape:a5"]
+        self.assertEqual(len(block_schema["meta"]["print_layout_defaults"]["profiles"]), 20)
+        self.assertEqual(
+            block_schema["meta"]["print_layout_defaults"]["profiles"]["classic_portrait:a4"]["containers"][
+                "root:containers:0"
+            ]["spans"],
+            {
+                "root/form.blood_gas_analysis.patient_information": 4,
+                "root/form.blood_gas_analysis.blood_gas_values": 2,
+                "root/form.blood_gas_analysis.calculated_values": 4,
+            },
+        )
         self.assertEqual(
             legacy_layout["containers"]["root:containers:0"]["spans"],
             {

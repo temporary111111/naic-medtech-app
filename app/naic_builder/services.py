@@ -4247,12 +4247,7 @@ def set_default_blood_gas_container(
 
 
 def ensure_default_blood_gas_print_layout(meta: dict[str, Any]) -> bool:
-    return ensure_form_print_layout_default(
-        meta,
-        template_id="legacy_landscape",
-        paper_size="a5",
-        layout=BLOOD_GAS_LEGACY_A5_LAYOUT_DEFAULT,
-    )
+    return ensure_form_print_layout_profile_matrix(meta, BLOOD_GAS_LEGACY_A5_LAYOUT_DEFAULT)
 
 
 def ensure_form_print_layout_default(
