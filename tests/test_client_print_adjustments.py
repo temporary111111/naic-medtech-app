@@ -468,6 +468,16 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                     template_id="legacy_landscape",
                     paper_size="a5",
                 )
+                covid_definition = next(
+                    definition
+                    for definition in session.scalars(select(FormDefinition)).all()
+                    if definition.slug == "covid_19_antigen_rapid_test"
+                )
+                covid_layout = form_version_print_layout_preference(
+                    current_version(covid_definition),
+                    template_id="legacy_landscape",
+                    paper_size="a5",
+                )
                 microbiology_definition = next(
                     definition
                     for definition in session.scalars(select(FormDefinition)).all()
@@ -484,6 +494,13 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                     {
                         "form.hiv_1_and_2_testing.lot_number": 3,
                         "form.hiv_1_and_2_testing.test_result": 3,
+                    },
+                )
+                self.assertEqual(
+                    covid_layout["grids"]["root/form.covid_19_antigen_rapid_test.details:0"]["spans"],
+                    {
+                        "form.covid_19_antigen_rapid_test.test_result": 6,
+                        "form.covid_19_antigen_rapid_test.result_image": 6,
                     },
                 )
                 self.assertEqual(

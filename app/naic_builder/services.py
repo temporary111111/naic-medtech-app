@@ -721,6 +721,10 @@ HIV_1_AND_2_TESTING_LEGACY_A5_LAYOUT_DEFAULT = qualitative_result_legacy_a5_layo
 )
 COVID_19_ANTIGEN_RAPID_TEST_FORM_KEY = "covid_19_antigen_rapid_test"
 DEFAULT_COVID_19_ANTIGEN_RAPID_TEST_DEFAULTS_META_KEY = "default_covid_19_antigen_rapid_test_defaults_v2"
+COVID_19_ANTIGEN_RAPID_TEST_LEGACY_A5_LAYOUT_DEFAULT = qualitative_result_legacy_a5_layout(
+    COVID_19_ANTIGEN_RAPID_TEST_FORM_KEY,
+    ("test_result", "result_image"),
+)
 MICROBIOLOGY_FORM_KEY = "microbiology"
 DEFAULT_MICROBIOLOGY_DEFAULTS_META_KEY = "default_microbiology_defaults_v1"
 MICROBIOLOGY_LEGACY_A5_LAYOUT_DEFAULT = qualitative_result_legacy_a5_layout(
@@ -3716,6 +3720,7 @@ def ensure_default_covid_19_antigen_rapid_test_layout(block_schema: dict[str, An
         detail_field_keys=("test_result",),
         normal_choice_options={"test_result": ("NEGATIVE",)},
         result_image={"key": "result_image", "name": "Result Image", "required": False},
+        print_layout=COVID_19_ANTIGEN_RAPID_TEST_LEGACY_A5_LAYOUT_DEFAULT,
     )
 
 
