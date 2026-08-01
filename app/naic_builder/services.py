@@ -3892,6 +3892,7 @@ def ensure_default_hiv_1_and_2_testing_layout(block_schema: dict[str, Any]) -> b
         detail_field_keys=("lot_number", "test_result"),
         normal_choice_options={"test_result": ("NON-REACTIVE",)},
         print_layout=HIV_1_AND_2_TESTING_LEGACY_A5_LAYOUT_DEFAULT,
+        print_profile_matrix=True,
     )
 
 
