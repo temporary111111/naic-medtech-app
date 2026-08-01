@@ -826,6 +826,35 @@ BLOOD_CHEMISTRY_RESULT_FIELD_KEYS = (
     "sgot_ast",
     "sgpt_alt",
 )
+
+
+def blood_chemistry_legacy_a5_layout(form_key: str) -> dict[str, Any]:
+    """Keep the long chemistry panel compact without fixing it to a Word table."""
+    prefix = f"form.{form_key}"
+    field_ids = [
+        *(f"{prefix}.{field_key}" for field_key in BLOOD_CHEMISTRY_RESULT_FIELD_KEYS),
+        f"{prefix}.others",
+    ]
+    spans = {field_id: 2 for field_id in field_ids}
+    spans[f"{prefix}.sgot_ast"] = 3
+    spans[f"{prefix}.sgpt_alt"] = 3
+    spans[f"{prefix}.others"] = 6
+    return {
+        "version": PRINT_LAYOUT_PREFERENCE_VERSION,
+        "grids": {
+            **legacy_a5_patient_information_grid(form_key),
+            f"root/{prefix}.details:0": {
+                "field_ids": field_ids,
+                "mode": "manual",
+                "spans": spans,
+                "order": [],
+            },
+        },
+        "containers": {},
+        "blocks": {},
+    }
+
+
 BLOOD_CHEMISTRY_RANGES_BY_FORM_KEY = {
     BLOOD_CHEMISTRY_MALE_FORM_KEY: {
         "fasting_blood_sugar": ("70.27", "124.32"),
@@ -3629,6 +3658,7 @@ def ensure_default_blood_chemistry_layout(
     form_key: str,
     meta_key: str,
     details_name: str,
+    print_layout: dict[str, Any] | None = None,
 ) -> bool:
     if not isinstance(block_schema, dict):
         return False
@@ -3637,7 +3667,15 @@ def ensure_default_blood_chemistry_layout(
     if compact_text(meta.get("form_key")) != form_key:
         return False
     if meta.get(meta_key) is True:
-        return False
+        if print_layout is None or not ensure_form_print_layout_default(
+            meta,
+            template_id="legacy_landscape",
+            paper_size="a5",
+            layout=print_layout,
+        ):
+            return False
+        block_schema["meta"] = meta
+        return True
 
     details, _ = ensure_default_top_level_container(
         block_schema,
@@ -3664,6 +3702,13 @@ def ensure_default_blood_chemistry_layout(
         },
     )
     meta[meta_key] = True
+    if print_layout is not None:
+        ensure_form_print_layout_default(
+            meta,
+            template_id="legacy_landscape",
+            paper_size="a5",
+            layout=print_layout,
+        )
     block_schema["meta"] = meta
     return True
 
@@ -3674,6 +3719,7 @@ def ensure_default_blood_chemistry_male_layout(block_schema: dict[str, Any]) -> 
         form_key=BLOOD_CHEMISTRY_MALE_FORM_KEY,
         meta_key=DEFAULT_BLOOD_CHEMISTRY_MALE_DEFAULTS_META_KEY,
         details_name="Male Details",
+        print_layout=blood_chemistry_legacy_a5_layout(BLOOD_CHEMISTRY_MALE_FORM_KEY),
     )
 
 

@@ -818,6 +818,33 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             block_schema = build_block_storage_document_from_legacy_storage(forms[form_key])
             ensure_reference_examination_in_patient_info(block_schema, reference_form_slugs())
             self.assertTrue(layout_by_key[form_key](block_schema))
+            if form_key == "male":
+                legacy_layout = block_schema["meta"]["print_layout_defaults"]["profiles"][
+                    "legacy_landscape:a5"
+                ]
+                self.assertEqual(
+                    legacy_layout["grids"]["root/form.male.details:0"]["spans"],
+                    {
+                        "form.male.fasting_blood_sugar": 2,
+                        "form.male.random_blood_sugar": 2,
+                        "form.male.hgt": 2,
+                        "form.male.blood_urea_nitrogen": 2,
+                        "form.male.creatinine": 2,
+                        "form.male.blood_uric_acid": 2,
+                        "form.male.sodium": 2,
+                        "form.male.potassium": 2,
+                        "form.male.chloride": 2,
+                        "form.male.ionized_calcium": 2,
+                        "form.male.cholesterol": 2,
+                        "form.male.triglyceride": 2,
+                        "form.male.hdl_cholesterol": 2,
+                        "form.male.ldl_cholesterol": 2,
+                        "form.male.vldl_cholesterol": 2,
+                        "form.male.sgot_ast": 3,
+                        "form.male.sgpt_alt": 3,
+                        "form.male.others": 6,
+                    },
+                )
             details = next(block for block in block_schema["blocks"] if block["props"]["key"] == "details")
             fields = {child["props"]["key"]: child for child in details["children"]}
             self.assertIn("others", fields)
