@@ -817,6 +817,22 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
 
         self.assertTrue(ensure_default_hba1c_layout(block_schema))
         legacy_layout = block_schema["meta"]["print_layout_defaults"]["profiles"]["legacy_landscape:a5"]
+        self.assertEqual(len(block_schema["meta"]["print_layout_defaults"]["profiles"]), 20)
+        self.assertEqual(
+            block_schema["meta"]["print_layout_defaults"]["profiles"]["modern_portrait:a4"]["grids"][
+                "root/form.hba1c.patient_information:0"
+            ]["spans"],
+            {
+                "form.hba1c.patient_information.name": 2,
+                "form.hba1c.patient_information.age": 2,
+                "form.hba1c.patient_information.sex": 2,
+                "form.hba1c.patient_information.date_or_datetime": 2,
+                "form.hba1c.examination": 2,
+                "form.hba1c.patient_information.requesting_physician": 2,
+                "form.hba1c.patient_information.room": 2,
+                "form.hba1c.patient_information.case_number": 2,
+            },
+        )
         self.assertEqual(
             legacy_layout["grids"]["root/form.hba1c.patient_information:0"]["spans"],
             {
