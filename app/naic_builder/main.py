@@ -1100,7 +1100,7 @@ def render_record_print_page(
         context={
             "app_title": APP_TITLE,
             "back_href": f"/records/{record.id}?{history_query}" if history_query else f"/records/{record.id}",
-            "back_label": "Back to record",
+            "back_label": "Back",
             "print_style_options": print_style_options(),
             "print_orientation_options": print_orientation_options(),
             "print_paper_size_options": print_paper_size_options(),
