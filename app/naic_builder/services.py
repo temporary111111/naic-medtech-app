@@ -6063,7 +6063,7 @@ def estimate_print_page_fit(document: dict[str, Any]) -> dict[str, Any]:
     likely_fit_ratio = 0.90 if requires_one_page else 0.82
     if estimated_units <= limit_units * likely_fit_ratio:
         status = "likely"
-        label = "Ready for one-page A5" if requires_one_page else "Likely fits one page"
+        label = "Likely 1 page"
         detail = (
             "Legacy A5 is configured to print this record on one page."
             if requires_one_page
@@ -6071,7 +6071,7 @@ def estimate_print_page_fit(document: dict[str, Any]) -> dict[str, Any]:
         )
     elif estimated_units <= limit_units:
         status = "tight"
-        label = "May be tight"
+        label = "Check print preview"
         detail = (
             "A5 has limited vertical space. Check browser print preview before release."
             if paper_size == "a5"
@@ -6079,7 +6079,7 @@ def estimate_print_page_fit(document: dict[str, Any]) -> dict[str, Any]:
         )
     else:
         status = "long"
-        label = "Likely exceeds one page"
+        label = "Likely 2 pages"
         detail = (
             "This A5 layout will likely continue on another page. You can still print it, "
             "or use a larger paper size."

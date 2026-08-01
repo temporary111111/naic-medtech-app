@@ -430,6 +430,16 @@ body {
   text-align: left;
 }
 
+.print-active-profile[data-fit="tight"] {
+  border-color: rgba(122, 88, 11, 0.45);
+  background: rgba(255, 249, 233, 0.92);
+}
+
+.print-active-profile[data-fit="long"] {
+  border-color: rgba(160, 37, 37, 0.48);
+  background: rgba(255, 244, 244, 0.94);
+}
+
 .print-active-profile span {
   color: var(--muted);
   font-size: 9px;
@@ -530,6 +540,10 @@ body {
 
 .print-more-menu summary {
   list-style: none;
+  min-width: 38px;
+  padding-inline: 10px;
+  font-size: 15px;
+  letter-spacing: 0.12em;
 }
 
 .print-more-menu summary::-webkit-details-marker {
@@ -1996,6 +2010,21 @@ body {
     grid-row: 2;
   }
 
+  .print-page-viewport {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 10px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .print-page-viewport .print-page {
+    width: var(--print-page-width);
+    min-width: var(--print-page-width);
+    max-width: none;
+    margin-inline: 0;
+  }
+
   .print-fit-notice {
     grid-column: 1 / -1;
     grid-row: 4;
@@ -2397,6 +2426,13 @@ body.is-layout-resizing * {
   .print-page {
     width: auto;
     margin: 0;
+  }
+
+  .print-page-viewport {
+    width: auto;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
   }
 
   .print-page {

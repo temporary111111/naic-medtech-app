@@ -6,11 +6,11 @@
   <title>Print Record | {{ document.form_name }}</title>
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
-  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260731-header-text-color">
+  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260731-print-command-polish">
   {% set presentation = document.template or {} %}
   {% set record_meta = document["record"] or {} %}
 </head>
-<body class="print-template-{{ document.print_config.template_id | replace('_', '-') }} print-header-text-{{ document.print_config.header_text_color | default('auto') }} print-paper-{{ presentation.paper_size }} print-text-{{ document.print_config.text_size | replace('_', '-') }} print-density-{{ document.print_config.density }} print-font-{{ (document.print_config.font_family or 'arial_narrow') | replace('_', '-') }}" data-print-record-id="{{ record_meta.id }}" data-print-template-id="{{ document.print_config.template_id }}" data-print-paper-size="{{ presentation.paper_size }}" data-print-text-size="{{ document.print_config.text_size }}" data-print-paper-label="{{ presentation.paper_size_label }}" data-print-requires-one-page="{{ 'true' if presentation.requires_one_page else 'false' }}" data-print-layout-save-url="{{ layout_save_url }}" data-print-layout-restore-url="{{ layout_restore_url }}" data-print-fit-url="{{ print_fit_url }}" data-form-layout-builder="{{ 'true' if is_form_layout_builder else 'false' }}" style="--accent: {{ document.print_config.accent_color }}; --accent-ink: {{ document.print_accent_ink or '#ffffff' }}; --header-ink: {{ document.print_header_ink or document.print_accent_ink or '#ffffff' }}; --print-page-width: {{ presentation.page_width_mm }}mm; --print-page-height: {{ presentation.page_height_mm }}mm;">
+<body class="print-template-{{ document.print_config.template_id | replace('_', '-') }} print-header-text-{{ document.print_config.header_text_color | default('auto') }} print-paper-{{ presentation.paper_size }} print-text-{{ document.print_config.text_size | replace('_', '-') }} print-density-{{ document.print_config.density }} print-font-{{ (document.print_config.font_family or 'arial_narrow') | replace('_', '-') }}" data-print-record-id="{{ record_meta.id }}" data-print-template-id="{{ document.print_config.template_id }}" data-print-paper-size="{{ presentation.paper_size }}" data-print-text-size="{{ document.print_config.text_size }}" data-print-paper-label="{{ presentation.paper_size_label }}" data-print-layout-save-url="{{ layout_save_url }}" data-print-layout-restore-url="{{ layout_restore_url }}" data-print-fit-url="{{ print_fit_url }}" data-form-layout-builder="{{ 'true' if is_form_layout_builder else 'false' }}" style="--accent: {{ document.print_config.accent_color }}; --accent-ink: {{ document.print_accent_ink or '#ffffff' }}; --header-ink: {{ document.print_header_ink or document.print_accent_ink or '#ffffff' }}; --print-page-width: {{ presentation.page_width_mm }}mm; --print-page-height: {{ presentation.page_height_mm }}mm;">
   {% if presentation.requires_one_page %}
   <style>@page { size: {{ presentation.page_css_size }} landscape; margin: 4mm 6mm; }</style>
   {% elif presentation.orientation_key == "landscape" %}
@@ -27,19 +27,18 @@
         <a class="print-command-back" href="{{ back_href }}">{{ back_label }}</a>
         <div class="print-command-record">
           <strong>{{ document.form_name }}</strong>
-          <span>{{ document.record_key }}</span>
         </div>
       </div>
       <div class="print-command-actions">
         {% if can_manage_print_presentation %}
-        <button class="print-active-profile" type="button" data-open-print-settings aria-haspopup="dialog" aria-label="Change print settings" title="Change print settings">
+        <button class="print-active-profile" type="button" data-print-profile data-fit="{{ fit.status or 'likely' }}" data-open-print-settings aria-haspopup="dialog" aria-label="Change print settings" title="Change print settings">
           <span>Print setup</span>
           <strong>{{ presentation.style_label }} | {{ presentation.orientation }} | {{ presentation.text_size_label }} | {{ presentation.paper_size_label }}</strong>
           <small class="print-fit-status" data-print-fit-status data-fit="{{ fit.status or 'likely' }}" title="{{ fit.detail or 'Use browser print preview for final confirmation.' }}"><span data-print-fit-label>{{ fit.label or 'One-page check' }}</span></small>
         </button>
         <button class="print-link print-layout-command" type="button" data-open-layout-editor>Adjust layout</button>
         {% else %}
-        <div class="print-active-profile" aria-label="Print setup">
+        <div class="print-active-profile" data-print-profile data-fit="{{ fit.status or 'likely' }}" aria-label="Print setup">
           <span>Print setup</span>
           <strong>{{ presentation.style_label }} | {{ presentation.orientation }} | {{ presentation.text_size_label }} | {{ presentation.paper_size_label }}</strong>
           <small class="print-fit-status" data-print-fit-status data-fit="{{ fit.status or 'likely' }}" title="{{ fit.detail or 'Use browser print preview for final confirmation.' }}"><span data-print-fit-label>{{ fit.label or 'One-page check' }}</span></small>
@@ -47,7 +46,7 @@
         {% endif %}
         {% if not is_form_layout_builder %}
         <details class="print-more-menu">
-          <summary>More</summary>
+          <summary aria-label="More record actions" title="More record actions"><span aria-hidden="true">...</span></summary>
           <div class="print-more-panel">
             {% if record_meta.form_slug %}
             <form method="post" action="/records/new">
@@ -167,7 +166,9 @@
     </dialog>
     {% endif %}
 
-    {{ render_print_page(document) }}
+    <div class="print-page-viewport">
+      {{ render_print_page(document) }}
+    </div>
   </main>
   <script>
     (() => {
@@ -243,18 +244,19 @@
 
       const printFitStatus = document.querySelector("[data-print-fit-status]");
       const printFitLabel = document.querySelector("[data-print-fit-label]");
+      const printProfile = document.querySelector("[data-print-profile]");
       const fitRecordId = document.body.dataset.printRecordId || "";
       const fitTemplateId = document.body.dataset.printTemplateId || "";
       const fitPaperSize = document.body.dataset.printPaperSize || "";
       const fitTextSize = document.body.dataset.printTextSize || "";
       const fitUrl = document.body.dataset.printFitUrl || "";
-      const requiresOnePage = document.body.dataset.printRequiresOnePage === "true";
       let queuedPrintFitCheck = 0;
       let printFitRequestId = 0;
 
       const setPrintFitStatus = (status, label, detail) => {
         if (!printFitStatus || !printFitLabel) return;
         printFitStatus.dataset.fit = status;
+        if (printProfile) printProfile.dataset.fit = status;
         printFitLabel.textContent = label;
         printFitStatus.title = detail;
         printFitStatus.setAttribute("aria-label", detail);
@@ -262,11 +264,10 @@
 
       const renderPrintFitEstimate = (fit) => {
         const status = ["likely", "tight", "long"].includes(fit?.status) ? fit.status : "tight";
-        const prefix = requiresOnePage ? "Legacy A5" : "One-page";
         const labels = {
-          likely: `${prefix}: Likely one page`,
-          tight: `${prefix}: Check print preview`,
-          long: `${prefix}: May need 2 pages`,
+          likely: "Likely 1 page",
+          tight: "Check print preview",
+          long: "Likely 2 pages",
         };
         setPrintFitStatus(
           status,
