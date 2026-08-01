@@ -9,6 +9,7 @@
   --strong-line: #8ea39a;
   --accent: #1e5d52;
   --accent-ink: #ffffff;
+  --header-ink: var(--accent-ink);
   --alert: #a02525;
   --paper: #ffffff;
   --preview: #e9ece9;
@@ -769,7 +770,7 @@ body {
   padding: 6px 8px;
   border: 1px solid color-mix(in srgb, var(--accent) 86%, #000 14%);
   border-radius: 3px;
-  color: var(--accent-ink);
+  color: var(--header-ink);
   background: var(--accent);
   box-shadow: none;
   -webkit-print-color-adjust: exact;
@@ -815,6 +816,13 @@ body {
 .print-exam-head .print-path {
   color: currentColor;
   opacity: 0.8;
+}
+
+.print-header-text-black .print-exam-head .print-eyebrow,
+.print-header-text-black .print-exam-head .print-path,
+.print-header-text-white .print-exam-head .print-eyebrow,
+.print-header-text-white .print-exam-head .print-path {
+  opacity: 1;
 }
 
 .print-status {
@@ -1709,7 +1717,7 @@ body {
   align-items: center;
   min-height: 74px;
   padding: 0 4mm 0 0;
-  color: var(--accent-ink);
+  color: var(--header-ink);
   background: var(--accent);
 }
 
@@ -1735,7 +1743,7 @@ body {
 }
 
 .print-template-legacy-landscape .print-legacy-header .print-logo-placeholder {
-  color: var(--accent-ink);
+  color: var(--header-ink);
   background: transparent;
 }
 

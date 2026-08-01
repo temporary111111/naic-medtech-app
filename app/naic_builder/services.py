@@ -641,6 +641,10 @@ def normalize_print_accent_color(value: Any) -> str:
     return text.lower() if re.fullmatch(r"#[0-9a-fA-F]{6}", text) else DEFAULT_PRINT_ACCENT_COLOR
 
 
+def normalize_print_header_text_color(value: Any) -> str:
+    color = compact_text(value).lower()
+    return color if color in {"black", "white"} else "auto"
+
 def form_key_from_meta(meta: dict[str, Any]) -> str:
     raw_key = compact_text(meta.get("form_key")) or compact_text(meta.get("form_id"))
     if raw_key.startswith("form."):
@@ -671,6 +675,15 @@ def print_accent_text_color(value: Any) -> str:
     contrast_with_light = 1.05 / (luminance + 0.05)
     return "#171512" if contrast_with_dark >= contrast_with_light else "#ffffff"
 
+
+def print_header_text_color(print_config: dict[str, Any] | None) -> str:
+    config = print_config if isinstance(print_config, dict) else {}
+    color = normalize_print_header_text_color(config.get("header_text_color"))
+    if color == "black":
+        return "#171512"
+    if color == "white":
+        return "#ffffff"
+    return print_accent_text_color(config.get("accent_color"))
 
 def ensure_form_default_print_accent(meta: dict[str, Any]) -> bool:
     form_key = form_key_from_meta(meta)
@@ -1041,6 +1054,7 @@ def normalize_print_config(raw_config: Any) -> dict[str, Any]:
     return {
         "report_title": compact_text(config.get("report_title")),
         "accent_color": normalize_print_accent_color(config.get("accent_color")),
+        "header_text_color": normalize_print_header_text_color(config.get("header_text_color")),
         "density": normalize_print_density(config.get("density")),
         "font_family": normalize_print_font_family(config.get("font_family")),
         "show_logo": normalize_boolean_setting(config.get("show_logo"), default=True),
@@ -6120,6 +6134,7 @@ def build_form_print_preview_document(
     signatory_slots = normalize_signatory_slots(meta.get("signatories"), use_defaults=False)
     signatory_samples = normalize_record_signatory_snapshots({}, signatory_slots)
     print_accent_ink = print_accent_text_color(print_config.get("accent_color"))
+    print_header_ink = print_header_text_color(print_config)
     normalized_form_name = compact_text(form_name) or "Untitled Form"
     normalized_path = compact_text(form_path_label) or "Builder preview"
     report_title = resolve_print_report_title(
@@ -6172,6 +6187,7 @@ def build_form_print_preview_document(
         "clinic": build_print_clinic_profile(clinic_profile, logo_url=clinic_logo_url),
         "print_config": print_config,
         "print_accent_ink": print_accent_ink,
+        "print_header_ink": print_header_ink,
         "template": presentation,
         "title": report_title,
         "status": "draft",
@@ -6240,6 +6256,7 @@ def build_record_print_document(
         paper_size=paper_size,
     )
     print_accent_ink = print_accent_text_color(print_config.get("accent_color"))
+    print_header_ink = print_header_text_color(print_config)
     report_title = resolve_print_report_title(
         print_config,
         form_name=serialized["form_name"],
@@ -6276,6 +6293,7 @@ def build_record_print_document(
         "clinic": build_print_clinic_profile(clinic_profile, logo_url=clinic_logo_url),
         "print_config": print_config,
         "print_accent_ink": print_accent_ink,
+        "print_header_ink": print_header_ink,
         "template": presentation,
         "title": report_title,
         "status": serialized["status"],

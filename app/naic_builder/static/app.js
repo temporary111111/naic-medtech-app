@@ -655,6 +655,18 @@ function printAccentInkColor(value) {
   return darkContrast >= lightContrast ? "#171512" : "#ffffff";
 }
 
+function normalizePrintHeaderTextColor(value) {
+  const color = compactText(value).toLowerCase();
+  return ["black", "white"].includes(color) ? color : "auto";
+}
+
+function printHeaderTextInk(config) {
+  const color = normalizePrintHeaderTextColor(config?.header_text_color);
+  if (color === "black") return "#171512";
+  if (color === "white") return "#ffffff";
+  return printAccentInkColor(config?.accent_color);
+}
+
 function normalizePrintDensity(value) {
   const text = compactText(value).toLowerCase();
   return text === "comfortable" ? "comfortable" : "compact";
@@ -752,6 +764,7 @@ function getDraftPrintConfig(draft = state.draft) {
     return {
       report_title: "",
       accent_color: DEFAULT_PRINT_ACCENT_COLOR,
+      header_text_color: "auto",
       density: "compact",
       font_family: "arial_narrow",
       show_logo: true,
@@ -783,6 +796,7 @@ function getDraftPrintConfig(draft = state.draft) {
   const config = meta.print_config;
   config.report_title = compactText(config.report_title);
   config.accent_color = normalizePrintAccentColor(config.accent_color);
+  config.header_text_color = normalizePrintHeaderTextColor(config.header_text_color);
   config.density = normalizePrintDensity(config.density);
   config.font_family = normalizePrintFontFamily(config.font_family);
   config.show_logo = normalizePrintBoolean(config.show_logo, true);
@@ -825,6 +839,8 @@ function setDraftPrintConfigValue(key, value, draft = state.draft) {
     config.report_title = compactText(value);
   } else if (key === "accent_color") {
     config.accent_color = normalizePrintAccentColor(value);
+  } else if (key === "header_text_color") {
+    config.header_text_color = normalizePrintHeaderTextColor(value);
   } else if (key === "density") {
     config.density = normalizePrintDensity(value);
   } else if (key === "font_family") {
@@ -3206,7 +3222,7 @@ function renderPrintSummaryPreview(config) {
   }).join("");
 
   return `
-    <div class="print-mini-preview ${escapeHtml(printFontClass(config.font_family))}" style="--preview-accent: ${escapeHtml(config.accent_color)}; --preview-accent-ink: ${escapeHtml(printAccentInkColor(config.accent_color))}">
+    <div class="print-mini-preview ${escapeHtml(printFontClass(config.font_family))}" style="--preview-accent: ${escapeHtml(config.accent_color)}; --preview-accent-ink: ${escapeHtml(printHeaderTextInk(config))}">
       <div class="print-mini-preview__head">
         <span></span>
         <strong>${escapeHtml(reportTitle)}</strong>
@@ -3477,6 +3493,14 @@ function renderPrintCard() {
                 <label>
                   <span>Header color</span>
                   <input class="print-color-input" type="color" data-action="print-config-color" data-key="accent_color" value="${escapeHtml(config.accent_color)}">
+                </label>
+                <label>
+                  <span>Header text</span>
+                  <select data-bind="print_config.header_text_color">
+                    <option value="auto"${config.header_text_color === "auto" ? " selected" : ""}>Automatic</option>
+                    <option value="black"${config.header_text_color === "black" ? " selected" : ""}>Black</option>
+                    <option value="white"${config.header_text_color === "white" ? " selected" : ""}>White</option>
+                  </select>
                 </label>
                 <label>
                   <span>Density</span>

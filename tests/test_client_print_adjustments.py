@@ -81,10 +81,13 @@ from naic_builder.services import (
     form_version_print_layout_preference,
     list_record_completion_issues,
     load_block_storage_document,
+    normalize_print_config,
+    normalize_print_header_text_color,
     normalize_print_paper_size,
     normalize_print_layout_preference,
     normalize_print_profile,
     normalize_signatory_slot,
+    print_header_text_color,
     print_orientation_options,
     print_paper_size_options,
     print_page_fit_limit_units,
@@ -1165,6 +1168,36 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             self.assertEqual([block["kind"] for block in upgraded["blocks"]], ["field", "container"])
             self.assertEqual(json.loads(version.legacy_schema_json), legacy_archive)
 
+    def test_print_header_text_color_applies_one_override_to_the_colored_header(self) -> None:
+        automatic = normalize_print_config({"accent_color": "#cc3399"})
+        self.assertEqual(automatic["header_text_color"], "auto")
+        self.assertEqual(print_header_text_color(automatic), "#ffffff")
+
+        black = normalize_print_config({
+            "accent_color": "#cc3399",
+            "header_text_color": "black",
+        })
+        self.assertEqual(black["header_text_color"], "black")
+        self.assertEqual(print_header_text_color(black), "#171512")
+
+        white = normalize_print_config({
+            "accent_color": "#f4b7d2",
+            "header_text_color": "white",
+        })
+        self.assertEqual(white["header_text_color"], "white")
+        self.assertEqual(print_header_text_color(white), "#ffffff")
+        self.assertEqual(normalize_print_header_text_color("purple"), "auto")
+
+        builder_source = (ROOT / "app" / "naic_builder" / "static" / "app.js").read_text(encoding="utf-8")
+        record_print_source = (ROOT / "app" / "naic_builder" / "templates" / "records" / "print.html").read_text(encoding="utf-8")
+        builder_preview_source = (ROOT / "app" / "naic_builder" / "templates" / "forms" / "print_preview.html").read_text(encoding="utf-8")
+        stylesheet = (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8")
+        self.assertIn('data-bind="print_config.header_text_color"', builder_source)
+        self.assertIn('printHeaderTextInk(config)', builder_source)
+        self.assertIn('print-header-text-{{ document.print_config.header_text_color', record_print_source)
+        self.assertIn('print-header-text-{{ document.print_config.header_text_color', builder_preview_source)
+        self.assertIn('color: var(--header-ink);', stylesheet)
+        self.assertIn('.print-header-text-black .print-exam-head .print-path', stylesheet)
     def test_print_presentation_uses_known_choices_and_user_defaults(self) -> None:
         presentation = apply_print_presentation(
             {"density": "compact"},
