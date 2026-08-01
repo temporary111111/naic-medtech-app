@@ -2257,6 +2257,23 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn('class="print-command-back" href="{{ back_href }}" aria-label="{{ back_label }}" title="{{ back_label }}"', print_page)
         self.assertIn('<span aria-hidden="true">&larr;</span>', print_page)
 
+    def test_builder_accordions_start_closed_and_keep_their_open_state(self) -> None:
+        builder_source = (ROOT / "app" / "naic_builder" / "static" / "app.js").read_text(encoding="utf-8")
+        library_source = (ROOT / "app" / "naic_builder" / "templates" / "forms" / "library.html").read_text(encoding="utf-8")
+        library_script = (ROOT / "app" / "naic_builder" / "static" / "library.js").read_text(encoding="utf-8")
+
+        self.assertIn("openBuilderDetails: {},", builder_source)
+        self.assertIn("function setBuilderDetailsOpen(key, open)", builder_source)
+        self.assertIn('data-builder-details-key="${escapeHtml(normalizedKey)}"', builder_source)
+        self.assertIn("setBuilderDetailsOpen(builderDetailsToken, details.open);", builder_source)
+        self.assertIn('builderDetailsKey("signatory", slot.id)', builder_source)
+        self.assertIn('builderDetailsKey("print-default-layout")', builder_source)
+        self.assertIn('builderDetailsKey("print-header-style")', builder_source)
+        self.assertNotIn('<details class="print-settings-section" open>', builder_source)
+        self.assertIn('data-default-open="false"', library_source)
+        self.assertNotIn('{% if level == 0 %}open{% endif %}', library_source)
+        self.assertIn("related.open = true;", library_script)
+
     def test_user_print_layout_preference_is_personal_and_profile_scoped(self) -> None:
         engine = create_engine("sqlite://")
         Base.metadata.create_all(engine)

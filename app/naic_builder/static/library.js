@@ -97,4 +97,14 @@ emptyClearEls.forEach((button) => {
   button.addEventListener("click", clearLibrarySearch);
 });
 
+jumpLinks.forEach((link) => {
+  link.addEventListener("click", () => {
+    const nodeId = String(link.dataset.jumpLink || "");
+    const related = rootNodes.find((node) => String(node.dataset.nodeId || "") === nodeId);
+    if (related instanceof HTMLDetailsElement) {
+      related.open = true;
+    }
+  });
+});
+
 applyLibraryFilter();

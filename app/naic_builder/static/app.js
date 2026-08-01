@@ -12,6 +12,7 @@ const state = {
     focusPane: "setup",
     setupOpen: true,
     saveOpen: false,
+    openBuilderDetails: {},
     openSectionPaths: [],
     openFieldDetailPaths: [],
     activeItemPath: null,
@@ -531,6 +532,7 @@ function removeDraftSignatorySlot(slotId) {
   const meta = ensureBlockSchemaMeta(state.draft);
   const targetId = compactText(slotId);
   meta.signatories = getDraftSignatories().filter((slot) => slot.id !== targetId);
+  setBuilderDetailsOpen(builderDetailsKey("signatory", targetId), false);
 }
 
 function moveDraftSignatorySlot(slotId, direction) {
@@ -2058,6 +2060,7 @@ function renderPreviewCallout() {
 function resetEditorPanels() {
   state.ui.setupOpen = !state.selectedFormSlug;
   state.ui.saveOpen = !state.selectedFormSlug;
+  state.ui.openBuilderDetails = {};
   state.ui.openSectionPaths = [];
   state.ui.openFieldDetailPaths = [];
   state.ui.activeItemPath = null;
@@ -2099,6 +2102,41 @@ function syncEditorPanels() {
   }
 
   syncFocusPane();
+}
+
+function builderDetailsKey(scope, subject = "") {
+  const base = compactText(scope);
+  const target = compactText(subject);
+  return target ? `${base}:${target}` : base;
+}
+
+function builderDetailsState() {
+  if (!state.ui.openBuilderDetails || typeof state.ui.openBuilderDetails !== "object" || Array.isArray(state.ui.openBuilderDetails)) {
+    state.ui.openBuilderDetails = {};
+  }
+  return state.ui.openBuilderDetails;
+}
+
+function isBuilderDetailsOpen(key) {
+  return Boolean(builderDetailsState()[compactText(key)]);
+}
+
+function setBuilderDetailsOpen(key, open) {
+  const normalizedKey = compactText(key);
+  if (!normalizedKey) {
+    return;
+  }
+  const details = builderDetailsState();
+  if (open) {
+    details[normalizedKey] = true;
+  } else {
+    delete details[normalizedKey];
+  }
+}
+
+function renderBuilderDetailsState(key) {
+  const normalizedKey = compactText(key);
+  return `data-builder-details-key="${escapeHtml(normalizedKey)}"${isBuilderDetailsOpen(normalizedKey) ? " open" : ""}`;
 }
 
 function isContainerOpen(path) {
@@ -3037,7 +3075,7 @@ function renderRecordIdentitySettings() {
   ].join("");
 
   return `
-    <details class="identity-editor identity-editor--advanced">
+    <details class="identity-editor identity-editor--advanced" ${renderBuilderDetailsState(builderDetailsKey("record-identity"))}>
       <summary class="identity-editor-summary">
         <span>
           <strong>Record list labels</strong>
@@ -3268,7 +3306,7 @@ function renderSignatoryCard(slot, index, totalCount) {
   const isStampImage = slot.input_type === "stamp_image";
   const usesOptions = slot.input_type === "person_dropdown" || slot.input_type === "fixed";
   return `
-    <details class="signatory-config-card signatory-config-details" data-signatory-id="${escapeHtml(slot.id)}">
+    <details class="signatory-config-card signatory-config-details" data-signatory-id="${escapeHtml(slot.id)}" ${renderBuilderDetailsState(builderDetailsKey("signatory", slot.id))}>
       <summary class="signatory-config-summary">
         <div>
           <span class="signatory-index">Signature ${index + 1}</span>
@@ -3432,7 +3470,7 @@ function renderPrintCard() {
 
       <div class="print-config-layout">
         <div class="print-config-controls">
-          <details class="print-settings-section" open>
+          <details class="print-settings-section" ${renderBuilderDetailsState(builderDetailsKey("print-default-layout"))}>
             <summary class="print-settings-summary">
               <span>
                 <strong>Default layout</strong>
@@ -3449,7 +3487,7 @@ function renderPrintCard() {
             </div>
           </details>
 
-          <details class="print-settings-section" open>
+          <details class="print-settings-section" ${renderBuilderDetailsState(builderDetailsKey("print-header-style"))}>
             <summary class="print-settings-summary">
               <span>
                 <strong>Header and style</strong>
@@ -3515,7 +3553,7 @@ function renderPrintCard() {
             </div>
           </details>
 
-          <details class="print-settings-section print-body-options">
+          <details class="print-settings-section print-body-options" ${renderBuilderDetailsState(builderDetailsKey("print-result-body"))}>
             <summary class="print-settings-summary">
               <span>
                 <strong>Result body</strong>
@@ -3564,7 +3602,7 @@ function renderPrintCard() {
             </div>
           </details>
 
-          <details class="print-settings-section" ${config.show_summary ? "open" : ""}>
+          <details class="print-settings-section" ${renderBuilderDetailsState(builderDetailsKey("print-signatures-summary"))}>
             <summary class="print-settings-summary">
               <span>
                 <strong>Signatures and summary</strong>
@@ -3655,7 +3693,7 @@ function renderFormSetupCard(options = {}) {
         </div>
         ${renderRecordIdentitySettings()}
         ${state.ui.advancedMode ? `
-          <details class="advanced">
+          <details class="advanced" ${renderBuilderDetailsState(builderDetailsKey("form-advanced"))}>
             <summary>Advanced</summary>
             <div class="advanced-grid">
               <label>
@@ -4016,7 +4054,7 @@ function renderUtilityBlockCard(node, path) {
       `}
 
       ${state.ui.advancedMode ? `
-        <details class="advanced">
+        <details class="advanced" ${renderBuilderDetailsState(builderDetailsKey("advanced", node.id))}>
           <summary>Advanced</summary>
           <div class="advanced-grid">
             <label>
@@ -4099,7 +4137,7 @@ function renderSectionCard(section, path, options = {}) {
         </div>
 
         ${state.ui.advancedMode ? `
-          <details class="advanced">
+          <details class="advanced" ${renderBuilderDetailsState(builderDetailsKey("advanced", section.id))}>
             <summary>Advanced</summary>
             <div class="advanced-grid">
             <label>
@@ -4401,7 +4439,7 @@ function renderItemCard(item, path, options = {}) {
                 ${renderItemCollection(getNodeChildren(item), [...path, "children"], { recursive: true, depth: depth + 1 })}
               </div>
               ${state.ui.advancedMode ? `
-                <details class="advanced">
+                <details class="advanced" ${renderBuilderDetailsState(builderDetailsKey("advanced", item.id))}>
                   <summary>Advanced</summary>
                   <div class="advanced-grid">
                     <label>
@@ -4465,7 +4503,7 @@ function renderItemCard(item, path, options = {}) {
                 ${inputType === "choice" ? renderOptionsEditor(item, path) : ""}
 
                 ${state.ui.advancedMode ? `
-                  <details class="advanced">
+                  <details class="advanced" ${renderBuilderDetailsState(builderDetailsKey("advanced", item.id))}>
                     <summary>Advanced</summary>
                     <div class="advanced-grid">
                       <label>
@@ -4573,7 +4611,7 @@ function renderItemCard(item, path, options = {}) {
         ${!isContainer && inferInputType(item) === "choice" ? renderOptionsEditor(item, path) : ""}
 
           ${state.ui.advancedMode ? `
-            <details class="advanced">
+            <details class="advanced" ${renderBuilderDetailsState(builderDetailsKey("advanced", item.id))}>
               <summary>Advanced</summary>
               <div class="advanced-grid">
               <label>
@@ -4596,7 +4634,7 @@ function renderItemCard(item, path, options = {}) {
 function renderOptionsEditor(field, path) {
     const options = getInputOptions(field);
     return `
-      <details class="item-stack options-editor options-editor-details" ${options.length ? "" : "open"}>
+      <details class="item-stack options-editor options-editor-details" ${renderBuilderDetailsState(builderDetailsKey("choices", field.id))}>
         <summary class="options-editor-summary">
           <span>
             <strong>Choices</strong>
@@ -5665,7 +5703,17 @@ builderOutlineEl?.addEventListener("click", handleOutlineClick);
 previewCanvasEl?.addEventListener("click", handlePreviewClick);
 document.addEventListener("toggle", (event) => {
   const details = event.target;
-  if (!(details instanceof HTMLDetailsElement) || !details.open) {
+  if (!(details instanceof HTMLDetailsElement)) {
+    return;
+  }
+
+  const builderDetailsToken = compactText(details.dataset.builderDetailsKey);
+  if (builderDetailsToken) {
+    setBuilderDetailsOpen(builderDetailsToken, details.open);
+    return;
+  }
+
+  if (!details.open) {
     return;
   }
 

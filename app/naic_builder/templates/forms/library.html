@@ -46,8 +46,7 @@
           data-node-kind="container"
           data-node-id="{{ node.id }}"
           data-search-text="{{ current_path|lower }}"
-          data-default-open="{{ 'true' if level == 0 else 'false' }}"
-          {% if level == 0 %}open{% endif %}
+          data-default-open="false"
         >
           <summary class="tree-folder-summary">
             <div class="tree-node-main">
