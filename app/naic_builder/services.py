@@ -6562,6 +6562,45 @@ def list_records(
     records = session.scalars(query).all()
     return [serialize_record(record, include_values=False) for record in records]
 
+
+def list_completed_record_activity_by_form(
+    session: Session,
+    *,
+    date_scope: str | None = None,
+    limit: int = 8,
+) -> list[dict[str, Any]]:
+    """Return completed-record totals by form using the same updated-date scope as History."""
+    query = (
+        select(
+            FormDefinition.slug,
+            FormDefinition.name,
+            func.count(Record.id).label("record_count"),
+        )
+        .select_from(Record)
+        .join(FormDefinition, Record.form_id == FormDefinition.id)
+        .where(Record.status == "completed")
+    )
+    start_at = record_date_scope_start(date_scope)
+    if start_at is not None:
+        query = query.where(Record.updated_at >= start_at)
+    query = query.group_by(FormDefinition.id, FormDefinition.slug, FormDefinition.name).order_by(
+        func.count(Record.id).desc(),
+        FormDefinition.name.asc(),
+    )
+    rows = session.execute(query.limit(max(1, int(limit or 1)))).all()
+    counts = [int(row.record_count or 0) for row in rows]
+    maximum = max(counts, default=0)
+    return [
+        {
+            "slug": str(row.slug),
+            "name": str(row.name),
+            "count": int(row.record_count or 0),
+            "percent": round((int(row.record_count or 0) / maximum) * 100) if maximum else 0,
+        }
+        for row in rows
+    ]
+
+
 def create_record(
     session: Session,
     payload: RecordCreatePayload,

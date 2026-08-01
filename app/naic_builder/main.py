@@ -110,6 +110,7 @@ from .services import (
     get_record_or_none,
     has_any_users,
     list_container_choices,
+    list_completed_record_activity_by_form,
     list_form_choices,
     list_library_tree,
     list_record_completion_issues,
@@ -205,7 +206,7 @@ PUBLIC_PATHS = {
     "/change-password",
 }
 PUBLIC_PREFIXES = ("/static",)
-ADMIN_PREFIXES = ("/forms", "/folders", "/builder", "/api/forms", "/api/builder", "/api/library", "/backup", "/safety")
+ADMIN_PREFIXES = ("/overview", "/forms", "/folders", "/builder", "/api/forms", "/api/builder", "/api/library", "/backup", "/safety")
 ADMIN_SETTINGS_PREFIXES = ("/settings/users", "/settings/desktop")
 RESTORE_CONFIRMATION_TEXT = "RESTORE"
 RECORDS_HISTORY_PAGE_SIZE = 40
@@ -214,6 +215,12 @@ RECORD_DATE_SCOPE_LABELS = {
     "last_7_days": "Last 7 days",
     "this_month": "This month",
 }
+OVERVIEW_PERIOD_OPTIONS = (
+    ("all", "All time"),
+    ("today", "Today"),
+    ("last_7_days", "Last 7 days"),
+    ("this_month", "This month"),
+)
 _RESTORE_MAINTENANCE_LOCK = threading.Lock()
 _RESTORE_MAINTENANCE_ACTIVE = False
 
@@ -788,6 +795,73 @@ def records_history_url(
     return f"/records/history?{urlencode(query)}" if query else "/records/history"
 
 
+def normalize_overview_period(value: str | None) -> str:
+    requested_period = (value or "").strip().lower()
+    if requested_period == "all":
+        return ""
+    active_period = normalize_record_date_scope(requested_period)
+    return active_period if active_period or not requested_period else "this_month"
+
+
+def render_overview_page(
+    request: Request,
+    session: Session,
+    *,
+    period: str = "this_month",
+) -> HTMLResponse:
+    active_period = normalize_overview_period(period)
+    active_period_key = active_period or "all"
+    period_label = RECORD_DATE_SCOPE_LABELS.get(active_period, "All time")
+
+    completed_count = count_records(session, status="completed", date_scope=active_period or None)
+    draft_count = count_records(session, status="draft")
+    voided_count = count_records(session, status="voided", date_scope=active_period or None)
+    form_activity = list_completed_record_activity_by_form(session, date_scope=active_period or None)
+    for item in form_activity:
+        item["history_url"] = records_history_url(
+            status_filter="completed",
+            form_slug=item["slug"],
+            date_scope=active_period,
+        )
+
+    period_options = [
+        {
+            "key": option_key,
+            "label": option_label,
+            "active": option_key == active_period_key,
+            "url": f"/overview?{urlencode({'period': option_key})}",
+        }
+        for option_key, option_label in OVERVIEW_PERIOD_OPTIONS
+    ]
+    overview_return_url = f"/overview?{urlencode({'period': active_period_key})}"
+    recent_records = list_records(session, date_scope=active_period or None, limit=4)
+    for record in recent_records:
+        record["overview_url"] = f"/records/{record['id']}?{overview_query(overview_return_url)}"
+    return templates.TemplateResponse(
+        request=request,
+        name="overview.html",
+        context={
+            "app_title": APP_TITLE,
+            "period_label": period_label,
+            "period_options": period_options,
+            "completed_count": completed_count,
+            "draft_count": draft_count,
+            "voided_count": voided_count,
+            "form_activity": form_activity,
+            "recent_records": recent_records,
+            "completed_history_url": records_history_url(
+                status_filter="completed",
+                date_scope=active_period,
+            ),
+            "voided_history_url": records_history_url(
+                status_filter="voided",
+                date_scope=active_period,
+            ),
+            "recent_history_url": records_history_url(status_filter="all", date_scope=active_period),
+        },
+    )
+
+
 def url_with_notice(url: str, notice: str) -> str:
     separator = "&" if "?" in url else "?"
     return f"{url}{separator}{urlencode({'notice': notice})}"
@@ -821,8 +895,24 @@ def safe_records_history_return(value: str | None) -> str:
     return ""
 
 
+def safe_overview_return(value: str | None) -> str:
+    candidate = str(value or "").strip()
+    if not candidate or candidate.startswith("//"):
+        return ""
+    if candidate == "/overview" or candidate.startswith("/overview?"):
+        return candidate
+    return ""
+
+
 def records_history_query(return_url: str = "") -> str:
     query = {"from": "history"}
+    if return_url:
+        query["return_to"] = return_url
+    return urlencode(query)
+
+
+def overview_query(return_url: str = "") -> str:
+    query = {"from": "overview"}
     if return_url:
         query["return_to"] = return_url
     return urlencode(query)
@@ -968,8 +1058,17 @@ def render_record_edit_page(
         )
 
     back_to_history = request.query_params.get("from") == "history"
+    back_to_overview = request.query_params.get("from") == "overview"
     history_return_url = safe_records_history_return(request.query_params.get("return_to"))
+    overview_return_url = safe_overview_return(request.query_params.get("return_to"))
     history_query = records_history_query(history_return_url) if back_to_history else ""
+    record_context_query = history_query or (overview_query(overview_return_url) if back_to_overview else "")
+    if back_to_overview:
+        back_href = overview_return_url or "/overview"
+        back_label = "Back to overview"
+    else:
+        back_href = history_return_url or ("/records/history" if back_to_history else "/records")
+        back_label = "Back to history" if back_to_history else "Back to records"
     return templates.TemplateResponse(
         request=request,
         name="records/edit.html",
@@ -979,9 +1078,10 @@ def render_record_edit_page(
             "error_message": resolved_error_message,
             "success_message": resolved_success_message,
             "validation_issues": resolved_validation_issues,
-            "back_href": history_return_url or ("/records/history" if back_to_history else "/records"),
-            "back_label": "Back to history" if back_to_history else "Back to records",
+            "back_href": back_href,
+            "back_label": back_label,
             "history_query": history_query,
+            "record_context_query": record_context_query,
             "history_return_url": history_return_url,
         },
         status_code=status_code,
@@ -1004,17 +1104,27 @@ def render_record_view_page(
         raise HTTPException(status_code=404, detail="Record not found.")
 
     back_to_history = request.query_params.get("from") == "history"
+    back_to_overview = request.query_params.get("from") == "overview"
     history_return_url = safe_records_history_return(request.query_params.get("return_to"))
+    overview_return_url = safe_overview_return(request.query_params.get("return_to"))
     history_query = records_history_query(history_return_url) if back_to_history else ""
+    record_context_query = history_query or (overview_query(overview_return_url) if back_to_overview else "")
+    if back_to_overview:
+        back_href = overview_return_url or "/overview"
+        back_label = "Back to overview"
+    else:
+        back_href = history_return_url or ("/records/history" if back_to_history else "/records")
+        back_label = "Back to history" if back_to_history else "Back to records"
     return templates.TemplateResponse(
         request=request,
         name="records/view.html",
         context={
             "app_title": APP_TITLE,
             "record": serialize_record(record, include_entry_schema=True),
-            "back_href": history_return_url or ("/records/history" if back_to_history else "/records"),
-            "back_label": "Back to history" if back_to_history else "Back to records",
+            "back_href": back_href,
+            "back_label": back_label,
             "history_query": history_query,
+            "record_context_query": record_context_query,
             "history_return_url": history_return_url,
             "error_message": error_message,
             "success_message": (
@@ -1091,15 +1201,18 @@ def render_record_print_page(
         field_grid_units=int(base_document["template"]["field_grid_units"]),
     )
     back_to_history = request.query_params.get("from") == "history"
+    back_to_overview = request.query_params.get("from") == "overview"
     history_return_url = safe_records_history_return(request.query_params.get("return_to"))
+    overview_return_url = safe_overview_return(request.query_params.get("return_to"))
     history_query = records_history_query(history_return_url) if back_to_history else ""
+    record_context_query = history_query or (overview_query(overview_return_url) if back_to_overview else "")
 
     return templates.TemplateResponse(
         request=request,
         name="records/print.html",
         context={
             "app_title": APP_TITLE,
-            "back_href": f"/records/{record.id}?{history_query}" if history_query else f"/records/{record.id}",
+            "back_href": f"/records/{record.id}?{record_context_query}" if record_context_query else f"/records/{record.id}",
             "back_label": "Back",
             "print_style_options": print_style_options(),
             "print_orientation_options": print_orientation_options(),
@@ -1177,6 +1290,15 @@ def root(request: Request) -> RedirectResponse:
             return redirect_for_html("/change-password")
         return redirect_for_html("/records")
     return redirect_for_html("/login")
+
+
+@app.get("/overview", response_class=HTMLResponse)
+def overview_page(
+    request: Request,
+    period: str = "this_month",
+    session: Session = Depends(get_session),
+) -> HTMLResponse:
+    return render_overview_page(request, session, period=period)
 
 
 @app.get("/setup", response_class=HTMLResponse)

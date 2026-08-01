@@ -19,9 +19,9 @@
 {% block topbar_actions %}
   <div class="record-top-actions record-top-actions--view">
   {% if record.status == "draft" %}
-  <a class="primary-button" href="/records/{{ record.id }}/edit{% if history_query %}?{{ history_query }}{% endif %}">Continue editing</a>
+  <a class="primary-button" href="/records/{{ record.id }}/edit{% if record_context_query %}?{{ record_context_query }}{% endif %}">Continue editing</a>
   {% elif record.status == "completed" %}
-  <a class="primary-button" href="/records/{{ record.id }}/print{% if history_query %}?{{ history_query }}{% endif %}">Print</a>
+  <a class="primary-button" href="/records/{{ record.id }}/print{% if record_context_query %}?{{ record_context_query }}{% endif %}">Print</a>
   {% endif %}
   </div>
 {% endblock %}

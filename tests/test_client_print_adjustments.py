@@ -25,6 +25,7 @@ from naic_builder.database import (
     migrate_form_versions_legacy_schema_nullable,
 )
 from naic_builder.models import FormDefinition, FormVersion, Record, User
+from naic_builder.main import normalize_overview_period
 from naic_builder.schemas import ClinicProfilePayload, FormSavePayload
 from naic_builder.services import (
     apply_print_presentation,
@@ -81,6 +82,7 @@ from naic_builder.services import (
     format_print_temporal_value,
     filter_print_layout_preference_for_items,
     form_version_print_layout_preference,
+    list_completed_record_activity_by_form,
     list_record_completion_issues,
     load_block_storage_document,
     normalize_print_config,
@@ -121,6 +123,81 @@ def tearDownModule() -> None:
 
 
 class ClientPrintAdjustmentTests(unittest.TestCase):
+    def test_overview_activity_groups_completed_records_by_form(self) -> None:
+        engine = create_engine("sqlite://")
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine)
+        now = datetime.now(timezone.utc)
+
+        try:
+            with Session() as session:
+                blood_bank = FormDefinition(slug="blood_bank", name="Blood Bank")
+                hematology = FormDefinition(slug="hematology", name="Hematology")
+                session.add_all([blood_bank, hematology])
+                session.flush()
+                blood_bank_version = FormVersion(
+                    form_id=blood_bank.id,
+                    version_number=1,
+                    block_schema_json="{}",
+                    source="builder",
+                    is_current=True,
+                )
+                hematology_version = FormVersion(
+                    form_id=hematology.id,
+                    version_number=1,
+                    block_schema_json="{}",
+                    source="builder",
+                    is_current=True,
+                )
+                session.add_all([blood_bank_version, hematology_version])
+                session.flush()
+                session.add_all([
+                    Record(
+                        record_key="overview-blood-bank-1",
+                        form_id=blood_bank.id,
+                        form_version_id=blood_bank_version.id,
+                        status="completed",
+                        completed_at=now,
+                        updated_at=now,
+                    ),
+                    Record(
+                        record_key="overview-blood-bank-2",
+                        form_id=blood_bank.id,
+                        form_version_id=blood_bank_version.id,
+                        status="completed",
+                        completed_at=now,
+                        updated_at=now,
+                    ),
+                    Record(
+                        record_key="overview-hematology-1",
+                        form_id=hematology.id,
+                        form_version_id=hematology_version.id,
+                        status="completed",
+                        completed_at=now,
+                        updated_at=now,
+                    ),
+                    Record(
+                        record_key="overview-draft",
+                        form_id=hematology.id,
+                        form_version_id=hematology_version.id,
+                        status="draft",
+                        updated_at=now,
+                    ),
+                ])
+                session.commit()
+
+                activity = list_completed_record_activity_by_form(session)
+
+            self.assertEqual(
+                activity,
+                [
+                    {"slug": "blood_bank", "name": "Blood Bank", "count": 2, "percent": 100},
+                    {"slug": "hematology", "name": "Hematology", "count": 1, "percent": 50},
+                ],
+            )
+        finally:
+            engine.dispose()
+
     def test_builder_location_picker_uses_existing_folders_only(self) -> None:
         engine = create_engine("sqlite://")
         Base.metadata.create_all(engine)
@@ -2285,6 +2362,9 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertEqual(normalize_record_date_scope("today"), "today")
         self.assertEqual(normalize_record_date_scope("LAST_7_DAYS"), "last_7_days")
         self.assertEqual(normalize_record_date_scope("invalid"), "")
+        self.assertEqual(normalize_overview_period("all"), "")
+        self.assertEqual(normalize_overview_period("last_7_days"), "last_7_days")
+        self.assertEqual(normalize_overview_period("invalid"), "this_month")
         self.assertEqual(record_date_scope_start("today", now=now), start_of_today)
         self.assertEqual(record_date_scope_start("last_7_days", now=now), start_of_today - timedelta(days=6))
         self.assertEqual(record_date_scope_start("this_month", now=now), start_of_today.replace(day=1))

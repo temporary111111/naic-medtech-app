@@ -18,7 +18,7 @@
 
 {% block topbar_actions %}
   <div class="record-top-actions record-top-actions--edit">
-  <a class="ghost-button" href="/records/{{ record.id }}{% if history_query %}?{{ history_query }}{% endif %}">View</a>
+  <a class="ghost-button" href="/records/{{ record.id }}{% if record_context_query %}?{{ record_context_query }}{% endif %}">View</a>
   {% if record.status == "draft" %}
   <form
     method="post"

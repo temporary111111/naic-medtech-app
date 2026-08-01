@@ -1,0 +1,94 @@
+{% extends "_authenticated_shell.html" %}
+{% set shell_active = "overview" %}
+
+{% block html_title %}Overview | {{ app_title }}{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', path='overview.css') }}?v=20260801-control-board-overview">
+{% endblock %}
+
+{% block shell_eyebrow %}Laboratory records{% endblock %}
+{% block shell_title %}Overview{% endblock %}
+{% block shell_description %}{% endblock %}
+
+{% block topbar_actions %}
+  <nav class="overview-period-tabs" aria-label="Overview period">
+    {% for option in period_options %}
+    <a class="overview-period-tab{% if option.active %} is-active{% endif %}" href="{{ option.url }}"{% if option.active %} aria-current="page"{% endif %}>{{ option.label }}</a>
+    {% endfor %}
+  </nav>
+{% endblock %}
+
+{% block content %}
+  <section class="overview-shell" aria-label="Laboratory records overview">
+    <section class="overview-board">
+      <a class="overview-zone overview-zone--attention" href="/records">
+        <span class="overview-zone__eyebrow">Needs attention</span>
+        <strong class="overview-zone__number overview-zone__number--danger">{{ draft_count }}</strong>
+        <span class="overview-zone__title">Draft records</span>
+        <span class="overview-zone__copy">All unfinished records</span>
+        <span class="overview-zone__link">Open work queue</span>
+      </a>
+
+      <a class="overview-zone overview-zone--primary" href="{{ completed_history_url }}">
+        <span class="overview-zone__eyebrow">Selected period</span>
+        <span class="overview-zone__focus-ring" aria-hidden="true"></span>
+        <span class="overview-zone__primary-copy">
+          <strong class="overview-zone__number">{{ completed_count }}</strong>
+          <span class="overview-zone__title">Completed records</span>
+          <span class="overview-zone__copy">Updated {{ period_label | lower }}</span>
+        </span>
+      </a>
+
+      <section class="overview-recent" aria-labelledby="overview-recent-title">
+        <header class="overview-panel-head">
+          <h2 id="overview-recent-title">Recent updates</h2>
+          <a href="{{ recent_history_url }}">History</a>
+        </header>
+        {% if recent_records %}
+          {% for record in recent_records %}
+          <a class="overview-recent-row" href="{{ record.overview_url }}">
+            <span class="overview-recent-row__time">{{ record.updated_at_label }}</span>
+            <span class="overview-recent-row__dot" aria-hidden="true"></span>
+            <span class="overview-recent-row__copy">
+              <strong>{{ record.form_name }} {{ record.status_label | lower }}</strong>
+              <small>Open record</small>
+            </span>
+          </a>
+          {% endfor %}
+        {% else %}
+        <div class="overview-empty">No record updates {{ period_label | lower }}.</div>
+        {% endif %}
+      </section>
+
+      <section class="overview-activity" aria-labelledby="overview-activity-title">
+        <header class="overview-panel-head">
+          <h2 id="overview-activity-title">Activity by form</h2>
+          <a href="{{ completed_history_url }}">View in history</a>
+        </header>
+        {% if form_activity %}
+        <div class="overview-form-grid">
+          {% for item in form_activity %}
+          <a class="overview-form-row" href="{{ item.history_url }}">
+            <span>{{ item.name }}</span>
+            <span class="overview-form-row__track"><span style="width: {{ item.percent }}%"></span></span>
+            <strong>{{ item.count }}</strong>
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="overview-empty">No completed records {{ period_label | lower }}.</div>
+        {% endif %}
+      </section>
+
+      <a class="overview-zone overview-zone--voided" href="{{ voided_history_url }}">
+        <span class="overview-zone__eyebrow">Record status</span>
+        <strong class="overview-zone__number">{{ voided_count }}</strong>
+        <span class="overview-zone__title">Voided records</span>
+        <span class="overview-zone__copy">Updated {{ period_label | lower }}</span>
+        <span class="overview-zone__link">Review voided records</span>
+      </a>
+    </section>
+    <p class="overview-footnote">Completed, voided, form activity, and recent updates use the selected period. Drafts include all unfinished records.</p>
+  </section>
+{% endblock %}
