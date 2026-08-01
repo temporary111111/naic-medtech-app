@@ -851,6 +851,27 @@ OGTT_CONTAINER_FIELD_DEFAULTS = {
 }
 FECALYSIS_FORM_KEY = "fecalysis"
 DEFAULT_FECALYSIS_DEFAULTS_META_KEY = "default_fecalysis_defaults_v1"
+FECALYSIS_LEGACY_A5_LAYOUT_DEFAULT = {
+    "version": PRINT_LAYOUT_PREFERENCE_VERSION,
+    "grids": legacy_a5_patient_information_grid(FECALYSIS_FORM_KEY),
+    "containers": {
+        "root:containers:0": {
+            "container_ids": [
+                "root/form.fecalysis.patient_information",
+                "root/form.fecalysis.macroscopic_finding",
+                "root/form.fecalysis.microscopic_finding",
+            ],
+            "mode": "manual",
+            "spans": {
+                "root/form.fecalysis.patient_information": 6,
+                "root/form.fecalysis.macroscopic_finding": 2,
+                "root/form.fecalysis.microscopic_finding": 4,
+            },
+            "order": [],
+        },
+    },
+    "blocks": {},
+}
 FECALYSIS_NORMAL_CHOICE_OPTIONS = {
     "fecal_occult_blood": ("NEGATIVE",),
     "parasites": ("NO OVA NOR PARASITES SEEN",),
@@ -3842,11 +3863,25 @@ def ensure_default_fecalysis_layout(block_schema: dict[str, Any]) -> bool:
     if compact_text(meta.get("form_key")) != FECALYSIS_FORM_KEY:
         return False
     if meta.get(DEFAULT_FECALYSIS_DEFAULTS_META_KEY) is True:
-        return False
+        if not ensure_form_print_layout_default(
+            meta,
+            template_id="legacy_landscape",
+            paper_size="a5",
+            layout=FECALYSIS_LEGACY_A5_LAYOUT_DEFAULT,
+        ):
+            return False
+        block_schema["meta"] = meta
+        return True
     if configure_choice_field_normal_options(block_schema, FECALYSIS_NORMAL_CHOICE_OPTIONS) is None:
         return False
 
     meta[DEFAULT_FECALYSIS_DEFAULTS_META_KEY] = True
+    ensure_form_print_layout_default(
+        meta,
+        template_id="legacy_landscape",
+        paper_size="a5",
+        layout=FECALYSIS_LEGACY_A5_LAYOUT_DEFAULT,
+    )
     block_schema["meta"] = meta
     return True
 

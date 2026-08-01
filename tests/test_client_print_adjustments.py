@@ -1085,6 +1085,17 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         block_schema = build_block_storage_document_from_legacy_storage(fecalysis)
         ensure_reference_examination_in_patient_info(block_schema, reference_form_slugs())
         self.assertTrue(ensure_default_fecalysis_layout(block_schema))
+        legacy_layout = block_schema["meta"]["print_layout_defaults"]["profiles"][
+            "legacy_landscape:a5"
+        ]
+        self.assertEqual(
+            legacy_layout["containers"]["root:containers:0"]["spans"],
+            {
+                "root/form.fecalysis.patient_information": 6,
+                "root/form.fecalysis.macroscopic_finding": 2,
+                "root/form.fecalysis.microscopic_finding": 4,
+            },
+        )
 
         fields: dict[str, dict] = {}
 
