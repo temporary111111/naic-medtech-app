@@ -146,13 +146,6 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26);
 }
 
-.record-empty-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding-top: 6px;
-}
-
 .records-history-head {
   align-items: start;
   gap: 14px;
@@ -2500,15 +2493,12 @@ html[data-theme="dark"] .completion-checklist.is-ready {
     display: none;
   }
 
-  .records-fallback-actions,
-  .record-empty-actions {
+  .records-fallback-actions {
     justify-content: stretch;
   }
 
   .records-fallback-actions .primary-button,
-  .records-fallback-actions .ghost-button,
-  .record-empty-actions .primary-button,
-  .record-empty-actions .ghost-button {
+  .records-fallback-actions .ghost-button {
     flex: 1 1 0;
   }
 
