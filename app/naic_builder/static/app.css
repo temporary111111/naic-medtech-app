@@ -3147,9 +3147,8 @@ textarea:focus,
   padding: 8px 10px;
 }
 
-.shell .outline-item.active,
-.shell .outline-subitem.active {
-  box-shadow: inset 3px 0 0 var(--accent);
+.shell .outline-nav {
+  gap: 4px;
 }
 
 .shell .editor-card,
@@ -3211,7 +3210,22 @@ textarea:focus,
 }
 
 .shell .outline-item,
-.shell .outline-subitem,
+.shell .outline-subitem {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.shell .outline-item:hover,
+.shell .outline-item:focus-visible,
+.shell .outline-subitem:hover,
+.shell .outline-subitem:focus-visible {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--accent-soft) 54%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 16%, transparent);
+  outline: none;
+}
+
 .shell .section-organizer-item,
 .shell .item-organizer-item,
 .shell .option-organizer-item {
@@ -3221,7 +3235,12 @@ textarea:focus,
 }
 
 .shell .outline-item.active,
-.shell .outline-subitem.active,
+.shell .outline-subitem.active {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--accent-soft) 72%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
 .shell .section-organizer-item.active,
 .shell .item-organizer-item.active,
 .shell .option-organizer-item.active {

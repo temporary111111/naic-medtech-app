@@ -434,6 +434,7 @@
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.018));
   color: var(--drawer-text);
+  text-decoration: none;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
@@ -463,92 +464,11 @@
   color: #f5fcff;
 }
 
-.app-drawer__workspace-note {
-  display: grid;
-  gap: 10px;
-  padding: 14px;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
-    radial-gradient(circle at top right, rgba(99, 188, 205, 0.08), transparent 42%);
-}
-
-.app-drawer__workspace-note .ghost-button {
-  width: fit-content;
-}
-
 .app-drawer__footer {
   display: grid;
   gap: 14px;
   padding-top: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.app-view-size {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  max-width: 100%;
-  padding: 8px 9px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.055);
-  background: rgba(255, 255, 255, 0.022);
-}
-
-.app-view-size__label {
-  color: var(--drawer-muted);
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.app-view-size button {
-  min-width: 0;
-  height: 28px;
-  padding: 0 9px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: color-mix(in srgb, var(--drawer-muted) 68%, var(--drawer-text) 32%);
-  font: inherit;
-  font-size: 11px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.app-view-size button:hover,
-.app-view-size button:focus-visible,
-.app-view-size__custom input:focus {
-  outline: none;
-  background: rgba(126, 205, 222, 0.1);
-  color: var(--drawer-text);
-}
-
-.app-view-size__custom {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  color: color-mix(in srgb, var(--drawer-muted) 72%, var(--drawer-text) 28%);
-  font-size: 11px;
-  font-weight: 900;
-}
-
-.app-view-size__custom input {
-  width: 58px;
-  height: 28px;
-  padding: 0 6px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.026);
-  color: var(--drawer-text);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 900;
-  text-align: center;
 }
 
 .app-drawer__account {
@@ -643,11 +563,8 @@ html:not([data-theme="dark"]) .app-drawer::before {
 html:not([data-theme="dark"]) .app-drawer__brand-mark,
 html:not([data-theme="dark"]) .app-drawer__close,
 html:not([data-theme="dark"]) .app-drawer__item,
-html:not([data-theme="dark"]) .app-drawer__workspace-note,
 html:not([data-theme="dark"]) .app-drawer__account,
 html:not([data-theme="dark"]) .app-drawer__account-avatar,
-html:not([data-theme="dark"]) .app-view-size,
-html:not([data-theme="dark"]) .app-view-size__custom input,
 html:not([data-theme="dark"]) .app-drawer__footer-actions .ghost-button,
 html:not([data-theme="dark"]) .app-drawer__footer-actions button.ghost-button {
   border-color: var(--line);

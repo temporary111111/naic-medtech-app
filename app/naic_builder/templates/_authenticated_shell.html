@@ -46,7 +46,7 @@
   <script src="{{ url_for('static', path='theme.js') }}?v=20260607-icon-only-theme-toggle"></script>
   {% block extra_css %}{% endblock %}
   <link rel="stylesheet" href="{{ url_for('static', path='theme.css') }}?v=20260731-light-mode-contrast">
-  <link rel="stylesheet" href="{{ url_for('static', path='shell.css') }}?v=20260731-light-drawer-contrast">
+  <link rel="stylesheet" href="{{ url_for('static', path='shell.css') }}?v=20260731-simplified-drawer-links">
 </head>
 <body class="app-shell-body{% if shell_variant|default('default') == 'workspace' %} app-shell-body--workspace{% endif %}" {% block body_attrs %}{% endblock %}>
   {% set clinic_profile = request.state.clinic_profile or {} %}
@@ -113,14 +113,6 @@
         </a>
       </nav>
 
-      {% if shell_variant|default('default') == 'workspace' and request.state.is_admin %}
-      <div class="app-drawer__workspace-note">
-        <p class="eyebrow">Workspace</p>
-        <p class="panel-copy">Builder stays part of the forms workflow, not a separate global product area.</p>
-        <a class="ghost-button" href="/forms">Back to forms</a>
-      </div>
-      {% endif %}
-
       <div class="app-drawer__footer">
         <div class="app-drawer__account">
           <div class="app-drawer__account-avatar" aria-hidden="true">
@@ -140,16 +132,6 @@
             </span>
           </div>
         </div>
-
-        <section class="app-view-size" aria-label="Custom view size">
-          <span class="app-view-size__label">Custom view</span>
-          <label class="app-view-size__custom">
-            <span class="sr-only">Custom view size</span>
-            <input type="number" min="50" max="200" step="5" value="100" inputmode="numeric" data-app-zoom-input>
-            <span aria-hidden="true">%</span>
-          </label>
-          <button type="button" data-app-zoom-reset>Reset</button>
-        </section>
 
         <div class="app-drawer__footer-actions">
           <form method="post" action="/logout" class="inline-action-form">
