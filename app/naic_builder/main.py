@@ -96,6 +96,7 @@ from .services import (
     ensure_covid_19_antigen_rapid_test_defaults,
     ensure_fecalysis_defaults,
     ensure_urine_defaults,
+    ensure_semen_defaults,
     ensure_hematology_defaults,
     ensure_hba1c_defaults,
     ensure_hiv_1_and_2_testing_defaults,
@@ -175,6 +176,7 @@ async def lifespan(_: FastAPI):
         ensure_microbiology_defaults(session)
         ensure_fecalysis_defaults(session)
         ensure_urine_defaults(session)
+        ensure_semen_defaults(session)
         ensure_blood_chemistry_male_defaults(session)
         ensure_blood_chemistry_female_defaults(session)
         ensure_serology_defaults(session)

@@ -920,6 +920,42 @@ URINE_LEGACY_A5_LAYOUT_DEFAULT = {
     },
     "blocks": {},
 }
+SEMEN_FORM_KEY = "semen"
+DEFAULT_SEMEN_DEFAULTS_META_KEY = "default_semen_defaults_v1"
+SEMEN_LEGACY_A5_LAYOUT_DEFAULT = {
+    "version": PRINT_LAYOUT_PREFERENCE_VERSION,
+    "grids": legacy_a5_patient_information_grid(SEMEN_FORM_KEY),
+    "containers": {
+        "root:containers:0": {
+            "container_ids": [
+                "root/form.semen.patient_information",
+                "root/form.semen.details",
+                "root/form.semen.morphology",
+                "root/form.semen.motility",
+                "root/form.semen.sperm_count",
+                "root/form.semen.others",
+            ],
+            "mode": "manual",
+            "spans": {
+                "root/form.semen.patient_information": 6,
+                "root/form.semen.details": 3,
+                "root/form.semen.morphology": 3,
+                "root/form.semen.motility": 3,
+                "root/form.semen.sperm_count": 3,
+                "root/form.semen.others": 6,
+            },
+            "order": [
+                "root/form.semen.patient_information",
+                "root/form.semen.details",
+                "root/form.semen.morphology",
+                "root/form.semen.motility",
+                "root/form.semen.sperm_count",
+                "root/form.semen.others",
+            ],
+        },
+    },
+    "blocks": {},
+}
 SEROLOGY_FORM_KEY = "serology"
 DEFAULT_SEROLOGY_DEFAULTS_META_KEY = "default_serology_defaults_v1"
 SEROLOGY_LEGACY_A5_LAYOUT_DEFAULT = {
@@ -3968,6 +4004,49 @@ def ensure_default_urine_layout(block_schema: dict[str, Any]) -> bool:
         template_id="legacy_landscape",
         paper_size="a5",
         layout=URINE_LEGACY_A5_LAYOUT_DEFAULT,
+    )
+    block_schema["meta"] = meta
+    return True
+
+
+def ensure_default_semen_layout(block_schema: dict[str, Any]) -> bool:
+    if not isinstance(block_schema, dict):
+        return False
+
+    meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
+    if compact_text(meta.get("form_key")) != SEMEN_FORM_KEY:
+        return False
+    if meta.get(DEFAULT_SEMEN_DEFAULTS_META_KEY) is True:
+        if not ensure_form_print_layout_default(
+            meta,
+            template_id="legacy_landscape",
+            paper_size="a5",
+            layout=SEMEN_LEGACY_A5_LAYOUT_DEFAULT,
+        ):
+            return False
+        block_schema["meta"] = meta
+        return True
+
+    details, _ = ensure_default_top_level_container(
+        block_schema,
+        key="details",
+        name="Semen Details",
+        field_keys=("time_collected", "time_received", "total_volume", "liquefaction_time"),
+    )
+    if details is None:
+        return False
+    blocks = normalize_items(block_schema.get("blocks"))
+    if any(
+        find_top_level_block_by_key(blocks, container_key) is None
+        for container_key in ("details", "motility", "morphology", "sperm_count", "others")
+    ):
+        return False
+    meta[DEFAULT_SEMEN_DEFAULTS_META_KEY] = True
+    ensure_form_print_layout_default(
+        meta,
+        template_id="legacy_landscape",
+        paper_size="a5",
+        layout=SEMEN_LEGACY_A5_LAYOUT_DEFAULT,
     )
     block_schema["meta"] = meta
     return True
@@ -8808,6 +8887,15 @@ def ensure_urine_defaults(session: Session) -> int:
         form_key=URINE_FORM_KEY,
         layout=ensure_default_urine_layout,
         summary="Applied approved Urine defaults.",
+    )
+
+
+def ensure_semen_defaults(session: Session) -> int:
+    return ensure_qualitative_result_form_defaults(
+        session,
+        form_key=SEMEN_FORM_KEY,
+        layout=ensure_default_semen_layout,
+        summary="Applied approved Semen defaults.",
     )
 
 

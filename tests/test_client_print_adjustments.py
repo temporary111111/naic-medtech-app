@@ -60,6 +60,7 @@ from naic_builder.services import (
     ensure_default_hiv_1_and_2_testing_layout,
     ensure_default_microbiology_layout,
     ensure_default_urine_layout,
+    ensure_default_semen_layout,
     ensure_default_patient_info_fields,
     ensure_default_hematology_layout,
     ensure_hematology_defaults,
@@ -70,6 +71,7 @@ from naic_builder.services import (
     ensure_covid_19_antigen_rapid_test_defaults,
     ensure_fecalysis_defaults,
     ensure_urine_defaults,
+    ensure_semen_defaults,
     ensure_microbiology_defaults,
     ensure_serology_defaults,
     ensure_default_serology_layout,
@@ -1133,6 +1135,36 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             {"form.urine.sugar": 3, "form.urine.protein": 3},
         )
         self.assertFalse(ensure_default_urine_layout(block_schema))
+
+    def test_semen_defaults_preserve_legacy_two_column_relationships_on_a5(self) -> None:
+        schema = json.loads(
+            (ROOT / "artifacts" / "schema" / "naic_medtech_app_schema.json").read_text(encoding="utf-8")
+        )
+        semen = next(
+            form
+            for group in schema["groups"]
+            for form in group["forms"]
+            if form["key"] == "semen"
+        )
+        block_schema = build_block_storage_document_from_legacy_storage(semen)
+        ensure_reference_examination_in_patient_info(block_schema, reference_form_slugs())
+
+        self.assertTrue(ensure_default_semen_layout(block_schema))
+        legacy_layout = block_schema["meta"]["print_layout_defaults"]["profiles"][
+            "legacy_landscape:a5"
+        ]
+        self.assertEqual(
+            legacy_layout["containers"]["root:containers:0"]["spans"],
+            {
+                "root/form.semen.patient_information": 6,
+                "root/form.semen.details": 3,
+                "root/form.semen.morphology": 3,
+                "root/form.semen.motility": 3,
+                "root/form.semen.sperm_count": 3,
+                "root/form.semen.others": 6,
+            },
+        )
+        self.assertFalse(ensure_default_semen_layout(block_schema))
 
     def test_fecalysis_defaults_mark_only_explicit_negative_findings_as_normal(self) -> None:
         schema = json.loads(
