@@ -892,6 +892,15 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         cardiaci_schema = build_block_storage_document_from_legacy_storage(forms["cardiaci"])
         ensure_reference_examination_in_patient_info(cardiaci_schema, reference_form_slugs())
         self.assertTrue(ensure_default_cardiaci_layout(cardiaci_schema))
+        cardiaci_layout = cardiaci_schema["meta"]["print_layout_defaults"]["profiles"]["legacy_landscape:a5"]
+        self.assertEqual(
+            cardiaci_layout["grids"]["root/form.cardiaci.details:0"]["spans"],
+            {
+                "form.cardiaci.ck_mb": 6,
+                "form.cardiaci.troponin_i": 6,
+                "form.cardiaci.bnp": 6,
+            },
+        )
         details = next(block for block in cardiaci_schema["blocks"] if block["props"]["key"] == "details")
         cardiaci_fields = {child["props"]["key"]: child for child in details["children"]}
         expected_ranges = {

@@ -417,6 +417,36 @@ BLOOD_BANK_LEGACY_A5_LAYOUT_DEFAULT = {
         },
     },
 }
+
+
+def legacy_a5_patient_information_grid(form_key: str) -> dict[str, dict[str, Any]]:
+    prefix = f"form.{form_key}"
+    return {
+        f"root/{prefix}.patient_information:0": {
+            "field_ids": [
+                f"{prefix}.patient_information.name",
+                f"{prefix}.patient_information.age",
+                f"{prefix}.patient_information.sex",
+                f"{prefix}.patient_information.date_or_datetime",
+                f"{prefix}.examination",
+                f"{prefix}.patient_information.requesting_physician",
+                f"{prefix}.patient_information.room",
+                f"{prefix}.patient_information.case_number",
+            ],
+            "mode": "manual",
+            "spans": {
+                f"{prefix}.patient_information.name": 2,
+                f"{prefix}.patient_information.age": 2,
+                f"{prefix}.patient_information.sex": 2,
+                f"{prefix}.patient_information.date_or_datetime": 2,
+                f"{prefix}.examination": 2,
+                f"{prefix}.patient_information.requesting_physician": 2,
+                f"{prefix}.patient_information.room": 3,
+                f"{prefix}.patient_information.case_number": 3,
+            },
+            "order": [],
+        },
+    }
 BLOOD_GAS_ANALYSIS_FORM_KEY = "blood_gas_analysis"
 DEFAULT_BLOOD_GAS_LAYOUT_META_KEY = "default_blood_gas_layout_v2"
 # This preserves the old ABG sheet's important visual relationship without
@@ -628,6 +658,28 @@ CARDIACI_FIELD_DEFAULTS = {
     "ck_mb": {"normal_min": "0.0", "normal_max": "4.3", "reference_text": None, "normal_value": None},
     "troponin_i": {"normal_min": "0.0", "normal_max": "0.02", "reference_text": None, "normal_value": None},
     "bnp": {"normal_min": "0.0", "normal_max": "100", "reference_text": None, "normal_value": None},
+}
+CARDIACI_LEGACY_A5_LAYOUT_DEFAULT = {
+    "version": PRINT_LAYOUT_PREFERENCE_VERSION,
+    "grids": {
+        **legacy_a5_patient_information_grid(CARDIACI_FORM_KEY),
+        "root/form.cardiaci.details:0": {
+            "field_ids": [
+                "form.cardiaci.ck_mb",
+                "form.cardiaci.troponin_i",
+                "form.cardiaci.bnp",
+            ],
+            "mode": "manual",
+            "spans": {
+                "form.cardiaci.ck_mb": 6,
+                "form.cardiaci.troponin_i": 6,
+                "form.cardiaci.bnp": 6,
+            },
+            "order": [],
+        },
+    },
+    "containers": {},
+    "blocks": {},
 }
 OGTT_FORM_KEY = "ogtt"
 DEFAULT_OGTT_DEFAULTS_META_KEY = "default_ogtt_defaults_v1"
@@ -3623,7 +3675,15 @@ def ensure_default_cardiaci_layout(block_schema: dict[str, Any]) -> bool:
     if compact_text(meta.get("form_key")) != CARDIACI_FORM_KEY:
         return False
     if meta.get(DEFAULT_CARDIACI_DEFAULTS_META_KEY) is True:
-        return False
+        if not ensure_form_print_layout_default(
+            meta,
+            template_id="legacy_landscape",
+            paper_size="a5",
+            layout=CARDIACI_LEGACY_A5_LAYOUT_DEFAULT,
+        ):
+            return False
+        block_schema["meta"] = meta
+        return True
 
     details, _ = ensure_default_top_level_container(
         block_schema,
@@ -3635,6 +3695,12 @@ def ensure_default_cardiaci_layout(block_schema: dict[str, Any]) -> bool:
         return False
     configure_container_field_properties(block_schema, {"details": CARDIACI_FIELD_DEFAULTS})
     meta[DEFAULT_CARDIACI_DEFAULTS_META_KEY] = True
+    ensure_form_print_layout_default(
+        meta,
+        template_id="legacy_landscape",
+        paper_size="a5",
+        layout=CARDIACI_LEGACY_A5_LAYOUT_DEFAULT,
+    )
     block_schema["meta"] = meta
     return True
 
