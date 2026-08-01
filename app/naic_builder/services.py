@@ -3906,6 +3906,7 @@ def ensure_default_covid_19_antigen_rapid_test_layout(block_schema: dict[str, An
         normal_choice_options={"test_result": ("NEGATIVE",)},
         result_image={"key": "result_image", "name": "Result Image", "required": False},
         print_layout=COVID_19_ANTIGEN_RAPID_TEST_LEGACY_A5_LAYOUT_DEFAULT,
+        print_profile_matrix=True,
     )
 
 
