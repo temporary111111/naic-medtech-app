@@ -2,26 +2,25 @@
 {% from "records/_record_card_macros.html" import render_record_card %}
 {% set shell_active = "records" %}
 
-{% block html_title %}Records History | {{ app_title }}{% endblock %}
+{% block html_title %}Find Records | {{ app_title }}{% endblock %}
 
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
-  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20260607-ui-root-phase4">
+  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20260731-records-management">
 {% endblock %}
 
 {% block shell_eyebrow %}Records{% endblock %}
-{% block shell_title %}History{% endblock %}
+{% block shell_title %}Find records{% endblock %}
 {% block shell_description %}{% endblock %}
 
 {% block page_header_nav %}
   <nav class="records-subnav" aria-label="Records views">
     <a class="records-subnav-link" href="/records">
-      <span>Workspace</span>
+      <span>Work queue</span>
       <small>{{ draft_count }}</small>
     </a>
     <a class="records-subnav-link is-active" href="/records/history">
-      <span>History</span>
-      <small>{{ completed_count }}</small>
+      <span>Find records</span>
     </a>
   </nav>
 {% endblock %}
@@ -42,15 +41,20 @@
     <section class="app-section records-section">
       <div class="app-section__head records-history-head">
         <div class="app-section__copy" data-history-summary>
-          <p class="eyebrow">History</p>
+          <p class="eyebrow">Records</p>
           {% if status_filter == 'draft' %}
           <h2>{{ matching_count }} draft record{{ '' if matching_count == 1 else 's' }}</h2>
           {% elif status_filter == 'voided' %}
           <h2>{{ matching_count }} voided record{{ '' if matching_count == 1 else 's' }}</h2>
           {% elif status_filter == 'all' %}
-          <h2>{{ matching_count }} record{{ '' if matching_count == 1 else 's' }} in history</h2>
+          <h2>{{ matching_count }} record{{ '' if matching_count == 1 else 's' }}</h2>
           {% else %}
           <h2>{{ matching_count }} completed record{{ '' if matching_count == 1 else 's' }}</h2>
+          {% endif %}
+          {% if form_filter_label or date_scope_label %}
+          <p class="records-active-filter-summary">
+            {% if form_filter_label %}{{ form_filter_label }}{% endif %}{% if form_filter_label and date_scope_label %} - {% endif %}{% if date_scope_label %}Updated {{ date_scope_label }}{% endif %}
+          </p>
           {% endif %}
           {% if matching_count %}
           <p class="panel-copy">
@@ -64,19 +68,48 @@
 
         <div class="records-history-controls">
           <form method="get" action="/records/history" class="records-search-form records-search-form--history" data-history-search>
-            {% if status_filter != 'completed' %}
-            <input type="hidden" name="status" value="{{ status_filter }}">
-            {% endif %}
             <label class="records-search-input">
               <span>Search</span>
               <input type="search" name="q" value="{{ search_query }}" placeholder="Record, form, key, or value" data-history-search-input>
             </label>
-            <div class="record-filter-pills" data-history-filters>
-              <a class="record-filter-pill{% if status_filter == 'completed' %} is-active{% endif %}" href="/records/history{% if search_query %}?q={{ search_query | urlencode }}{% endif %}">Completed</a>
-              <a class="record-filter-pill{% if status_filter == 'draft' %} is-active{% endif %}" href="/records/history?status=draft{% if search_query %}&q={{ search_query | urlencode }}{% endif %}">Drafts</a>
-              <a class="record-filter-pill{% if status_filter == 'voided' %} is-active{% endif %}" href="/records/history?status=voided{% if search_query %}&q={{ search_query | urlencode }}{% endif %}">Voided</a>
-              <a class="record-filter-pill{% if status_filter == 'all' %} is-active{% endif %}" href="/records/history?status=all{% if search_query %}&q={{ search_query | urlencode }}{% endif %}">All</a>
-            </div>
+            <details class="records-filter-details" data-history-filter-details>
+              <summary aria-label="Filter records" title="Filter records">Filter</summary>
+              <div class="records-filter-panel">
+                <div class="records-filter-grid">
+                  <label>
+                    <span>Status</span>
+                    <select name="status">
+                      <option value="completed"{% if status_filter == 'completed' %} selected{% endif %}>Completed</option>
+                      <option value="draft"{% if status_filter == 'draft' %} selected{% endif %}>Drafts</option>
+                      <option value="voided"{% if status_filter == 'voided' %} selected{% endif %}>Voided</option>
+                      <option value="all"{% if status_filter == 'all' %} selected{% endif %}>All statuses</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Form</span>
+                    <select name="form">
+                      <option value="">All forms</option>
+                      {% for form in form_choices %}
+                      <option value="{{ form.slug }}"{% if form_filter == form.slug %} selected{% endif %}>{{ form.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </label>
+                  <label>
+                    <span>Updated</span>
+                    <select name="period">
+                      <option value=""{% if not date_scope %} selected{% endif %}>Any time</option>
+                      <option value="today"{% if date_scope == 'today' %} selected{% endif %}>Today</option>
+                      <option value="last_7_days"{% if date_scope == 'last_7_days' %} selected{% endif %}>Last 7 days</option>
+                      <option value="this_month"{% if date_scope == 'this_month' %} selected{% endif %}>This month</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="records-filter-actions">
+                  <a class="ghost-button" href="/records/history">Reset</a>
+                  <button class="primary-button" type="submit">Apply filters</button>
+                </div>
+              </div>
+            </details>
             <div class="records-search-actions">
               <button class="ghost-button" type="button" data-history-search-clear {% if not search_query %}hidden{% endif %}>Clear</button>
             </div>

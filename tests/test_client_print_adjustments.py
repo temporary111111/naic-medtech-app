@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 
 from jinja2 import Environment, FileSystemLoader
 from sqlalchemy import create_engine, select
@@ -85,6 +86,7 @@ from naic_builder.services import (
     normalize_print_config,
     normalize_print_header_text_color,
     normalize_print_paper_size,
+    normalize_record_date_scope,
     normalize_print_layout_preference,
     normalize_print_profile,
     normalize_signatory_slot,
@@ -96,6 +98,7 @@ from naic_builder.services import (
     print_style_options,
     print_template_id_for,
     print_text_size_options,
+    record_date_scope_start,
     reference_form_slugs,
     resolve_form_location_metadata,
     sample_print_value_for_field,
@@ -2273,6 +2276,28 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn('data-default-open="false"', library_source)
         self.assertNotIn('{% if level == 0 %}open{% endif %}', library_source)
         self.assertIn("related.open = true;", library_script)
+
+    def test_records_management_filters_use_existing_record_timestamps(self) -> None:
+        now = datetime(2026, 7, 31, 10, 15, tzinfo=timezone.utc)
+        local_now = now.astimezone()
+        start_of_today = local_now.replace(hour=0, minute=0, second=0, microsecond=0).astimezone(timezone.utc)
+
+        self.assertEqual(normalize_record_date_scope("today"), "today")
+        self.assertEqual(normalize_record_date_scope("LAST_7_DAYS"), "last_7_days")
+        self.assertEqual(normalize_record_date_scope("invalid"), "")
+        self.assertEqual(record_date_scope_start("today", now=now), start_of_today)
+        self.assertEqual(record_date_scope_start("last_7_days", now=now), start_of_today - timedelta(days=6))
+        self.assertEqual(record_date_scope_start("this_month", now=now), start_of_today.replace(day=1))
+
+        history_page = (ROOT / "app" / "naic_builder" / "templates" / "records" / "history.html").read_text(encoding="utf-8")
+        work_page = (ROOT / "app" / "naic_builder" / "templates" / "records" / "home.html").read_text(encoding="utf-8")
+        history_script = (ROOT / "app" / "naic_builder" / "static" / "records.js").read_text(encoding="utf-8")
+
+        self.assertIn('data-history-filter-details', history_page)
+        self.assertIn('name="form"', history_page)
+        self.assertIn('name="period"', history_page)
+        self.assertIn('class="records-work-completed"', work_page)
+        self.assertIn("filterDetails?.removeAttribute(\"open\");", history_script)
 
     def test_user_print_layout_preference_is_personal_and_profile_scoped(self) -> None:
         engine = create_engine("sqlite://")

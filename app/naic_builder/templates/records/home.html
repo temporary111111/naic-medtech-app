@@ -6,7 +6,7 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
-  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20260607-ui-root-phase4">
+  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20260731-records-management">
 {% endblock %}
 
 {% block shell_eyebrow %}Records{% endblock %}
@@ -16,12 +16,11 @@
 {% block page_header_nav %}
   <nav class="records-subnav" aria-label="Records views">
     <a class="records-subnav-link is-active" href="/records">
-      <span>Workspace</span>
+      <span>Work queue</span>
       <small>{{ draft_count }}</small>
     </a>
     <a class="records-subnav-link" href="/records/history">
-      <span>History</span>
-      <small>{{ completed_count }}</small>
+      <span>Find records</span>
     </a>
   </nav>
 {% endblock %}
@@ -47,6 +46,9 @@
             - showing the 8 most recent first
             {% endif %}
           </p>
+          <a class="records-work-completed" href="{{ completed_today_url }}">
+            Completed today <strong>{{ completed_today_count }}</strong>
+          </a>
         </div>
         {% if drafts_truncated %}
         <div class="app-section__actions">

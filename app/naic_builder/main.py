@@ -118,6 +118,7 @@ from .services import (
     list_move_target_choices,
     move_container,
     move_form,
+    normalize_record_date_scope,
     normalize_print_profile,
     filter_print_layout_preference_for_items,
     form_version_print_layout_preference,
@@ -207,6 +208,11 @@ ADMIN_PREFIXES = ("/forms", "/folders", "/builder", "/api/forms", "/api/builder"
 ADMIN_SETTINGS_PREFIXES = ("/settings/users", "/settings/desktop")
 RESTORE_CONFIRMATION_TEXT = "RESTORE"
 RECORDS_HISTORY_PAGE_SIZE = 40
+RECORD_DATE_SCOPE_LABELS = {
+    "today": "Today",
+    "last_7_days": "Last 7 days",
+    "this_month": "This month",
+}
 _RESTORE_MAINTENANCE_LOCK = threading.Lock()
 _RESTORE_MAINTENANCE_ACTIVE = False
 
@@ -709,6 +715,7 @@ def render_records_work_page(
     recent_completed = list_records(session, status="completed", limit=8)
     draft_count = count_records(session, status="draft")
     completed_count = count_records(session, status="completed")
+    completed_today_count = count_records(session, status="completed", date_scope="today")
     record_start_context = build_record_start_context(
         session,
         recent_drafts=recent_drafts,
@@ -727,6 +734,8 @@ def render_records_work_page(
             "record_start_selected_slug": record_start_selected_slug,
             "draft_count": draft_count,
             "completed_count": completed_count,
+            "completed_today_count": completed_today_count,
+            "completed_today_url": records_history_url(date_scope="today"),
             "recent_drafts": recent_drafts,
             "drafts_truncated": draft_count > len(recent_drafts),
         },
@@ -760,6 +769,8 @@ def records_history_url(
     *,
     search_query: str = "",
     status_filter: str = "completed",
+    form_slug: str = "",
+    date_scope: str = "",
     page: int = 1,
 ) -> str:
     query: dict[str, str] = {}
@@ -767,6 +778,10 @@ def records_history_url(
         query["status"] = status_filter
     if search_query:
         query["q"] = search_query
+    if form_slug:
+        query["form"] = form_slug
+    if date_scope:
+        query["period"] = date_scope
     if page > 1:
         query["page"] = str(page)
     return f"/records/history?{urlencode(query)}" if query else "/records/history"
@@ -818,6 +833,8 @@ def render_records_history_page(
     *,
     search_query: str = "",
     status_filter: str = "completed",
+    form_slug: str = "",
+    date_scope: str = "",
     page: int = 1,
     record_start_open: bool = False,
     record_start_error: str = "",
@@ -830,11 +847,19 @@ def render_records_history_page(
     if active_status not in {"completed", "draft", "voided", "all"}:
         active_status = "completed"
     query_text = (search_query or "").strip()
+    form_choices = list_form_choices(session)
+    available_form_slugs = {str(form["slug"]) for form in form_choices}
+    requested_form_slug = (form_slug or "").strip()
+    active_form_slug = requested_form_slug if requested_form_slug in available_form_slugs else ""
+    active_date_scope = normalize_record_date_scope(date_scope)
+    active_form_choice = next((form for form in form_choices if form["slug"] == active_form_slug), None)
     record_status = None if active_status == "all" else active_status
     matching_total_count = count_records(
         session,
         status=record_status,
         search=query_text or None,
+        form_slug=active_form_slug or None,
+        date_scope=active_date_scope or None,
     )
     total_pages = max(1, (matching_total_count + RECORDS_HISTORY_PAGE_SIZE - 1) // RECORDS_HISTORY_PAGE_SIZE)
     active_page = max(1, min(int(page or 1), total_pages))
@@ -843,6 +868,8 @@ def render_records_history_page(
         session,
         status=record_status,
         search=query_text or None,
+        form_slug=active_form_slug or None,
+        date_scope=active_date_scope or None,
         limit=RECORDS_HISTORY_PAGE_SIZE,
         offset=matching_offset,
     )
@@ -852,6 +879,8 @@ def render_records_history_page(
     history_return_url = records_history_url(
         search_query=query_text,
         status_filter=active_status,
+        form_slug=active_form_slug,
+        date_scope=active_date_scope,
         page=active_page,
     )
     return templates.TemplateResponse(
@@ -863,6 +892,11 @@ def render_records_history_page(
             "records_mode": "history",
             "search_query": query_text,
             "status_filter": active_status,
+            "form_filter": active_form_slug,
+            "form_filter_label": str((active_form_choice or {}).get("name") or ""),
+            "date_scope": active_date_scope,
+            "date_scope_label": RECORD_DATE_SCOPE_LABELS.get(active_date_scope, ""),
+            "form_choices": form_choices,
             "matching_records": matching_records,
             "matching_count": matching_total_count,
             "matching_truncated": matching_total_count > len(matching_records),
@@ -875,11 +909,15 @@ def render_records_history_page(
             "history_previous_url": records_history_url(
                 search_query=query_text,
                 status_filter=active_status,
+                form_slug=active_form_slug,
+                date_scope=active_date_scope,
                 page=active_page - 1,
             ),
             "history_next_url": records_history_url(
                 search_query=query_text,
                 status_filter=active_status,
+                form_slug=active_form_slug,
+                date_scope=active_date_scope,
                 page=active_page + 1,
             ),
             "history_return_url": history_return_url,
@@ -1290,17 +1328,23 @@ def records_home(
     request: Request,
     q: str = "",
     status: str = "",
+    form: str = "",
+    period: str = "",
     password_changed: str = "",
     record_deleted: str = "",
     session: Session = Depends(get_session),
 ) -> HTMLResponse:
-    if q or status:
+    if q or status or form or period:
         query: dict[str, str] = {}
         if q:
             query["q"] = q
         normalized_status = (status or "").strip().lower()
         if normalized_status in {"completed", "draft", "voided", "all"}:
             query["status"] = normalized_status
+        if form:
+            query["form"] = form
+        if normalize_record_date_scope(period):
+            query["period"] = normalize_record_date_scope(period)
         history_url = "/records/history"
         if query:
             history_url = f"{history_url}?{urlencode(query)}"
@@ -1329,6 +1373,8 @@ def records_history_page(
     request: Request,
     q: str = "",
     status: str = "completed",
+    form: str = "",
+    period: str = "",
     page: int = 1,
     notice: str = "",
     session: Session = Depends(get_session),
@@ -1343,6 +1389,8 @@ def records_history_page(
         session,
         search_query=q,
         status_filter=status,
+        form_slug=form,
+        date_scope=period,
         page=page,
         success_message=success_message,
     )
@@ -1358,6 +1406,8 @@ async def create_record_page(
     return_to = ((form_data.get("return_to") or ["work"])[0] or "work").strip().lower()
     return_query = ((form_data.get("return_query") or [""])[0] or "").strip()
     return_status = ((form_data.get("return_status") or ["completed"])[0] or "completed").strip().lower()
+    return_form_slug = ((form_data.get("return_form") or [""])[0] or "").strip()
+    return_date_scope = normalize_record_date_scope((form_data.get("return_period") or [""])[0])
     try:
         return_page = max(1, int((form_data.get("return_page") or ["1"])[0] or 1))
     except ValueError:
@@ -1374,6 +1424,8 @@ async def create_record_page(
                 session,
                 search_query=return_query,
                 status_filter=return_status,
+                form_slug=return_form_slug,
+                date_scope=return_date_scope,
                 page=return_page,
                 record_start_open=True,
                 record_start_selected_slug=payload.form_slug,
@@ -1400,6 +1452,8 @@ async def create_record_page(
         history_return_url = records_history_url(
             search_query=return_query,
             status_filter=return_status,
+            form_slug=return_form_slug,
+            date_scope=return_date_scope,
             page=return_page,
         )
         return RedirectResponse(

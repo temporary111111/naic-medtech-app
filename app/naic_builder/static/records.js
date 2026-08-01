@@ -59,8 +59,8 @@
 
       const input = form.querySelector("[data-history-search-input]");
       const clearButton = form.querySelector("[data-history-search-clear]");
+      const filterDetails = form.querySelector("[data-history-filter-details]");
       const summaryEl = document.querySelector("[data-history-summary]");
-      const filtersEl = document.querySelector("[data-history-filters]");
       const resultsEl = document.querySelector("[data-history-results]");
       const paginationEl = document.querySelector("[data-history-pagination]");
       if (!input) {
@@ -93,15 +93,11 @@
       const updateFromDocument = (html) => {
         const nextDoc = new DOMParser().parseFromString(html, "text/html");
         const nextSummary = nextDoc.querySelector("[data-history-summary]");
-        const nextFilters = nextDoc.querySelector("[data-history-filters]");
         const nextResults = nextDoc.querySelector("[data-history-results]");
         const nextPagination = nextDoc.querySelector("[data-history-pagination]");
 
         if (summaryEl && nextSummary) {
           summaryEl.innerHTML = nextSummary.innerHTML;
-        }
-        if (filtersEl && nextFilters) {
-          filtersEl.innerHTML = nextFilters.innerHTML;
         }
         if (resultsEl && nextResults) {
           resultsEl.innerHTML = nextResults.innerHTML;
@@ -170,6 +166,7 @@
       form.addEventListener("submit", (event) => {
         event.preventDefault();
         window.clearTimeout(timer);
+        filterDetails?.removeAttribute("open");
         runSearch();
       });
 

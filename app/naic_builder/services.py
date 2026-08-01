@@ -9,7 +9,7 @@ import re
 import secrets
 import shutil
 from pathlib import Path
-from datetime import datetime, time, timezone
+from datetime import datetime, time, timedelta, timezone
 from typing import Any, Callable
 from uuid import uuid4
 
@@ -67,6 +67,7 @@ MAX_USER_AVATAR_BYTES = 2 * 1024 * 1024
 MAX_SIGNATORY_STAMP_BYTES = 5 * 1024 * 1024
 EDITABLE_RECORD_STATUSES = {"draft"}
 VISIBLE_RECORD_STATUSES = {"draft", "completed", "voided"}
+RECORD_DATE_SCOPES = {"today", "last_7_days", "this_month"}
 RECORD_STATUS_LABELS = {
     "draft": "Draft",
     "completed": "Completed",
@@ -6467,12 +6468,22 @@ def apply_record_filters(
     *,
     status: str | None = None,
     search: str | None = None,
+    form_slug: str | None = None,
+    date_scope: str | None = None,
 ):
     normalized_status = compact_text(status)
     if normalized_status:
         query = query.where(Record.status == normalized_status)
     else:
         query = query.where(Record.status.in_(VISIBLE_RECORD_STATUSES))
+
+    normalized_form_slug = compact_text(form_slug)
+    if normalized_form_slug:
+        query = query.where(Record.form.has(FormDefinition.slug == normalized_form_slug))
+
+    start_at = record_date_scope_start(date_scope)
+    if start_at is not None:
+        query = query.where(Record.updated_at >= start_at)
 
     search_text = compact_text(search)
     if search_text:
@@ -6491,14 +6502,41 @@ def apply_record_filters(
     return query
 
 
+def normalize_record_date_scope(value: Any) -> str:
+    scope = compact_text(value).lower()
+    return scope if scope in RECORD_DATE_SCOPES else ""
+
+
+def record_date_scope_start(value: Any, *, now: datetime | None = None) -> datetime | None:
+    scope = normalize_record_date_scope(value)
+    if not scope:
+        return None
+
+    local_now = (now or utc_now()).astimezone()
+    start_of_today = datetime.combine(local_now.date(), time.min, tzinfo=local_now.tzinfo)
+    if scope == "today":
+        return start_of_today.astimezone(timezone.utc)
+    if scope == "last_7_days":
+        return (start_of_today - timedelta(days=6)).astimezone(timezone.utc)
+    return start_of_today.replace(day=1).astimezone(timezone.utc)
+
+
 def count_records(
     session: Session,
     *,
     status: str | None = None,
     search: str | None = None,
+    form_slug: str | None = None,
+    date_scope: str | None = None,
 ) -> int:
     query = select(func.count(Record.id))
-    query = apply_record_filters(query, status=status, search=search)
+    query = apply_record_filters(
+        query,
+        status=status,
+        search=search,
+        form_slug=form_slug,
+        date_scope=date_scope,
+    )
     return int(session.scalar(query) or 0)
 
 
@@ -6507,11 +6545,19 @@ def list_records(
     *,
     status: str | None = None,
     search: str | None = None,
+    form_slug: str | None = None,
+    date_scope: str | None = None,
     limit: int = 24,
     offset: int = 0,
 ) -> list[dict[str, Any]]:
     query = record_query_with_relationships()
-    query = apply_record_filters(query, status=status, search=search)
+    query = apply_record_filters(
+        query,
+        status=status,
+        search=search,
+        form_slug=form_slug,
+        date_scope=date_scope,
+    )
     query = query.order_by(Record.updated_at.desc(), Record.id.desc()).offset(max(0, int(offset or 0))).limit(limit)
     records = session.scalars(query).all()
     return [serialize_record(record, include_values=False) for record in records]
