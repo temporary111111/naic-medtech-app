@@ -1,5 +1,5 @@
 .app-shell-body {
-  --app-zoom: 1;
+  --app-zoom: 0.75;
   height: 100vh;
   height: 100dvh;
   min-height: 0;

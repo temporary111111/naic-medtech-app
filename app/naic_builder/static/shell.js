@@ -26,7 +26,9 @@
   let modalReturnFocus = null;
 
   const openClass = "shell-drawer-open";
-  const zoomStorageKey = "naic.appZoomPercent";
+  const zoomStorageKey = "naic.appZoomPercent.compactBaseline";
+  const legacyZoomStorageKey = "naic.appZoomPercent";
+  const zoomBaseline = 0.75;
   const minZoom = 50;
   const maxZoom = 200;
   const zoomStep = 5;
@@ -41,7 +43,20 @@
 
   const storedZoom = () => {
     try {
-      return clampZoom(window.localStorage.getItem(zoomStorageKey) || "100");
+      const savedZoom = window.localStorage.getItem(zoomStorageKey);
+      if (savedZoom !== null) {
+        return clampZoom(savedZoom);
+      }
+
+      const legacyZoom = window.localStorage.getItem(legacyZoomStorageKey);
+      if (legacyZoom === null) {
+        return 100;
+      }
+
+      const migratedZoom = clampZoom(clampZoom(legacyZoom) / zoomBaseline);
+      window.localStorage.removeItem(legacyZoomStorageKey);
+      persistZoom(migratedZoom);
+      return migratedZoom;
     } catch (_error) {
       return 100;
     }
@@ -61,7 +76,7 @@
 
   const applyZoom = (value, { persist = true } = {}) => {
     const zoom = clampZoom(value);
-    body.style.setProperty("--app-zoom", String(zoom / 100));
+    body.style.setProperty("--app-zoom", String((zoom / 100) * zoomBaseline));
     body.dataset.appZoom = String(zoom);
     zoomOutputs.forEach((output) => {
       output.textContent = `${zoom}%`;
