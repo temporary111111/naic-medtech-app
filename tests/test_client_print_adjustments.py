@@ -24,7 +24,7 @@ from naic_builder.database import (
     engine as runtime_engine,
     migrate_form_versions_legacy_schema_nullable,
 )
-from naic_builder.models import FormDefinition, FormVersion, Record, User
+from naic_builder.models import FormDefinition, FormVersion, LibraryNode, Record, User
 from naic_builder.main import normalize_overview_period
 from naic_builder.schemas import ClinicProfilePayload, FormSavePayload
 from naic_builder.services import (
@@ -79,6 +79,7 @@ from naic_builder.services import (
     ensure_default_pathologist_stamp,
     ensure_form_version_storage_documents,
     evaluate_print_abnormal,
+    format_compact_timestamp_label,
     format_print_temporal_value,
     filter_print_layout_preference_for_items,
     form_version_print_layout_preference,
@@ -133,7 +134,9 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             with Session() as session:
                 blood_bank = FormDefinition(slug="blood_bank", name="Blood Bank")
                 hematology = FormDefinition(slug="hematology", name="Hematology")
-                session.add_all([blood_bank, hematology])
+                microbiology = FormDefinition(slug="microbiology", name="Microbiology")
+                archived_form = FormDefinition(slug="archived_form", name="Archived Form")
+                session.add_all([blood_bank, hematology, microbiology, archived_form])
                 session.flush()
                 blood_bank_version = FormVersion(
                     form_id=blood_bank.id,
@@ -151,6 +154,36 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                 )
                 session.add_all([blood_bank_version, hematology_version])
                 session.flush()
+                session.add_all([
+                    LibraryNode(
+                        node_key="form:blood_bank",
+                        kind="form",
+                        name="Blood Bank",
+                        form_definition_id=blood_bank.id,
+                        archived=False,
+                    ),
+                    LibraryNode(
+                        node_key="form:hematology",
+                        kind="form",
+                        name="Hematology",
+                        form_definition_id=hematology.id,
+                        archived=False,
+                    ),
+                    LibraryNode(
+                        node_key="form:microbiology",
+                        kind="form",
+                        name="Microbiology",
+                        form_definition_id=microbiology.id,
+                        archived=False,
+                    ),
+                    LibraryNode(
+                        node_key="form:archived_form",
+                        kind="form",
+                        name="Archived Form",
+                        form_definition_id=archived_form.id,
+                        archived=True,
+                    ),
+                ])
                 session.add_all([
                     Record(
                         record_key="overview-blood-bank-1",
@@ -193,6 +226,7 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                 [
                     {"slug": "blood_bank", "name": "Blood Bank", "count": 2, "percent": 100},
                     {"slug": "hematology", "name": "Hematology", "count": 1, "percent": 50},
+                    {"slug": "microbiology", "name": "Microbiology", "count": 0, "percent": 0},
                 ],
             )
         finally:
@@ -2367,6 +2401,18 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn("theme.css') }}?v=20260801-shared-layout-foundation", shell_template)
         self.assertIn("shell.css') }}?v=20260801-shell-panel-radius", shell_template)
         self.assertNotIn("library.css", overview_page)
+
+    def test_overview_recent_updates_are_creator_attributed_and_timezone_free(self) -> None:
+        overview_page = (ROOT / "app" / "naic_builder" / "templates" / "overview.html").read_text(encoding="utf-8")
+        overview_stylesheet = (ROOT / "app" / "naic_builder" / "static" / "overview.css").read_text(encoding="utf-8")
+        label = format_compact_timestamp_label(datetime(2026, 7, 31, 10, 15, tzinfo=timezone.utc))
+
+        self.assertRegex(label, r"^[A-Z][a-z]{2} \d{2}, \d{2}:\d{2} [AP]M$")
+        self.assertIn("Created by {{ record.overview_creator_name }}", overview_page)
+        self.assertIn("Updated {{ record.overview_updated_at_label }}", overview_page)
+        self.assertNotIn("overview-recent-row__time", overview_page)
+        self.assertNotIn("overview-recent-row__dot", overview_page)
+        self.assertIn("grid-template-columns: minmax(0, 1fr);", overview_stylesheet)
 
     def test_records_management_filters_use_existing_record_timestamps(self) -> None:
         now = datetime(2026, 7, 31, 10, 15, tzinfo=timezone.utc)

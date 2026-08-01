@@ -4,7 +4,7 @@
 {% block html_title %}Overview | {{ app_title }}{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{{ url_for('static', path='overview.css') }}?v=20260801-control-board-overview">
+  <link rel="stylesheet" href="{{ url_for('static', path='overview.css') }}?v=20260801-all-form-activity">
 {% endblock %}
 
 {% block shell_eyebrow %}Laboratory records{% endblock %}
@@ -48,11 +48,9 @@
         {% if recent_records %}
           {% for record in recent_records %}
           <a class="overview-recent-row" href="{{ record.overview_url }}">
-            <span class="overview-recent-row__time">{{ record.updated_at_label }}</span>
-            <span class="overview-recent-row__dot" aria-hidden="true"></span>
             <span class="overview-recent-row__copy">
-              <strong>{{ record.form_name }} {{ record.status_label | lower }}</strong>
-              <small>Open record</small>
+              <strong>{{ record.form_name }}</strong>
+              <small>Created by {{ record.overview_creator_name }}{% if record.overview_updated_at_label %} &middot; Updated {{ record.overview_updated_at_label }}{% endif %}</small>
             </span>
           </a>
           {% endfor %}

@@ -14,7 +14,7 @@ from typing import Any, Callable
 from uuid import uuid4
 
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from .config import (
@@ -4550,6 +4550,16 @@ def format_timestamp_label(value: Any) -> str:
     return f"{local_value.strftime('%b %d, %Y %I:%M %p')} {tz_name}"
 
 
+def format_compact_timestamp_label(value: Any) -> str:
+    if value is None:
+        return ""
+    try:
+        local_value = value.astimezone()
+    except Exception:
+        return ""
+    return local_value.strftime("%b %d, %I:%M %p")
+
+
 def serialize_record_actor(user: User | None) -> dict[str, Any] | None:
     if user is None:
         return None
@@ -6423,6 +6433,8 @@ def serialize_record(
         "completed_at": record.completed_at.astimezone(timezone.utc).isoformat() if record.completed_at else None,
         "created_at_label": format_timestamp_label(record.created_at),
         "updated_at_label": format_timestamp_label(record.updated_at),
+        "created_at_compact_label": format_compact_timestamp_label(record.created_at),
+        "updated_at_compact_label": format_compact_timestamp_label(record.updated_at),
         "completed_at_label": format_timestamp_label(record.completed_at) if record.completed_at else "",
         "created_by": serialize_record_actor(record.created_by_user),
         "updated_by": serialize_record_actor(record.updated_by_user),
@@ -6567,27 +6579,34 @@ def list_completed_record_activity_by_form(
     session: Session,
     *,
     date_scope: str | None = None,
-    limit: int = 8,
 ) -> list[dict[str, Any]]:
-    """Return completed-record totals by form using the same updated-date scope as History."""
+    """Return every active library form with completed-record totals for the selected History scope."""
+    record_conditions = [
+        Record.form_id == FormDefinition.id,
+        Record.status == "completed",
+    ]
+    start_at = record_date_scope_start(date_scope)
+    if start_at is not None:
+        record_conditions.append(Record.updated_at >= start_at)
     query = (
         select(
             FormDefinition.slug,
             FormDefinition.name,
             func.count(Record.id).label("record_count"),
         )
-        .select_from(Record)
-        .join(FormDefinition, Record.form_id == FormDefinition.id)
-        .where(Record.status == "completed")
+        .select_from(FormDefinition)
+        .join(LibraryNode, LibraryNode.form_definition_id == FormDefinition.id)
+        .outerjoin(Record, and_(*record_conditions))
+        .where(
+            LibraryNode.kind == "form",
+            LibraryNode.archived.is_(False),
+        )
     )
-    start_at = record_date_scope_start(date_scope)
-    if start_at is not None:
-        query = query.where(Record.updated_at >= start_at)
     query = query.group_by(FormDefinition.id, FormDefinition.slug, FormDefinition.name).order_by(
         func.count(Record.id).desc(),
         FormDefinition.name.asc(),
     )
-    rows = session.execute(query.limit(max(1, int(limit or 1)))).all()
+    rows = session.execute(query).all()
     counts = [int(row.record_count or 0) for row in rows]
     maximum = max(counts, default=0)
     return [

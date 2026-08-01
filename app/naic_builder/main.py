@@ -836,6 +836,17 @@ def render_overview_page(
     overview_return_url = f"/overview?{urlencode({'period': active_period_key})}"
     recent_records = list_records(session, date_scope=active_period or None, limit=4)
     for record in recent_records:
+        created_by = record.get("created_by") or {}
+        record["overview_creator_name"] = (
+            str(
+                created_by.get("full_name")
+                or created_by.get("login_id")
+                or created_by.get("email")
+                or ""
+            ).strip()
+            or "Creator not recorded"
+        )
+        record["overview_updated_at_label"] = str(record.get("updated_at_compact_label") or "")
         record["overview_url"] = f"/records/{record['id']}?{overview_query(overview_return_url)}"
     return templates.TemplateResponse(
         request=request,
