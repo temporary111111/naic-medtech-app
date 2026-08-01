@@ -646,6 +646,45 @@ PRO_TIME_APTT_CONTAINER_FIELD_DEFAULTS = {
         "control": {"unit": "seconds", "unit_hint": "seconds", "reference_text": None, "normal_value": None},
     },
 }
+PRO_TIME_APTT_LEGACY_A5_LAYOUT_DEFAULT = {
+    "version": PRINT_LAYOUT_PREFERENCE_VERSION,
+    "grids": {
+        **legacy_a5_patient_information_grid(PRO_TIME_APTT_FORM_KEY),
+        "root/form.pro_time_aptt.pro_time:0": {
+            "field_ids": [
+                "form.pro_time_aptt.pro_time.test",
+                "form.pro_time_aptt.pro_time.control",
+                "form.pro_time_aptt.pro_time.inr",
+                "form.pro_time_aptt.pro_time.activity",
+            ],
+            "mode": "manual",
+            "spans": {
+                "form.pro_time_aptt.pro_time.test": 6,
+                "form.pro_time_aptt.pro_time.control": 6,
+                "form.pro_time_aptt.pro_time.inr": 6,
+                "form.pro_time_aptt.pro_time.activity": 6,
+            },
+            "order": [],
+        },
+    },
+    "containers": {
+        "root:containers:0": {
+            "container_ids": [
+                "root/form.pro_time_aptt.patient_information",
+                "root/form.pro_time_aptt.pro_time",
+                "root/form.pro_time_aptt.aptt",
+            ],
+            "mode": "manual",
+            "spans": {
+                "root/form.pro_time_aptt.patient_information": 6,
+                "root/form.pro_time_aptt.pro_time": 3,
+                "root/form.pro_time_aptt.aptt": 3,
+            },
+            "order": [],
+        },
+    },
+    "blocks": {},
+}
 HIV_1_AND_2_TESTING_FORM_KEY = "hiv_1_and_2_testing"
 DEFAULT_HIV_1_AND_2_TESTING_DEFAULTS_META_KEY = "default_hiv_1_and_2_testing_defaults_v1"
 COVID_19_ANTIGEN_RAPID_TEST_FORM_KEY = "covid_19_antigen_rapid_test"
@@ -3469,7 +3508,15 @@ def ensure_default_pro_time_aptt_layout(block_schema: dict[str, Any]) -> bool:
     if compact_text(meta.get("form_key")) != PRO_TIME_APTT_FORM_KEY:
         return False
     if meta.get(DEFAULT_PRO_TIME_APTT_DEFAULTS_META_KEY) is True:
-        return False
+        if not ensure_form_print_layout_default(
+            meta,
+            template_id="legacy_landscape",
+            paper_size="a5",
+            layout=PRO_TIME_APTT_LEGACY_A5_LAYOUT_DEFAULT,
+        ):
+            return False
+        block_schema["meta"] = meta
+        return True
 
     blocks = normalize_items(block_schema.get("blocks"))
     if (
@@ -3479,6 +3526,12 @@ def ensure_default_pro_time_aptt_layout(block_schema: dict[str, Any]) -> bool:
         return False
     configure_container_field_properties(block_schema, PRO_TIME_APTT_CONTAINER_FIELD_DEFAULTS)
     meta[DEFAULT_PRO_TIME_APTT_DEFAULTS_META_KEY] = True
+    ensure_form_print_layout_default(
+        meta,
+        template_id="legacy_landscape",
+        paper_size="a5",
+        layout=PRO_TIME_APTT_LEGACY_A5_LAYOUT_DEFAULT,
+    )
     block_schema["meta"] = meta
     return True
 

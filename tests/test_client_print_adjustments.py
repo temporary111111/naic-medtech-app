@@ -1043,6 +1043,15 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         ensure_reference_examination_in_patient_info(block_schema, reference_form_slugs())
 
         self.assertTrue(ensure_default_pro_time_aptt_layout(block_schema))
+        legacy_layout = block_schema["meta"]["print_layout_defaults"]["profiles"]["legacy_landscape:a5"]
+        self.assertEqual(
+            legacy_layout["containers"]["root:containers:0"]["spans"],
+            {
+                "root/form.pro_time_aptt.patient_information": 6,
+                "root/form.pro_time_aptt.pro_time": 3,
+                "root/form.pro_time_aptt.aptt": 3,
+            },
+        )
         pro_time = next(block for block in block_schema["blocks"] if block["props"]["key"] == "pro_time")
         aptt = next(block for block in block_schema["blocks"] if block["props"]["key"] == "aptt")
         pro_fields = {child["props"]["key"]: child for child in pro_time["children"]}
