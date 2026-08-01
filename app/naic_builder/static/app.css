@@ -82,7 +82,7 @@ textarea {
   position: relative;
   z-index: 20;
   padding: 12px 14px;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   overflow: visible;
 }
 
@@ -3001,8 +3001,23 @@ textarea:focus,
   width: var(--builder-rail-width);
   margin-inline: 0;
   align-items: center;
+  isolation: isolate;
   overflow: visible;
-  border-color: color-mix(in srgb, var(--line) 92%, transparent);
+  border: 0;
+  border-radius: var(--radius-xl);
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+}
+
+.shell .builder-command-bar.app-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border: 1px solid color-mix(in srgb, var(--line) 92%, transparent);
+  border-radius: inherit;
   background:
     linear-gradient(
       180deg,
@@ -3010,14 +3025,12 @@ textarea:focus,
       color-mix(in srgb, var(--surface-elevated) 92%, transparent)
     ),
     radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 6%, transparent), transparent 42%);
-  color: var(--text);
   box-shadow: var(--shadow-soft);
 }
 
-.shell .builder-command-bar.app-bar::before {
-  background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.18), transparent 42%),
-    radial-gradient(circle at top left, color-mix(in srgb, var(--warm) 7%, transparent), transparent 28%);
+.shell .builder-command-bar.app-bar > * {
+  position: relative;
+  z-index: 1;
 }
 
 .shell .builder-command-bar.app-bar .eyebrow,
@@ -3627,7 +3640,7 @@ textarea:focus,
   justify-content: flex-end;
 }
 
-html[data-theme="dark"] .shell .builder-command-bar.app-bar,
+html[data-theme="dark"] .shell .builder-command-bar.app-bar::before,
 html[data-theme="dark"] .shell .outline-panel,
 html[data-theme="dark"] .shell .editor-panel,
 html[data-theme="dark"] .shell .preview-panel {
