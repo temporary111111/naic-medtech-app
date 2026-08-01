@@ -3924,6 +3924,7 @@ def ensure_default_blood_chemistry_layout(
     meta_key: str,
     details_name: str,
     print_layout: dict[str, Any] | None = None,
+    print_profile_matrix: bool = False,
 ) -> bool:
     if not isinstance(block_schema, dict):
         return False
@@ -3931,13 +3932,20 @@ def ensure_default_blood_chemistry_layout(
     meta = block_schema.get("meta") if isinstance(block_schema.get("meta"), dict) else {}
     if compact_text(meta.get("form_key")) != form_key:
         return False
-    if meta.get(meta_key) is True:
-        if print_layout is None or not ensure_form_print_layout_default(
+    def ensure_print_layout() -> bool:
+        if print_layout is None:
+            return False
+        if print_profile_matrix:
+            return ensure_form_print_layout_profile_matrix(meta, print_layout)
+        return ensure_form_print_layout_default(
             meta,
             template_id="legacy_landscape",
             paper_size="a5",
             layout=print_layout,
-        ):
+        )
+
+    if meta.get(meta_key) is True:
+        if not ensure_print_layout():
             return False
         block_schema["meta"] = meta
         return True
@@ -3968,12 +3976,7 @@ def ensure_default_blood_chemistry_layout(
     )
     meta[meta_key] = True
     if print_layout is not None:
-        ensure_form_print_layout_default(
-            meta,
-            template_id="legacy_landscape",
-            paper_size="a5",
-            layout=print_layout,
-        )
+        ensure_print_layout()
     block_schema["meta"] = meta
     return True
 
@@ -3985,6 +3988,7 @@ def ensure_default_blood_chemistry_male_layout(block_schema: dict[str, Any]) -> 
         meta_key=DEFAULT_BLOOD_CHEMISTRY_MALE_DEFAULTS_META_KEY,
         details_name="Male Details",
         print_layout=blood_chemistry_legacy_a5_layout(BLOOD_CHEMISTRY_MALE_FORM_KEY),
+        print_profile_matrix=True,
     )
 
 

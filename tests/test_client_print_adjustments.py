@@ -925,6 +925,8 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                 legacy_layout = block_schema["meta"]["print_layout_defaults"]["profiles"][
                     "legacy_landscape:a5"
                 ]
+                if form_key == "male":
+                    self.assertEqual(len(block_schema["meta"]["print_layout_defaults"]["profiles"]), 20)
                 self.assertEqual(
                     legacy_layout["grids"][f"root/form.{form_key}.details:0"]["spans"],
                     {
