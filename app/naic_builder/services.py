@@ -3786,13 +3786,7 @@ def ensure_default_blood_bank_layout(block_schema: dict[str, Any]) -> bool:
         meta[DEFAULT_BLOOD_BANK_DEFAULTS_META_KEY] = True
         changed = True
 
-    defaults = normalize_form_print_layout_defaults(meta.get("print_layout_defaults"))
-    profile_key = print_layout_default_profile_key("legacy_landscape", "a5")
-    if profile_key not in defaults["profiles"]:
-        defaults["profiles"][profile_key] = normalize_print_layout_preference(
-            BLOOD_BANK_LEGACY_A5_LAYOUT_DEFAULT
-        )
-        meta["print_layout_defaults"] = defaults
+    if ensure_form_print_layout_profile_matrix(meta, BLOOD_BANK_LEGACY_A5_LAYOUT_DEFAULT):
         changed = True
 
     if not changed:
@@ -4275,6 +4269,65 @@ def ensure_form_print_layout_default(
     defaults["profiles"][profile_key] = normalize_print_layout_preference(layout)
     meta["print_layout_defaults"] = defaults
     return True
+
+
+def portrait_print_layout_preference(layout: dict[str, Any]) -> dict[str, Any]:
+    """Translate a landscape grid into a two-column portrait equivalent."""
+    preference = normalize_print_layout_preference(layout)
+
+    def portrait_span(span: Any) -> int:
+        try:
+            return 4 if int(span) >= 4 else 2
+        except (TypeError, ValueError):
+            return 2
+
+    for collection_name, item_ids_key in (
+        ("grids", "field_ids"),
+        ("containers", "container_ids"),
+        ("blocks", "block_ids"),
+    ):
+        collection = preference[collection_name]
+        for entry in collection.values():
+            item_ids = normalize_items(entry.get(item_ids_key))
+            spans = entry.get("spans") if isinstance(entry.get("spans"), dict) else {}
+            entry["spans"] = {
+                item_id: portrait_span(spans.get(item_id))
+                for item_id in item_ids
+            }
+    return preference
+
+
+def print_layout_default_for_template(
+    layout: dict[str, Any],
+    *,
+    template_id: str,
+) -> dict[str, Any]:
+    orientation = print_template_parts(template_id)["orientation"]
+    if orientation == "portrait":
+        return portrait_print_layout_preference(layout)
+    return normalize_print_layout_preference(layout)
+
+
+def ensure_form_print_layout_profile_matrix(
+    meta: dict[str, Any],
+    layout: dict[str, Any],
+) -> bool:
+    """Seed every selectable template/paper profile without replacing admin work."""
+    defaults = normalize_form_print_layout_defaults(meta.get("print_layout_defaults"))
+    changed = False
+    for template_id in PRINT_TEMPLATE_ORDER:
+        profile_layout = print_layout_default_for_template(layout, template_id=template_id)
+        for paper_size in PRINT_PAPER_SIZE_ORDER:
+            if paper_size not in PRINT_AVAILABLE_PAPER_SIZE_IDS:
+                continue
+            profile_key = print_layout_default_profile_key(template_id, paper_size)
+            if profile_key in defaults["profiles"]:
+                continue
+            defaults["profiles"][profile_key] = profile_layout
+            changed = True
+    if changed:
+        meta["print_layout_defaults"] = defaults
+    return changed
 
 
 def ensure_default_blood_gas_analysis_layout(block_schema: dict[str, Any]) -> bool:

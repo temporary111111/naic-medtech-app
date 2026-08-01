@@ -1413,6 +1413,20 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             "Vital Signs",
         )
         legacy_layout = block_schema["meta"]["print_layout_defaults"]["profiles"]["legacy_landscape:a5"]
+        default_profiles = block_schema["meta"]["print_layout_defaults"]["profiles"]
+        self.assertEqual(len(default_profiles), 20)
+        self.assertEqual(
+            default_profiles["modern_landscape:a4"]["containers"]["root:containers:0"]["spans"],
+            legacy_layout["containers"]["root:containers:0"]["spans"],
+        )
+        self.assertEqual(
+            default_profiles["modern_portrait:a4"]["containers"]["root:containers:0"]["spans"],
+            {
+                "root/form.blood_bank.patient_information": 4,
+                "root/form.blood_bank.details": 2,
+                "root/form.blood_bank.type_of_crossmatching": 4,
+            },
+        )
         self.assertEqual(
             legacy_layout["containers"]["root:containers:0"]["spans"],
             {
