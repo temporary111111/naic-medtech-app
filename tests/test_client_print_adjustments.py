@@ -926,6 +926,19 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         serology_schema = build_block_storage_document_from_legacy_storage(forms["serology"])
         ensure_reference_examination_in_patient_info(serology_schema, reference_form_slugs())
         self.assertTrue(ensure_default_serology_layout(serology_schema))
+        serology_layout = serology_schema["meta"]["print_layout_defaults"]["profiles"][
+            "legacy_landscape:a5"
+        ]
+        self.assertEqual(
+            serology_layout["containers"]["root:containers:0"]["spans"],
+            {
+                "root/form.serology.patient_information": 6,
+                "root/form.serology.typhidot": 2,
+                "root/form.serology.dengue_test": 2,
+                "root/form.serology.malarial_test": 2,
+                "root/form.serology.other_serology_tests": 6,
+            },
+        )
         serology_fields: dict[str, list[dict]] = {}
 
         def collect_fields(blocks):

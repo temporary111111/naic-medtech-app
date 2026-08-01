@@ -878,6 +878,31 @@ FECALYSIS_NORMAL_CHOICE_OPTIONS = {
 }
 SEROLOGY_FORM_KEY = "serology"
 DEFAULT_SEROLOGY_DEFAULTS_META_KEY = "default_serology_defaults_v1"
+SEROLOGY_LEGACY_A5_LAYOUT_DEFAULT = {
+    "version": PRINT_LAYOUT_PREFERENCE_VERSION,
+    "grids": legacy_a5_patient_information_grid(SEROLOGY_FORM_KEY),
+    "containers": {
+        "root:containers:0": {
+            "container_ids": [
+                "root/form.serology.patient_information",
+                "root/form.serology.typhidot",
+                "root/form.serology.dengue_test",
+                "root/form.serology.malarial_test",
+                "root/form.serology.other_serology_tests",
+            ],
+            "mode": "manual",
+            "spans": {
+                "root/form.serology.patient_information": 6,
+                "root/form.serology.typhidot": 2,
+                "root/form.serology.dengue_test": 2,
+                "root/form.serology.malarial_test": 2,
+                "root/form.serology.other_serology_tests": 6,
+            },
+            "order": [],
+        },
+    },
+    "blocks": {},
+}
 SEROLOGY_NORMAL_CHOICE_OPTIONS = {
     "igm": ("NEGATIVE",),
     "igg": ("NEGATIVE",),
@@ -3846,11 +3871,25 @@ def ensure_default_serology_layout(block_schema: dict[str, Any]) -> bool:
     if compact_text(meta.get("form_key")) != SEROLOGY_FORM_KEY:
         return False
     if meta.get(DEFAULT_SEROLOGY_DEFAULTS_META_KEY) is True:
-        return False
+        if not ensure_form_print_layout_default(
+            meta,
+            template_id="legacy_landscape",
+            paper_size="a5",
+            layout=SEROLOGY_LEGACY_A5_LAYOUT_DEFAULT,
+        ):
+            return False
+        block_schema["meta"] = meta
+        return True
     if configure_choice_field_normal_options(block_schema, SEROLOGY_NORMAL_CHOICE_OPTIONS) is None:
         return False
 
     meta[DEFAULT_SEROLOGY_DEFAULTS_META_KEY] = True
+    ensure_form_print_layout_default(
+        meta,
+        template_id="legacy_landscape",
+        paper_size="a5",
+        layout=SEROLOGY_LEGACY_A5_LAYOUT_DEFAULT,
+    )
     block_schema["meta"] = meta
     return True
 
