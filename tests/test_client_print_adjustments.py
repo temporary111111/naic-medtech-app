@@ -2399,7 +2399,10 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn("*::before,\n*::after {\n  box-sizing: border-box;", theme_stylesheet)
         self.assertIn("body {\n  margin: 0;", theme_stylesheet)
         self.assertIn("theme.css') }}?v=20260801-shared-layout-foundation", shell_template)
-        self.assertIn("shell.css') }}?v=20260801-shell-panel-radius", shell_template)
+        self.assertIn("shell.css') }}?v=20260801-clinic-logo-plain", shell_template)
+        self.assertIn("app-drawer__brand-mark--logo", shell_template)
+        self.assertIn("app-global-header__brand--logo", shell_template)
+        self.assertIn(".app-global-header__brand--logo", shell_stylesheet)
         self.assertNotIn("library.css", overview_page)
 
     def test_overview_recent_updates_are_creator_attributed_and_timezone_free(self) -> None:
@@ -2413,6 +2416,14 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertNotIn("overview-recent-row__time", overview_page)
         self.assertNotIn("overview-recent-row__dot", overview_page)
         self.assertIn("grid-template-columns: minmax(0, 1fr);", overview_stylesheet)
+
+    def test_overview_is_available_to_authenticated_medtech_users(self) -> None:
+        main_source = (ROOT / "app" / "naic_builder" / "main.py").read_text(encoding="utf-8")
+        shell_template = (ROOT / "app" / "naic_builder" / "templates" / "_authenticated_shell.html").read_text(encoding="utf-8")
+        drawer_nav = shell_template.split('<nav class="app-drawer__nav" aria-label="Primary">', 1)[1].split("</nav>", 1)[0]
+
+        self.assertNotIn('ADMIN_PREFIXES = ("/overview",', main_source)
+        self.assertLess(drawer_nav.index('href="/overview"'), drawer_nav.index('{% if request.state.is_admin %}'))
 
     def test_records_management_filters_use_existing_record_timestamps(self) -> None:
         now = datetime(2026, 7, 31, 10, 15, tzinfo=timezone.utc)

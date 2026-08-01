@@ -862,6 +862,16 @@ html[data-theme="dark"] .app-global-header .shell-theme-toggle--icon:focus-visib
   color: var(--shell-text);
 }
 
+.app-drawer__brand-mark--logo,
+.app-global-header__brand--logo,
+html:not([data-theme="dark"]) .app-drawer__brand-mark--logo,
+html[data-theme="dark"] .app-global-header__brand--logo {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .app-shell-main {
   min-width: 0;
   min-height: 0;

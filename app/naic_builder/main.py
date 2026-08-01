@@ -206,7 +206,7 @@ PUBLIC_PATHS = {
     "/change-password",
 }
 PUBLIC_PREFIXES = ("/static",)
-ADMIN_PREFIXES = ("/overview", "/forms", "/folders", "/builder", "/api/forms", "/api/builder", "/api/library", "/backup", "/safety")
+ADMIN_PREFIXES = ("/forms", "/folders", "/builder", "/api/forms", "/api/builder", "/api/library", "/backup", "/safety")
 ADMIN_SETTINGS_PREFIXES = ("/settings/users", "/settings/desktop")
 RESTORE_CONFIRMATION_TEXT = "RESTORE"
 RECORDS_HISTORY_PAGE_SIZE = 40

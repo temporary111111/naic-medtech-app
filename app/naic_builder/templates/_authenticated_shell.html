@@ -61,7 +61,7 @@
   <script src="{{ url_for('static', path='theme.js') }}?v=20260607-icon-only-theme-toggle"></script>
   {% block extra_css %}{% endblock %}
   <link rel="stylesheet" href="{{ url_for('static', path='theme.css') }}?v=20260801-shared-layout-foundation">
-  <link rel="stylesheet" href="{{ url_for('static', path='shell.css') }}?v=20260801-shell-panel-radius">
+  <link rel="stylesheet" href="{{ url_for('static', path='shell.css') }}?v=20260801-clinic-logo-plain">
 </head>
 <body class="app-shell-body{% if shell_variant|default('default') == 'workspace' %} app-shell-body--workspace{% endif %}" {% block body_attrs %}{% endblock %}>
   {% set clinic_profile = request.state.clinic_profile or {} %}
@@ -79,7 +79,7 @@
     <aside class="app-drawer panel" data-shell-drawer aria-hidden="true" hidden inert>
       <div class="app-drawer__head">
         <div class="app-drawer__brand">
-          <a class="app-drawer__brand-mark" href="/records" aria-label="{{ clinic_profile.get('clinic_name') or app_title }}">
+          <a class="app-drawer__brand-mark{% if clinic_profile.get('has_logo') %} app-drawer__brand-mark--logo{% endif %}" href="/records" aria-label="{{ clinic_profile.get('clinic_name') or app_title }}">
             {% if clinic_profile.get('has_logo') %}
             <img src="/settings/clinic/logo" alt="{{ clinic_profile.get('clinic_name') or app_title }}">
             {% else %}
@@ -104,13 +104,13 @@
           </span>
           <strong>Records</strong>
         </a>
-        {% if request.state.is_admin %}
         <a class="app-drawer__item{% if active_nav == 'overview' %} is-active{% endif %}" href="/overview">
           <span class="app-drawer__glyph" aria-hidden="true">
             {{ shell_icon("overview") }}
           </span>
           <strong>Overview</strong>
         </a>
+        {% if request.state.is_admin %}
         <a class="app-drawer__item{% if active_nav == 'forms' %} is-active{% endif %}" href="/forms">
           <span class="app-drawer__glyph" aria-hidden="true">
             {{ shell_icon("forms") }}
@@ -167,7 +167,7 @@
         <button class="app-menu-toggle" type="button" data-shell-drawer-toggle aria-expanded="false" aria-label="Open navigation" title="Open navigation">
           {{ shell_icon("menu") }}
         </button>
-        <a class="app-global-header__brand" href="/records" aria-label="{{ clinic_profile.get('clinic_name') or app_title }}">
+        <a class="app-global-header__brand{% if clinic_profile.get('has_logo') %} app-global-header__brand--logo{% endif %}" href="/records" aria-label="{{ clinic_profile.get('clinic_name') or app_title }}">
           {% if clinic_profile.get('has_logo') %}
           <img src="/settings/clinic/logo" alt="{{ clinic_profile.get('clinic_name') or app_title }}">
           {% else %}
