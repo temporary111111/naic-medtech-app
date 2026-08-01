@@ -95,11 +95,18 @@ body {
   min-height: 100%;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 [hidden] {
   display: none !important;
 }
 
 body {
+  margin: 0;
   color: var(--text);
   background: linear-gradient(180deg, var(--bg-soft), var(--bg));
   font-family: var(--font-body);

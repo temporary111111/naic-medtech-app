@@ -2354,6 +2354,20 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertNotIn('{% if level == 0 %}open{% endif %}', library_source)
         self.assertIn("related.open = true;", library_script)
 
+    def test_shared_shell_owns_topbar_and_drawer_surface_geometry(self) -> None:
+        shell_template = (ROOT / "app" / "naic_builder" / "templates" / "_authenticated_shell.html").read_text(encoding="utf-8")
+        shell_stylesheet = (ROOT / "app" / "naic_builder" / "static" / "shell.css").read_text(encoding="utf-8")
+        theme_stylesheet = (ROOT / "app" / "naic_builder" / "static" / "theme.css").read_text(encoding="utf-8")
+        overview_page = (ROOT / "app" / "naic_builder" / "templates" / "overview.html").read_text(encoding="utf-8")
+
+        self.assertIn("overflow: auto;\n  border-radius: var(--radius-xl);", shell_stylesheet)
+        self.assertIn("padding: 8px 12px;\n  border-radius: var(--radius-xl);", shell_stylesheet)
+        self.assertIn("*::before,\n*::after {\n  box-sizing: border-box;", theme_stylesheet)
+        self.assertIn("body {\n  margin: 0;", theme_stylesheet)
+        self.assertIn("theme.css') }}?v=20260801-shared-layout-foundation", shell_template)
+        self.assertIn("shell.css') }}?v=20260801-shell-panel-radius", shell_template)
+        self.assertNotIn("library.css", overview_page)
+
     def test_records_management_filters_use_existing_record_timestamps(self) -> None:
         now = datetime(2026, 7, 31, 10, 15, tzinfo=timezone.utc)
         local_now = now.astimezone()

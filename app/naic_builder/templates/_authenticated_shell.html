@@ -60,8 +60,8 @@
   <link rel="manifest" href="{{ url_for('static', path='manifest.webmanifest') }}?v=20260606-app-icon-source">
   <script src="{{ url_for('static', path='theme.js') }}?v=20260607-icon-only-theme-toggle"></script>
   {% block extra_css %}{% endblock %}
-  <link rel="stylesheet" href="{{ url_for('static', path='theme.css') }}?v=20260731-light-mode-contrast">
-  <link rel="stylesheet" href="{{ url_for('static', path='shell.css') }}?v=20260731-compact-default-view">
+  <link rel="stylesheet" href="{{ url_for('static', path='theme.css') }}?v=20260801-shared-layout-foundation">
+  <link rel="stylesheet" href="{{ url_for('static', path='shell.css') }}?v=20260801-shell-panel-radius">
 </head>
 <body class="app-shell-body{% if shell_variant|default('default') == 'workspace' %} app-shell-body--workspace{% endif %}" {% block body_attrs %}{% endblock %}>
   {% set clinic_profile = request.state.clinic_profile or {} %}

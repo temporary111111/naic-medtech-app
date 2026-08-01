@@ -146,6 +146,7 @@
   gap: 18px;
   padding: 18px;
   overflow: auto;
+  border-radius: var(--radius-xl);
   background: color-mix(in srgb, var(--shell-bg) 90%, black 10%);
   border-color: var(--shell-line);
   box-shadow: var(--shadow-strong);
@@ -605,6 +606,7 @@ html:not([data-theme="dark"]) .app-drawer__footer {
   align-items: center;
   min-height: 56px;
   padding: 8px 12px;
+  border-radius: var(--radius-xl);
   background: color-mix(in srgb, var(--panel) 72%, var(--shell-bg) 28%);
   border-color: var(--line);
   box-shadow: var(--shadow);
