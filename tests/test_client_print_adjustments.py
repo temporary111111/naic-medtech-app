@@ -2247,6 +2247,16 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
         )
 
+    def test_print_command_ui_uses_a_fixed_application_accent(self) -> None:
+        print_page = (ROOT / "app" / "naic_builder" / "templates" / "records" / "print.html").read_text(encoding="utf-8")
+        stylesheet = (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8")
+
+        self.assertIn('--ui-accent: #252a2f;', stylesheet)
+        self.assertIn('.print-button {\n  color: var(--ui-accent-ink);\n  background: var(--ui-accent);', stylesheet)
+        self.assertIn('.print-active-profile strong {\n  color: var(--ui-accent);', stylesheet)
+        self.assertIn('class="print-command-back" href="{{ back_href }}" aria-label="{{ back_label }}" title="{{ back_label }}"', print_page)
+        self.assertIn('<span aria-hidden="true">&larr;</span>', print_page)
+
     def test_user_print_layout_preference_is_personal_and_profile_scoped(self) -> None:
         engine = create_engine("sqlite://")
         Base.metadata.create_all(engine)
