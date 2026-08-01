@@ -5761,6 +5761,16 @@ document.getElementById("openLibraryBtn").addEventListener("click", () => {
   openLibrary();
 });
 
+document.querySelectorAll("[data-builder-back-link]").forEach((link) => {
+  link.addEventListener("click", async (event) => {
+    event.preventDefault();
+    if (!await resolveDirtyBeforeContinue()) {
+      return;
+    }
+    navigateWithIntent(link.href);
+  });
+});
+
 document.getElementById("closeLibraryBtn").addEventListener("click", () => {
   closeDrawers();
 });

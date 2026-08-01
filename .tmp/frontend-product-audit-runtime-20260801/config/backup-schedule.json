@@ -1,0 +1,18 @@
+{
+  "deleted_external_archives": 0,
+  "deleted_local_archives": 0,
+  "enabled": true,
+  "last_backup_archive": "C:\\Users\\Sofia\\Desktop\\naic-medtech-app\\.tmp\\frontend-product-audit-runtime-20260801\\backups\\NDHI-LabRecords-Backup-20260801-084405002274Z-after-change-sync.zip",
+  "last_backup_reason": "after-change-sync",
+  "last_checked_at_utc": "2026-08-01T08:44:04Z",
+  "last_error": "",
+  "last_error_at_utc": "",
+  "last_external_archive": "",
+  "last_external_error": "",
+  "last_requested_at_utc": "2026-08-01T08:44:01Z",
+  "last_skip_at_utc": "",
+  "last_skip_reason": "",
+  "last_started_at_utc": "2026-08-01T08:44:04Z",
+  "last_success_at_utc": "2026-08-01T08:44:05Z",
+  "status": "success"
+}
