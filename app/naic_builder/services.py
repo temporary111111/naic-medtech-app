@@ -3999,6 +3999,7 @@ def ensure_default_blood_chemistry_female_layout(block_schema: dict[str, Any]) -
         meta_key=DEFAULT_BLOOD_CHEMISTRY_FEMALE_DEFAULTS_META_KEY,
         details_name="Female Details",
         print_layout=blood_chemistry_legacy_a5_layout(BLOOD_CHEMISTRY_FEMALE_FORM_KEY),
+        print_profile_matrix=True,
     )
 
 
