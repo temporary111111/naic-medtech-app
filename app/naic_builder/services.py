@@ -228,11 +228,12 @@ PRINT_TEMPLATE_CAPABILITIES = {
     },
 }
 PRINT_TEMPLATE_PAPER_CAPABILITIES = {
-    # Legacy A5 is the clinic's historical result-sheet workflow. It has a
-    # compact, single-page renderer, so large type is intentionally excluded.
+    # Legacy A5 is the clinic's historical result-sheet workflow. Its fit
+    # estimate is intentionally conservative so a user is not told it will
+    # fit when Chrome's real print pagination needs a second sheet.
     ("legacy_landscape", "a5"): {
         "text_sizes": ("standard",),
-        "fit_limit_units": 48.0,
+        "fit_limit_units": 37.0,
         "requires_one_page": True,
     },
 }
@@ -6086,11 +6087,6 @@ def estimate_print_page_fit(document: dict[str, Any]) -> dict[str, Any]:
             else "Consider compact density, fewer summary rows, or hiding optional output later."
         )
 
-    can_print = not requires_one_page or status == "likely"
-    if requires_one_page and not can_print:
-        label = "Legacy A5 needs more space"
-        detail = "Legacy A5 is kept to one page. Use A4 or Legal for this record."
-
     return {
         "status": status,
         "label": label,
@@ -6098,7 +6094,9 @@ def estimate_print_page_fit(document: dict[str, Any]) -> dict[str, Any]:
         "estimated_units": round(estimated_units, 1),
         "limit_units": limit_units,
         "requires_one_page": requires_one_page,
-        "can_print": can_print,
+        # Fit feedback is advisory. Browser and printer settings must never
+        # block a record from being printed, including a multi-page result.
+        "can_print": True,
     }
 
 

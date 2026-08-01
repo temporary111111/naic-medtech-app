@@ -1369,7 +1369,17 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             },
             "items": [{"kind": "field", "display": {}} for _ in range(40)],
         })
-        self.assertFalse(oversized_legacy_a5_fit["can_print"])
+        self.assertEqual(oversized_legacy_a5_fit["status"], "long")
+        self.assertTrue(oversized_legacy_a5_fit["can_print"])
+        crowded_legacy_a5_fit = estimate_print_page_fit({
+            "print_config": {
+                "template_id": "legacy_landscape",
+                "text_size": "standard",
+                "paper_size": "a5",
+            },
+            "items": [{"kind": "field", "display": {}} for _ in range(20)],
+        })
+        self.assertEqual(crowded_legacy_a5_fit["status"], "long")
         self.assertGreater(
             print_page_fit_limit_units(normalize_print_profile(template_id="modern_portrait", paper_size="legal")),
             print_page_fit_limit_units(normalize_print_profile(template_id="modern_portrait", paper_size="a4")),
