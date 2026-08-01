@@ -5233,6 +5233,18 @@ def matching_print_layout_order(raw_order: Any, item_ids: list[str]) -> list[str
     return order if len(order) == len(item_ids) and set(order) == set(item_ids) else list(item_ids)
 
 
+def print_layout_item_ids_match(
+    configured_item_ids: list[str],
+    canonical_item_ids: list[str],
+) -> bool:
+    """Accept the same direct children regardless of their saved visual order."""
+    return (
+        bool(canonical_item_ids)
+        and len(configured_item_ids) == len(canonical_item_ids)
+        and set(configured_item_ids) == set(canonical_item_ids)
+    )
+
+
 def apply_print_layout_item_order(
     item: dict[str, Any],
     layout: dict[str, Any],
@@ -5268,7 +5280,9 @@ def normalized_print_grid_layout(
     raw_grids = preference.get("grids") if isinstance(preference.get("grids"), dict) else {}
     raw_layout = raw_grids.get(grid_id) if isinstance(raw_grids.get(grid_id), dict) else {}
     raw_field_ids = [compact_text(field_id) for field_id in normalize_items(raw_layout.get("field_ids"))]
-    is_matching_grid = bool(grid_id and field_ids and raw_field_ids == field_ids)
+    is_matching_grid = bool(
+        grid_id and print_layout_item_ids_match(raw_field_ids, field_ids)
+    )
     mode = normalize_print_layout_mode(raw_layout.get("mode")) if is_matching_grid else "preserve"
     order = matching_print_layout_order(raw_layout.get("order"), field_ids) if is_matching_grid else field_ids
     allowed_spans = print_layout_allowed_spans(field_grid_units)
@@ -5319,7 +5333,9 @@ def normalized_print_field_run_layout(
     raw_grids = preference.get("grids") if isinstance(preference.get("grids"), dict) else {}
     raw_layout = raw_grids.get(run_id) if isinstance(raw_grids.get(run_id), dict) else {}
     raw_field_ids = [compact_text(field_id) for field_id in normalize_items(raw_layout.get("field_ids"))]
-    is_matching_run = bool(run_id and field_ids and raw_field_ids == field_ids)
+    is_matching_run = bool(
+        run_id and print_layout_item_ids_match(raw_field_ids, field_ids)
+    )
     configured_mode = normalize_print_layout_mode(raw_layout.get("mode")) if is_matching_run else "preserve"
     mode = configured_mode if configured_mode in {"balance", "manual"} else "rows"
     order = matching_print_layout_order(raw_layout.get("order"), field_ids) if is_matching_run else field_ids
@@ -5380,7 +5396,7 @@ def normalized_print_container_run_layout(
     is_matching_run = bool(
         run_id
         and len(container_ids) >= 2
-        and raw_container_ids == container_ids
+        and print_layout_item_ids_match(raw_container_ids, container_ids)
     )
     mode = normalize_print_container_layout_mode(raw_layout.get("mode")) if is_matching_run else "flow"
     order = (
@@ -5430,7 +5446,7 @@ def normalized_print_block_run_layout(
     is_matching_run = bool(
         run_id
         and len(block_ids) >= 2
-        and raw_block_ids == block_ids
+        and print_layout_item_ids_match(raw_block_ids, block_ids)
     )
     mode = normalize_print_container_layout_mode(raw_layout.get("mode")) if is_matching_run else "flow"
     order = (

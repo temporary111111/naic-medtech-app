@@ -400,6 +400,14 @@
         if (grid.dataset.layoutKind === "block_run") return cell.dataset.layoutItemId || cell.dataset.blockId || "";
         return cell.dataset.fieldId || "";
       };
+      const directGridCellFromElement = (grid, element) => {
+        let cell = element?.closest("[data-print-grid-cell]");
+        while (cell) {
+          if (cell.closest("[data-print-layout-grid]") === grid) return cell;
+          cell = cell.parentElement?.closest("[data-print-grid-cell]") || null;
+        }
+        return null;
+      };
       const hasCustomOrder = (grid) => gridCells(grid).some((cell, index) => {
         const originalIndex = Number.parseInt(cell.dataset.originalIndex || String(index), 10);
         return originalIndex !== index;
@@ -745,8 +753,10 @@
       });
       document.addEventListener("pointermove", (event) => {
         if (activeMove && event.pointerId === activeMove.pointerId) {
-          const target = document.elementFromPoint(event.clientX, event.clientY)
-            ?.closest("[data-print-grid-cell]");
+          const target = directGridCellFromElement(
+            activeMove.grid,
+            document.elementFromPoint(event.clientX, event.clientY),
+          );
           if (
             target
             && target !== activeMove.cell

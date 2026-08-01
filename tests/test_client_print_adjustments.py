@@ -2049,24 +2049,25 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn('class="print-field-grid print-layout-grid"', default_rendered)
         self.assertNotIn('is-layout-run-custom', default_rendered)
 
+        reordered_block_ids = [
+            immediate_spin["id"],
+            vital_signs["id"],
+            *[
+                block_id
+                for block_id in block_run["block_ids"]
+                if block_id not in {immediate_spin["id"], vital_signs["id"]}
+            ],
+        ]
         preference = {
             "blocks": {
                 block_run["id"]: {
-                    "block_ids": block_run["block_ids"],
+                    "block_ids": reordered_block_ids,
                     "mode": "manual",
                     "spans": {
                         immediate_spin["id"]: 4,
                         vital_signs["id"]: 2,
                     },
-                    "order": [
-                        immediate_spin["id"],
-                        vital_signs["id"],
-                        *[
-                            block_id
-                            for block_id in block_run["block_ids"]
-                            if block_id not in {immediate_spin["id"], vital_signs["id"]}
-                        ],
-                    ],
+                    "order": reordered_block_ids,
                 }
             }
         }
@@ -2103,6 +2104,8 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn('Save record layout', editor_source)
         self.assertIn('data-layout-restore-form title="Remove this record setup and use the form-version default"{% if not record_has_print_presentation %} hidden{% endif %}', editor_source)
         self.assertIn('restoreFormDefaultButton.hidden = false;', editor_source)
+        self.assertIn('const directGridCellFromElement = (grid, element) => {', editor_source)
+        self.assertIn('cell.parentElement?.closest("[data-print-grid-cell]") || null;', editor_source)
         self.assertNotIn('data-layout-arrange', editor_source)
         self.assertNotIn('data-layout-balance', editor_source)
         self.assertIn('querySelectorAll(":scope > [data-print-grid-cell]")', editor_source)
