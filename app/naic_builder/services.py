@@ -1520,14 +1520,18 @@ def print_page_fit_limit_units(profile: dict[str, Any]) -> float:
     usable_height_factor = (page_height_mm - vertical_margins_mm) / (
         a4_page_height_mm - vertical_margins_mm
     )
-    narrow_width_factor = min(1.0, page_width_mm / a4_page_width_mm)
+    # The estimator already accounts for the vertical impact of a landscape
+    # grid through its calculated row count. Scaling the *height* budget again
+    # for the narrower A5 landscape width made one-page Classic/Modern sheets
+    # report a false two-page warning in Chrome's actual print preview.
+    width_fit_factor = 1.0 if is_landscape else min(1.0, page_width_mm / a4_page_width_mm)
     capabilities = print_template_paper_capabilities(template_id, paper_size)
     if "fit_limit_units" in PRINT_TEMPLATE_PAPER_CAPABILITIES.get((template_id, paper_size), {}):
         return float(capabilities["fit_limit_units"])
     return (
         capabilities["fit_limit_units"]
         * usable_height_factor
-        * narrow_width_factor
+        * width_fit_factor
     )
 
 

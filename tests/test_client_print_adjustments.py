@@ -1887,6 +1887,17 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             "items": [{"kind": "field", "display": {}} for _ in range(20)],
         })
         self.assertEqual(crowded_legacy_a5_fit["status"], "long")
+        compact_classic_a5_fit = estimate_print_page_fit({
+            "print_config": {
+                "template_id": "classic_landscape",
+                "text_size": "standard",
+                "paper_size": "a5",
+            },
+            # This represents a compact six-container clinical result sheet.
+            # It fits on one A5 landscape sheet in Chrome print preview.
+            "items": [{"kind": "field", "display": {}} for _ in range(16)],
+        })
+        self.assertEqual(compact_classic_a5_fit["status"], "likely")
         self.assertGreater(
             print_page_fit_limit_units(normalize_print_profile(template_id="modern_portrait", paper_size="legal")),
             print_page_fit_limit_units(normalize_print_profile(template_id="modern_portrait", paper_size="a4")),
