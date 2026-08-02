@@ -24,6 +24,7 @@ from naic_builder.database import (
     engine as runtime_engine,
     migrate_form_versions_legacy_schema_nullable,
 )
+from naic_builder.desktop_settings import default_desktop_settings, normalize_browser_preference
 from naic_builder.models import FormDefinition, FormVersion, LibraryNode, Record, User
 from naic_builder.main import normalize_overview_period
 from naic_builder.schemas import ClinicProfilePayload, FormSavePayload
@@ -129,6 +130,18 @@ def tearDownModule() -> None:
 
 
 class ClientPrintAdjustmentTests(unittest.TestCase):
+    def test_desktop_launcher_defaults_to_chrome_with_browser_fallback(self) -> None:
+        launcher_path = ROOT / "tools" / "desktop" / "launcher.py"
+        namespace: dict[str, object] = {"__file__": str(launcher_path), "__name__": "launcher_test"}
+        exec(launcher_path.read_text(encoding="utf-8"), namespace)
+
+        self.assertEqual(default_desktop_settings()["browser_preference"], "chrome")
+        self.assertEqual(normalize_browser_preference(""), "chrome")
+        self.assertEqual(namespace["normalize_browser_preference"](""), "chrome")
+        self.assertEqual(namespace["browser_attempt_order"]("chrome"), ["chrome", "edge"])
+        self.assertEqual(namespace["browser_attempt_order"]("auto"), ["chrome", "edge"])
+        self.assertEqual(namespace["browser_attempt_order"]("default"), [])
+
     def test_overview_activity_groups_completed_records_by_form(self) -> None:
         engine = create_engine("sqlite://")
         Base.metadata.create_all(engine)

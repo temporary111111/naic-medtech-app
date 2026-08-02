@@ -30,7 +30,7 @@ BROWSER_PREFERENCE_OPTIONS = [
     {
         "value": "auto",
         "label": "Auto",
-        "description": "Try Edge first, then Chrome, then the Windows default browser.",
+        "description": "Try Chrome first, then Edge, then the Windows default browser.",
     },
     {
         "value": "edge",
@@ -68,7 +68,7 @@ def desktop_config_path() -> Path:
 
 def normalize_browser_preference(value: Any) -> str:
     preference = str(value or "").strip().lower()
-    return preference if preference in SUPPORTED_BROWSER_PREFERENCES else "auto"
+    return preference if preference in SUPPORTED_BROWSER_PREFERENCES else "chrome"
 
 
 def normalize_network_mode(value: Any) -> str:
@@ -90,7 +90,7 @@ def normalize_backup_retention_count(value: Any) -> int:
 
 def default_desktop_settings() -> dict[str, Any]:
     return {
-        "browser_preference": "auto",
+        "browser_preference": "chrome",
         "network_mode": DEFAULT_NETWORK_MODE,
         "external_backup_dir": "",
         "backup_retention_count": DEFAULT_BACKUP_RETENTION_COUNT,

@@ -72,7 +72,7 @@ def desktop_config_path(data_dir: Path) -> Path:
 
 def normalize_browser_preference(value: str | None) -> str:
     preference = (value or "").strip().lower()
-    return preference if preference in SUPPORTED_BROWSERS else "auto"
+    return preference if preference in SUPPORTED_BROWSERS else "chrome"
 
 
 def normalize_network_mode(value: str | None) -> str:
@@ -232,7 +232,10 @@ def open_with_browser(browser: str, url: str) -> bool:
         return False
     if not browser_path:
         return False
-    subprocess.Popen([str(browser_path), f"--app={url}", "--start-maximized"], close_fds=True)
+    try:
+        subprocess.Popen([str(browser_path), f"--app={url}", "--start-maximized"], close_fds=True)
+    except OSError:
+        return False
     return True
 
 
@@ -243,7 +246,7 @@ def browser_attempt_order(preference: str) -> list[str]:
         return ["chrome", "edge"]
     if preference == "default":
         return []
-    return ["edge", "chrome"]
+    return ["chrome", "edge"]
 
 
 def open_app_window(port: int, data_dir: Path, browser_preference: str) -> None:
