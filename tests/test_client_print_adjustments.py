@@ -1898,6 +1898,15 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             "items": [{"kind": "field", "display": {}} for _ in range(16)],
         })
         self.assertEqual(compact_classic_a5_fit["status"], "likely")
+        compact_modern_a5_fit = estimate_print_page_fit({
+            "print_config": {
+                "template_id": "modern_landscape",
+                "text_size": "standard",
+                "paper_size": "a5",
+            },
+            "items": [{"kind": "field", "display": {}} for _ in range(16)],
+        })
+        self.assertEqual(compact_modern_a5_fit["status"], "long")
         self.assertGreater(
             print_page_fit_limit_units(normalize_print_profile(template_id="modern_portrait", paper_size="legal")),
             print_page_fit_limit_units(normalize_print_profile(template_id="modern_portrait", paper_size="a4")),
