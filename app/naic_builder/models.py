@@ -112,9 +112,11 @@ class User(Base):
     avatar_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     avatar_original_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
     avatar_mime_type: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    print_template_id: Mapped[str] = mapped_column(String(80), default="modern_portrait")
+    # New accounts start with the clinic's established result-sheet workflow.
+    # Users can still save a different personal print preference at any time.
+    print_template_id: Mapped[str] = mapped_column(String(80), default="legacy_landscape")
     print_text_size: Mapped[str] = mapped_column(String(40), default="standard")
-    print_paper_size: Mapped[str] = mapped_column(String(40), default="a4")
+    print_paper_size: Mapped[str] = mapped_column(String(40), default="a5")
     # Personal, form-specific print grid preferences. Form data and versions stay immutable.
     print_layout_preferences_json: Mapped[str] = mapped_column(Text, default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

@@ -118,6 +118,7 @@ from naic_builder.services import (
     snapshot_completed_record_print_presentation,
     update_form,
     user_can_manage_record_print_presentation,
+    user_print_preferences,
     user_print_layout_preference,
 )
 
@@ -1949,6 +1950,11 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             session.add(user)
             session.commit()
 
+            initial_preference = user_print_preferences(user)
+            self.assertEqual(initial_preference["template_id"], "legacy_landscape")
+            self.assertEqual(initial_preference["paper_size"], "a5")
+            self.assertEqual(initial_preference["text_size"], "standard")
+
             saved = save_user_print_preferences(
                 session,
                 user,
@@ -1962,7 +1968,7 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             session.refresh(user)
             self.assertEqual(user.print_template_id, "modern_portrait")
             self.assertEqual(user.print_text_size, "large")
-            self.assertEqual(user.print_paper_size, "a4")
+            self.assertEqual(user.print_paper_size, "a5")
 
             saved = save_user_print_preferences(
                 session,
@@ -1987,10 +1993,10 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
             self.assertEqual(saved["template_id"], "legacy_landscape")
             self.assertEqual(saved["style"], "legacy")
             self.assertEqual(saved["orientation"], "landscape")
-            self.assertEqual(saved["text_size"], "large")
+            self.assertEqual(saved["text_size"], "standard")
             session.refresh(user)
             self.assertEqual(user.print_template_id, "legacy_landscape")
-            self.assertEqual(user.print_text_size, "large")
+            self.assertEqual(user.print_text_size, "standard")
             saved = save_user_print_preferences(
                 session,
                 user,
