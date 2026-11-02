@@ -1,0 +1,79 @@
+{% extends "_authenticated_shell.html" %}
+{% set shell_active = "settings" %}
+{% set settings_active = "shared_lists" %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
+  <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20260607-ui-root-phase2">
+  <link rel="stylesheet" href="{{ url_for('static', path='shared-lists.css') }}?v=20261103-shared-lists">
+{% endblock %}
+{% block shell_eyebrow %}Settings{% endblock %}
+{% block shell_title %}{{ selected_list.name if selected_list else 'Shared lists' }}{% endblock %}
+{% block page_header_nav %}
+  {% if selected_list %}<a class="page-back-link" href="/settings/shared-lists">All shared lists</a>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="auth-shell">
+  {% include "settings/_settings_nav.html" %}
+  <div class="shared-lists-content">
+    {% if error_message %}<div class="banner error" role="alert">{{ error_message }}</div>{% endif %}
+    {% if saved %}<div class="banner success" role="status">Changes saved.</div>{% endif %}
+    {% if not selected_list %}
+    <section class="panel settings-utility-card">
+      <div class="settings-utility-head"><h2>One list, used across forms</h2><p>Update choices here once. Connected dropdowns use the latest choices; saved records keep their original answers.</p></div>
+      <form method="post" action="/settings/shared-lists" class="shared-list-add">
+        <label class="field-stack"><span>New list</span><input name="name" value="{{ submitted_name }}" required maxlength="160" placeholder="Example: Departments"></label>
+        <button class="primary-button" type="submit">Create list</button>
+      </form>
+    </section>
+    <div class="shared-list-cards">
+    {% for item in lists %}
+      <a class="panel settings-utility-card shared-list-card" href="/settings/shared-lists/{{ item.id }}"><h2>{{ item.name }}</h2><p>{{ item.active_count }} active choice{{ '' if item.active_count == 1 else 's' }}</p><span>Manage choices &rarr;</span></a>
+    {% else %}
+      <p class="panel-copy">Create a list, then select it under Choices in a dropdown field's form settings.</p>
+    {% endfor %}
+    </div>
+    {% else %}
+    <section class="panel settings-utility-card">
+      <div class="settings-utility-head"><h2>Choices</h2><p>Add or update a choice for all connected fields. Deactivated choices remain in saved records.</p></div>
+      <form method="post" class="shared-list-add">
+        <input type="hidden" name="revision" value="{{ selected_list.revision }}">
+        <input type="hidden" name="action" value="add">
+        <label class="field-stack"><span>New choice</span><input name="name" required maxlength="200" placeholder="Enter a name" value="{{ submitted_name if submitted_action == 'add' else '' }}"></label>
+        <button class="primary-button" type="submit">Add choice</button>
+      </form>
+      <div class="shared-choice-rows">
+      {% for item in selected_list['items'] if item.active %}
+        <div class="shared-choice-row">
+          <span>{{ item.name }}</span>
+          <details class="shared-choice-edit" {% if submitted_action == 'rename' and submitted_item_id == item.id %}open{% endif %}>
+            <summary>Edit</summary>
+            <form method="post" class="shared-choice-edit-form">
+              <input type="hidden" name="revision" value="{{ selected_list.revision }}"><input type="hidden" name="item_id" value="{{ item.id }}">
+              <label class="field-stack"><span>Choice name</span><input name="name" required maxlength="200" value="{{ submitted_name if submitted_action == 'rename' and submitted_item_id == item.id else item.name }}"></label>
+              <div class="shared-choice-buttons"><button type="submit" class="primary-button" name="action" value="rename">Save</button><button type="submit" class="ghost-button" name="action" value="deactivate" formnovalidate>Deactivate</button></div>
+            </form>
+          </details>
+        </div>
+      {% else %}<p class="panel-copy">No active choices yet. Add one above.</p>{% endfor %}
+      </div>
+      {% set inactive = selected_list['items'] | rejectattr('active') | list %}
+      {% if inactive %}
+      <details class="shared-list-details"><summary>Inactive choices ({{ inactive | length }})</summary>
+        {% for item in inactive %}
+        <form method="post" class="shared-choice-row"><span>{{ item.name }}</span><input type="hidden" name="revision" value="{{ selected_list.revision }}"><input type="hidden" name="item_id" value="{{ item.id }}"><button class="ghost-button" name="action" value="reactivate" type="submit">Reactivate</button></form>
+        {% endfor %}
+      </details>
+      {% endif %}
+    </section>
+    <section class="panel settings-utility-card">
+      <div class="settings-utility-head"><h2>Used in {{ usage | length }} form{{ '' if usage | length == 1 else 's' }}</h2></div>
+      {% for form in usage %}<a class="shared-list-usage" href="/forms/{{ form.slug }}/builder">{{ form.name }} <small>{{ form.fields | join(', ') }}</small></a>{% else %}<p class="panel-copy">To connect a field: open its form, choose a dropdown field, then select this list under Choices.</p>{% endfor %}
+      <details class="shared-list-details"><summary>Rename list</summary>
+        <form method="post" class="shared-list-add"><input type="hidden" name="revision" value="{{ selected_list.revision }}"><input type="hidden" name="action" value="rename_list"><label class="field-stack"><span>List name</span><input name="name" required maxlength="160" value="{{ submitted_name if submitted_action == 'rename_list' else selected_list.name }}"></label><button class="ghost-button" type="submit">Save name</button></form>
+      </details>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

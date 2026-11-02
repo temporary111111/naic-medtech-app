@@ -163,7 +163,7 @@
         <select name="value__{{ block.id }}">
           <option value=""></option>
           {% set option_names = (props.options or []) | map(attribute='name') | list %}
-          {% if record.status == 'completed' and block_value and block_value not in option_names %}
+          {% if block_value and block_value not in option_names %}
           <option value="{{ block_value }}" selected>{{ block_value }}</option>
           {% endif %}
           {% for option in props.options or [] %}

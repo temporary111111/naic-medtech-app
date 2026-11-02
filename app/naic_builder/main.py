@@ -53,6 +53,10 @@ from .desktop_settings import (
     save_desktop_settings,
 )
 from .qr import qr_svg_bytes
+from .shared_lists import (
+    SharedListConflict, change_shared_list, create_shared_list, ensure_standard_shared_lists,
+    get_shared_list, list_shared_lists, resolve_shared_choices, serialize_shared_list, shared_list_usage,
+)
 from .schemas import (
     AccountRequestPayload,
     ClinicProfilePayload,
@@ -192,6 +196,7 @@ async def lifespan(_: FastAPI):
         ensure_cardiaci_defaults(session)
         ensure_ogtt_defaults(session)
         ensure_library_tree(session)
+        ensure_standard_shared_lists(session)
     backup_stop_event = asyncio.Event()
     backup_task = asyncio.create_task(scheduled_backup_loop(backup_stop_event))
     start_change_backup_worker()
@@ -220,7 +225,7 @@ PUBLIC_PATHS = {
 }
 PUBLIC_PREFIXES = ("/static",)
 ADMIN_PREFIXES = ("/forms", "/folders", "/builder", "/api/forms", "/api/builder", "/api/library", "/backup", "/safety")
-ADMIN_SETTINGS_PREFIXES = ("/settings/users", "/settings/desktop")
+ADMIN_SETTINGS_PREFIXES = ("/settings/users", "/settings/desktop", "/settings/shared-lists")
 RESTORE_CONFIRMATION_TEXT = "RESTORE"
 RECORDS_HISTORY_PAGE_SIZE = 40
 RECORD_DATE_SCOPE_LABELS = {
@@ -1096,6 +1101,9 @@ def render_record_edit_page(
         back_href = history_return_url or ("/records/history" if back_to_history or record.status == "completed" else "/records")
         back_label = "Back to find records" if back_to_history or record.status == "completed" else "Back to records"
     record_data = serialize_record(record, include_entry_schema=True)
+    record_data["entry_schema"] = resolve_shared_choices(
+        session, record_data["entry_schema"], fallback_schema=serialize_form(record.form)["block_schema"],
+    )
     if submitted_payload is not None:
         record_data["values"] = preserve_existing_asset_values(record_data["values"], submitted_payload.values)
         record_data["asset_by_field_id"] = {
@@ -2726,6 +2734,54 @@ def settings_account_avatar_file(request: Request, session: Session = Depends(ge
     return response
 
 
+@app.get("/settings/shared-lists", response_class=HTMLResponse)
+def shared_lists_page(request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
+    return render_shared_lists(request, session)
+
+
+def render_shared_lists(request: Request, session: Session, list_id: int | None = None,
+                        error_message: str = "", status_code: int = 200, submitted_name: str = "",
+                        submitted_action: str = "", submitted_item_id: int = 0) -> HTMLResponse:
+    selected = get_shared_list(session, list_id) if list_id is not None else None
+    if list_id is not None and selected is None:
+        raise HTTPException(status_code=404, detail="Shared list not found.")
+    return templates.TemplateResponse(request=request, name="settings/shared_lists.html", context={
+        "app_title": APP_TITLE, "lists": list_shared_lists(session),
+        "selected_list": serialize_shared_list(selected) if selected else None,
+        "usage": shared_list_usage(session, list_id) if selected else [],
+        "error_message": error_message, "saved": not error_message and request.query_params.get("saved") == "1",
+        "submitted_name": submitted_name, "submitted_action": submitted_action, "submitted_item_id": submitted_item_id,
+    }, status_code=status_code)
+
+
+@app.get("/settings/shared-lists/{list_id}", response_class=HTMLResponse)
+def shared_list_page(list_id: int, request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
+    return render_shared_lists(request, session, list_id)
+
+
+@app.post("/settings/shared-lists")
+def new_shared_list(request: Request, name: str = Form(""), session: Session = Depends(get_session)) -> Response:
+    try:
+        item = create_shared_list(session, name)
+    except ValueError as exc:
+        return render_shared_lists(request, session, error_message=str(exc), status_code=422, submitted_name=name)
+    return RedirectResponse(f"/settings/shared-lists/{item.id}?saved=1", status_code=303)
+
+
+@app.post("/settings/shared-lists/{list_id}")
+def edit_shared_list(list_id: int, request: Request, revision: int = Form(...), action: str = Form(...),
+                     name: str = Form(""), item_id: int = Form(0), session: Session = Depends(get_session)) -> Response:
+    try:
+        change_shared_list(session, list_id, revision, action, name=name, item_id=item_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Shared list not found.") from exc
+    except ValueError as exc:
+        return render_shared_lists(request, session, list_id, error_message=str(exc),
+            status_code=409 if isinstance(exc, SharedListConflict) else 422,
+            submitted_name=name, submitted_action=action, submitted_item_id=item_id)
+    return RedirectResponse(f"/settings/shared-lists/{list_id}?saved=1", status_code=303)
+
+
 @app.get("/settings/clinic", response_class=HTMLResponse)
 def settings_clinic_page(request: Request, session: Session = Depends(get_session)) -> HTMLResponse:
     success_message = ""
@@ -3437,6 +3493,7 @@ def builder_bootstrap(session: Session = Depends(get_session)) -> dict[str, Any]
         "container_options": container_options,
         "form_choices": form_choices,
         "selected_form_slug": selected_slug,
+        "shared_lists": list_shared_lists(session),
     }
 
 

@@ -409,6 +409,16 @@ The app now starts from a builder-first FastAPI scaffold.
 ## Print text sizes
 Printed reports now have independent **Test names** and **Results** size controls in **Print setup**. Use the minus/plus buttons (5% steps) or type an exact whole percentage (50-200%). Changes preview immediately; Cancel discards them. **Save settings** stores the current record's sizes and a shared default for future records of the same form, style, orientation, and paper size. Existing saved record presentations keep their sizes. Results include units; reference ranges, branding, and signatures keep their existing typography. The one-page indicator is advisory and never shrinks the chosen font sizes.
 
+## Shared lists
+
+Admins manage reusable dropdown choices at **Settings → Shared lists**. Create a list, add choices, or open **Edit** beside a choice to rename or deactivate it. Inactive choices can be reactivated. Names are sorted alphabetically, duplicate names are rejected, and concurrent edits receive a reload notice instead of overwriting a newer change.
+
+In the Form Builder, a dropdown field's **Choices → Choices source** offers **Own choices** and **Shared list**. Choose a list and save the form once; later list changes require no form edits. **Manage lists** opens Settings separately, and **Refresh choices** updates the builder without losing unsaved form changes. Own choices remain available for fields that need a separate set of options.
+
+On first startup after this update, recognizable standard Requesting Physician and Room fields are connected automatically. Their existing choices are combined into **Requesting physicians** and **Rooms**, and new current form versions retain all other form settings. This setup runs once and does not overwrite later list edits or reconnect custom fields. Newly added standard patient-information blocks use those same lists.
+
+Stored record answers, original form versions, print settings, and printed reports are not rewritten. The editor resolves current choices on a separate copy of the schema. Older records can use a newly connected list through the same field ID; their existing selected text is retained even when renamed or deactivated in the list. Switching to a different answer requires an explicit record edit and Save. Shared lists are part of the database and are included in normal backups.
+
 ## Optional contrast
 
 The existing theme icon opens **Display**, with **Light / Dark** and **Normal / High** contrast. Normal preserves the current premium theme. High applies throughout the app, including Records, Forms, the builder, Settings, Overview, Backup, and sign-in screens. It makes cards stand apart from the page background and strengthens navigation, menus, input boundaries, text, and focus feedback in both themes. Layout, typography, gradients, glass effects, and rounded corners are retained. The additional styles live in `contrast.css` and apply only when `data-contrast="high"` is active.

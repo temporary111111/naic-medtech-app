@@ -30,6 +30,7 @@ from .config import (
     USER_UPLOADS_DIR,
 )
 from .database import Base, engine
+from .shared_lists import resolve_shared_choices
 from .models import (
     ClinicProfile,
     FormDefinition,
@@ -9255,6 +9256,7 @@ def create_form(session: Session, payload: FormSavePayload) -> dict[str, Any]:
         name=name,
         form_order=location_meta["resolved_form_order"],
     )
+    stored_block_schema = resolve_shared_choices(session, stored_block_schema, validate=True)
 
     definition = create_form_definition_record(
         slug=slug,
@@ -9307,6 +9309,7 @@ def update_form(session: Session, slug: str, payload: FormSavePayload) -> dict[s
         name=name,
         form_order=location_meta["resolved_form_order"],
     )
+    stored_block_schema = resolve_shared_choices(session, stored_block_schema, validate=True)
 
     next_version = (current_version(definition).version_number if current_version(definition) else 0) + 1
     for version in definition.versions:

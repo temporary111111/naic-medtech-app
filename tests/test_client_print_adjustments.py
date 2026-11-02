@@ -2854,7 +2854,7 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn("*::before,\n*::after {\n  box-sizing: border-box;", theme_stylesheet)
         self.assertIn("body {\n  margin: 0;", theme_stylesheet)
         self.assertIn("theme.css') }}?v=20260801-shared-layout-foundation", shell_template)
-        self.assertIn("shell.css') }}?v=20260801-clinic-logo-plain", shell_template)
+        self.assertIn("url_for('static', path='shell.css')", shell_template)
         self.assertIn("app-drawer__brand-mark--logo", shell_template)
         self.assertIn("app-global-header__brand--logo", shell_template)
         self.assertIn(".app-global-header__brand--logo", shell_stylesheet)

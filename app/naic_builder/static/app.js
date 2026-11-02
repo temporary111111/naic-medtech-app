@@ -1423,6 +1423,14 @@ function normalizeLiveBlockNode(node) {
 }
 
 function getInputOptions(field) {
+  const listId = getNodeProps(field).shared_list_id;
+  const shared = normalizeArray(state.bootstrap?.shared_lists).find((item) => item.id === listId);
+  if (shared) {
+    const normals = new Set(normalizeInputOptions(field).filter((item) => item.is_normal).map((item) => item.name));
+    return shared.items.filter((item) => item.active).map((item, index) => ({
+      name: item.name, key: `shared_${item.id}`, order: index + 1, is_normal: normals.has(item.name),
+    }));
+  }
   return normalizeInputOptions(field);
 }
 
@@ -2520,6 +2528,8 @@ function makeDefaultPatientInfoBlock() {
     if (field.required) {
       props.required = true;
     }
+    const sharedDefault = normalizeArray(state.bootstrap?.shared_lists).find((item) => item.seed_key === `standard_patient_${field.key}_v1`);
+    if (props.control === "select" && sharedDefault) props.shared_list_id = sharedDefault.id;
     return {
       id: freshBlockId("field", `patient_${field.key}`),
       kind: "field",
@@ -2682,6 +2692,7 @@ function applyInputType(field, typeId) {
   delete props.field_type;
   props.control = selected.control;
   props.data_type = selected.dataType;
+  if (selected.id !== "choice") delete props.shared_list_id;
   const defaultValueMode = normalizeTemporalDefaultMode(props.default_value_mode, selected.id);
   if (defaultValueMode) {
     props.default_value_mode = defaultValueMode;
@@ -4633,6 +4644,27 @@ function renderItemCard(item, path, options = {}) {
 
 function renderOptionsEditor(field, path) {
     const options = getInputOptions(field);
+    const props = getNodeProps(field);
+    const sharedMode = Object.hasOwn(props, "shared_list_id");
+    const lists = normalizeArray(state.bootstrap?.shared_lists);
+    const sourceControl = `<label><span>Choices source</span><select data-action="choice-source" data-path="${encodePath(path)}">
+      <option value="own" ${!sharedMode ? "selected" : ""}>Own choices</option>
+      <option value="shared" ${sharedMode ? "selected" : ""}>Shared list</option>
+    </select></label>`;
+    if (sharedMode) {
+      const selected = lists.find((item) => item.id === props.shared_list_id);
+      return `<details class="item-stack options-editor options-editor-details" ${renderBuilderDetailsState(builderDetailsKey("choices", field.id))}>
+        <summary class="options-editor-summary"><span><strong>Choices</strong><small>${escapeHtml(selected?.name || "Choose a shared list")}</small></span></summary>
+        <div class="options-editor-body">${sourceControl}
+          <label><span>Shared list</span><select data-action="choice-shared-list" data-path="${encodePath(path)}">
+            <option value="0" ${!selected ? "selected" : ""}>Choose a list</option>
+            ${lists.map((item) => `<option value="${item.id}" ${item.id === props.shared_list_id ? "selected" : ""}>${escapeHtml(item.name)}</option>`).join("")}
+          </select></label>
+          <p class="panel-copy">${selected ? `${options.length} active choices. Updates to this list apply across connected fields.` : "Create a list in Settings, then select it here."}</p>
+          <div class="option-actions"><a class="ghost-button" href="/settings/shared-lists${selected ? `/${selected.id}` : ""}" target="_blank" rel="noopener">Manage lists</a>
+          <button class="ghost mini" type="button" data-action="refresh-shared-lists">Refresh choices</button></div>
+        </div></details>`;
+    }
     return `
       <details class="item-stack options-editor options-editor-details" ${renderBuilderDetailsState(builderDetailsKey("choices", field.id))}>
         <summary class="options-editor-summary">
@@ -4642,6 +4674,7 @@ function renderOptionsEditor(field, path) {
           </span>
         </summary>
         <div class="options-editor-body">
+          ${sourceControl}
           <div class="option-actions">
             <button class="ghost mini" type="button" data-action="add-option" data-path="${encodePath(path)}">Add option</button>
           </div>
@@ -5311,6 +5344,18 @@ async function handleEditorClick(event) {
   }
 
   const action = actionTarget.dataset.action;
+  if (action === "refresh-shared-lists") {
+    actionTarget.disabled = true;
+    try {
+      const latest = await api("/api/builder/bootstrap");
+      state.bootstrap.shared_lists = latest.shared_lists;
+      renderAll();
+    } catch (error) {
+      actionTarget.disabled = false;
+      setStatus(error.message || "Could not refresh choices. Please try again.", true);
+    }
+    return;
+  }
   if (action === "option-name" || action === "load-form") {
     return;
   }
@@ -5503,6 +5548,20 @@ async function handleEditorClick(event) {
 }
 
 function handleEditorChange(event) {
+  if (["choice-source", "choice-shared-list"].includes(event.target.dataset.action)) {
+    const field = getNodeByPath(decodePath(event.target.dataset.path));
+    const props = getNodeProps(field);
+    if (event.target.dataset.action === "choice-shared-list") {
+      props.shared_list_id = Number(event.target.value);
+    } else if (event.target.value === "shared") {
+      props.shared_list_id = 0;
+    } else {
+      props.options = deepClone(getInputOptions(field));
+      delete props.shared_list_id;
+    }
+    touch({ full: true, source: "blocks" });
+    return;
+  }
   if (event.target.dataset.action === "form-location") {
     selectDraftLocation(event.target.value);
     touch({ full: true, source: "blocks" });

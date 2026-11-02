@@ -12,6 +12,30 @@ def utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+class SharedChoiceList(Base):
+    __tablename__ = "shared_choice_lists"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(160))
+    name_key: Mapped[str] = mapped_column(String(160), unique=True)
+    seed_key: Mapped[str | None] = mapped_column(String(80), nullable=True, unique=True)
+    revision: Mapped[int] = mapped_column(Integer, default=1)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    items: Mapped[list["SharedChoiceItem"]] = relationship(back_populates="choice_list", cascade="all, delete-orphan")
+
+
+class SharedChoiceItem(Base):
+    __tablename__ = "shared_choice_items"
+    __table_args__ = (UniqueConstraint("list_id", "name_key", name="uq_shared_choice_name"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    list_id: Mapped[int] = mapped_column(ForeignKey("shared_choice_lists.id"), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    name_key: Mapped[str] = mapped_column(String(200))
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    choice_list: Mapped["SharedChoiceList"] = relationship(back_populates="items")
+
+
 class FormDefinition(Base):
     __tablename__ = "form_definitions"
 
