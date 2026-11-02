@@ -409,6 +409,12 @@ The app now starts from a builder-first FastAPI scaffold.
 ## Print text sizes
 Printed reports now have independent **Test names** and **Results** size controls in **Print setup**. Use the minus/plus buttons (5% steps) or type an exact whole percentage (50-200%). Changes preview immediately; Cancel discards them. **Save settings** stores the current record's sizes and a shared default for future records of the same form, style, orientation, and paper size. Existing saved record presentations keep their sizes. Results include units; reference ranges, branding, and signatures keep their existing typography. The one-page indicator is advisory and never shrinks the chosen font sizes.
 
+## Editing saved records
+
+Work queue uses **Continue** for drafts; Find records uses **Edit** and **Print** for completed records. Draft deletion is under the row's more-actions menu, and completed-record voiding is under the editor's more-actions menu.
+
+Completed records use the existing editor with **Save changes** and **Cancel**. Saving retains the completed status, original completion time, frozen form version, and saved print presentation. Required-field validation runs before saving, and stale editor sessions receive a reload notice instead of overwriting newer changes. Each saved change records its before/after values and acting staff member in `record_revisions`. Image changes are staged until Save changes; previous image files remain available to the history. Opening a completed record preserves blank date fields and older values that no longer match a numeric control or dropdown option.
+
 ## Run locally
 
 1. Create and activate a virtual environment.

@@ -225,6 +225,18 @@ class RecordPrintPresentation(Base):
     saved_by_user: Mapped["User | None"] = relationship(foreign_keys=[saved_by_user_id])
 
 
+class RecordRevision(Base):
+    __tablename__ = "record_revisions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    record_id: Mapped[int] = mapped_column(ForeignKey("records.id"), index=True)
+    form_version_id: Mapped[int] = mapped_column(ForeignKey("form_versions.id"))
+    before_json: Mapped[str] = mapped_column(Text)
+    after_json: Mapped[str] = mapped_column(Text)
+    actor_json: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
 class RecordAsset(Base):
     __tablename__ = "record_assets"
 

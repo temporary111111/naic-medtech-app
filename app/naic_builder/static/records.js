@@ -326,9 +326,13 @@
           setDirty(true);
         }
       };
+      setDirty(form.dataset.initialDirty === "true");
 
       form.addEventListener("input", markDirty);
       form.addEventListener("change", markDirty);
+      form.querySelector('[data-discard-record-changes]')?.addEventListener('click', () => {
+        allowUnload = true;
+      });
 
       form.addEventListener("keydown", (event) => {
         const key = String(event.key || "").toLowerCase();
@@ -337,7 +341,7 @@
           return;
         }
 
-        const saveButton = form.querySelector("[data-save-draft]");
+        const saveButton = form.querySelector("[data-save-record], [data-save-draft]");
         if (!saveButton) {
           return;
         }
@@ -361,7 +365,13 @@
         });
       });
 
-      form.addEventListener("submit", () => {
+      form.addEventListener("submit", (event) => {
+        if (form.querySelector('.is-uploading')) {
+          event.preventDefault();
+          allowUnload = false;
+          if (statusEl) statusEl.textContent = "Wait for the image upload to finish.";
+          return;
+        }
         allowUnload = true;
       });
 
@@ -489,6 +499,7 @@
       return body;
     };
     const uploadedAssetFromResponse = (payload, fieldBlockId) => {
+      if (payload?.staged_asset) return payload.staged_asset;
       const mappedAsset = payload?.asset_by_field_id?.[fieldBlockId];
       if (mappedAsset && typeof mappedAsset === "object") {
         return mappedAsset;
@@ -512,6 +523,7 @@
       const removeActions = field?.querySelector("[data-record-image-actions]");
       const recordId = String(input.dataset.recordId || "");
       const fieldBlockId = String(input.dataset.fieldBlockId || "");
+      const stagedValue = field?.querySelector('[data-staged-image-value]');
       if (!field || !recordId || !fieldBlockId) {
         return;
       }
@@ -542,7 +554,11 @@
           if (removeActions) {
             removeActions.hidden = false;
           }
-          setStatus(field, "Image uploaded.", "success");
+          if (stagedValue) {
+            stagedValue.value = String(asset.id);
+            stagedValue.dispatchEvent(new Event('change', {bubbles:true}));
+          }
+          setStatus(field, stagedValue ? "Save changes to apply this image." : "Image uploaded.", "success");
         } catch (error) {
           console.error(error);
           setStatus(field, error.message || "Could not upload the image.", "error");
@@ -557,6 +573,15 @@
         event.stopPropagation();
         const assetId = String(removeButton.dataset.assetId || "");
         if (!assetId) {
+          return;
+        }
+        if (stagedValue) {
+          stagedValue.value = '';
+          stagedValue.dispatchEvent(new Event('change', {bubbles:true}));
+          renderCurrentImage(field, recordId, null);
+          removeButton.dataset.assetId = '';
+          if (removeActions) removeActions.hidden = true;
+          setStatus(field, 'Save changes to remove this image.', 'success');
           return;
         }
         setUploading(field, true);
@@ -708,6 +733,38 @@
   };
 
   setupDirtyGuards();
+  document.addEventListener('toggle', event => {
+    const menu = event.target;
+    if (!(menu instanceof HTMLElement) || !menu.matches('.record-actions-menu')) return;
+    const panel = menu.querySelector('.record-actions-menu__panel');
+    if (!panel || typeof panel.showPopover !== 'function') return;
+    if (!menu.open) {
+      if (panel.matches(':popover-open')) panel.hidePopover();
+      return;
+    }
+    // The record list scrolls independently. Use the browser's top layer so
+    // its menu remains clickable even on the last row or a narrow screen.
+    panel.popover = 'manual';
+    panel.style.position = 'fixed';
+    panel.style.inset = 'auto';
+    panel.style.margin = '0';
+    panel.showPopover();
+    const anchor = menu.querySelector('summary').getBoundingClientRect();
+    const box = panel.getBoundingClientRect();
+    panel.style.left = `${Math.max(12, Math.min(innerWidth - box.width - 12, anchor.right - box.width))}px`;
+    panel.style.top = `${anchor.bottom + box.height + 18 <= innerHeight ? anchor.bottom + 6 : Math.max(12, anchor.top - box.height - 6)}px`;
+  }, true);
+  document.addEventListener('click', event => {
+    document.querySelectorAll('.record-actions-menu[open]').forEach(menu => {
+      if (!menu.contains(event.target)) menu.open = false;
+    });
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') document.querySelectorAll('.record-actions-menu[open]').forEach(menu => {menu.open = false;});
+  });
+  window.addEventListener('resize', () => {
+    document.querySelectorAll('.record-actions-menu[open]').forEach(menu => {menu.open = false;});
+  });
   setupRecordImageUploads();
   setupTemporalInputs();
   setupRequiredFieldAttention();

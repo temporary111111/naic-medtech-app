@@ -21,6 +21,10 @@ TEST_RUNTIME = tempfile.TemporaryDirectory(prefix="ndhi-text-sizes-")
 os.environ.setdefault("NDHI_LABRECORDS_DATA_DIR", TEST_RUNTIME.name)
 os.environ["NDHI_AFTER_CHANGE_BACKUP_DISABLED"] = "1"
 
+# Initialize the shared application runtime before importing the app, so
+# this module's temporary directory cannot invalidate the other suite.
+from tests import test_client_print_adjustments as _runtime_fixture
+
 from naic_builder import database, main
 from naic_builder.config import SESSION_SECRET
 from naic_builder.database import Base, SKIP_CHANGE_BACKUP_SESSION_KEY, get_session

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import mimetypes
+import re
 import tempfile
 import threading
 from contextlib import asynccontextmanager, suppress
@@ -133,6 +134,7 @@ from .services import (
     print_style_options,
     request_account,
     RecordCompletionValidationError,
+    RecordEditConflict,
     remove_clinic_logo,
     remove_user_avatar,
     reset_user_password_by_admin,
@@ -157,6 +159,9 @@ from .services import (
     update_form,
     user_can_manage_record_print_presentation,
     user_print_preferences,
+    normalize_record_signatory_snapshots,
+    preserve_existing_asset_values,
+    serialize_record_asset,
     void_completed_record,
 )
 
@@ -1052,18 +1057,20 @@ def render_record_edit_page(
     success_message: str = "",
     validation_issues: list[str] | None = None,
     status_code: int = 200,
+    submitted_payload: RecordUpdatePayload | None = None,
+    edit_conflict: bool = False,
 ) -> HTMLResponse:
     record = get_record_or_none(session, record_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Record not found.")
     if record.status == "deleted":
         raise HTTPException(status_code=404, detail="Record not found.")
-    if record.status != "draft":
-        raise HTTPException(status_code=409, detail="Only draft records can be edited.")
+    if record.status not in {"draft", "completed"}:
+        raise HTTPException(status_code=409, detail="Only draft or completed records can be edited.")
 
     resolved_success_message = success_message
     if not resolved_success_message and request.query_params.get("saved") == "1":
-        resolved_success_message = "Saved the draft."
+        resolved_success_message = "Changes saved." if record.status == "completed" else "Saved the draft."
 
     resolved_error_message = error_message
     if not resolved_error_message and request.query_params.get("print_blocked") == "1":
@@ -1086,14 +1093,32 @@ def render_record_edit_page(
         back_href = overview_return_url or "/overview"
         back_label = "Back to overview"
     else:
-        back_href = history_return_url or ("/records/history" if back_to_history else "/records")
-        back_label = "Back to history" if back_to_history else "Back to records"
+        back_href = history_return_url or ("/records/history" if back_to_history or record.status == "completed" else "/records")
+        back_label = "Back to find records" if back_to_history or record.status == "completed" else "Back to records"
+    record_data = serialize_record(record, include_entry_schema=True)
+    if submitted_payload is not None:
+        record_data["values"] = preserve_existing_asset_values(record_data["values"], submitted_payload.values)
+        record_data["asset_by_field_id"] = {
+            asset.field_block_id: serialize_record_asset(asset) for asset in record.assets
+            if isinstance(record_data["values"].get(asset.field_block_id), dict)
+            and str(record_data["values"][asset.field_block_id].get("asset_id")) == str(asset.id)
+        }
+        slots = record_data["entry_schema"].get("meta", {}).get("signatories", [])
+        record_data["signatories"] = normalize_record_signatory_snapshots(
+            submitted_payload.indexed_meta.get("signatories", record_data["indexed_meta"].get("signatories")), slots,
+        )
     return templates.TemplateResponse(
         request=request,
         name="records/edit.html",
         context={
             "app_title": APP_TITLE,
-            "record": serialize_record(record, include_entry_schema=True),
+            "record": record_data,
+            "text_number_fields": {
+                field_id for field_id, value in record_data["values"].items()
+                if str(value).strip() and not re.fullmatch(r"-?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][+-]?\d+)?", str(value))
+            },
+            "edit_conflict": edit_conflict,
+            "has_unsaved_changes": submitted_payload is not None,
             "error_message": resolved_error_message,
             "success_message": resolved_success_message,
             "validation_issues": resolved_validation_issues,
@@ -1233,7 +1258,7 @@ def render_record_print_page(
         name="records/print.html",
         context={
             "app_title": APP_TITLE,
-            "back_href": f"/records/{record.id}?{record_context_query}" if record_context_query else f"/records/{record.id}",
+            "back_href": f"/records/{record.id}/edit?{record_context_query}" if record_context_query else f"/records/{record.id}/edit",
             "back_label": "Back",
             "print_style_options": print_style_options(),
             "print_orientation_options": print_orientation_options(),
@@ -1275,6 +1300,12 @@ def record_update_payload_from_form_data(form_data: dict[str, list[str]]) -> Rec
     values: dict[str, Any] = {}
     signatories_by_slot: dict[str, dict[str, str]] = {}
     for key, raw_values in form_data.items():
+        if key.startswith("image__"):
+            field_id = key.removeprefix("image__").strip()
+            asset_id = (raw_values or [""])[0]
+            if field_id:
+                values[field_id] = {"asset_id": asset_id, "kind": "image"} if asset_id else ""
+            continue
         if not key.startswith("value__"):
             continue
         block_id = key.removeprefix("value__").strip()
@@ -1301,6 +1332,7 @@ def record_update_payload_from_form_data(form_data: dict[str, list[str]]) -> Rec
         patient_age=(form_data.get("patient_age") or [None])[0],
         patient_sex=(form_data.get("patient_sex") or [None])[0],
         case_number=(form_data.get("case_number") or [None])[0],
+        expected_updated_at=(form_data.get("expected_updated_at") or [None])[0],
         values=values,
         indexed_meta={"signatories": signatories_by_slot},
     )
@@ -1622,7 +1654,7 @@ def edit_record_page(
         raise HTTPException(status_code=404, detail="Record not found.")
     if record.status == "deleted":
         raise HTTPException(status_code=404, detail="Record not found.")
-    if record.status != "draft":
+    if record.status not in {"draft", "completed"}:
         view_url = f"/records/{record_id}"
         if request.url.query:
             view_url = f"{view_url}?{request.url.query}"
@@ -1641,9 +1673,13 @@ async def update_record_page(
     action = ((form_data.get("action") or ["draft"])[0] or "draft").strip().lower()
     payload = record_update_payload_from_form_data(form_data)
     current_query = request.url.query
+    record = get_record_or_none(session, record_id)
+    if record is None or record.status == "deleted":
+        raise HTTPException(status_code=404, detail="Record not found.")
+    completed_edit = record.status == "completed"
 
     try:
-        if action in {"complete", "complete_print"}:
+        if not completed_edit and action in {"complete", "complete_print"}:
             completed = complete_record(
                 session,
                 record_id,
@@ -1654,7 +1690,7 @@ async def update_record_page(
             redirect_url = (
                 f"/records/{completed['id']}/print"
                 if action == "complete_print"
-                else f"/records/{completed['id']}"
+                else f"/records/{completed['id']}/edit"
             )
             if current_query:
                 redirect_url = f"{redirect_url}?{current_query}"
@@ -1669,20 +1705,24 @@ async def update_record_page(
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Record not found.") from exc
-    except RecordCompletionValidationError as exc:
-        update_record(
-            session,
-            record_id,
-            payload,
-            preserve_asset_fields=True,
-            actor_user_id=current_user_id(request),
+    except RecordEditConflict as exc:
+        return render_record_edit_page(
+            request, session, record_id=record_id, error_message=str(exc),
+            submitted_payload=payload, edit_conflict=True, status_code=409,
         )
+    except RecordCompletionValidationError as exc:
+        if not completed_edit:
+            update_record(
+                session, record_id, payload, preserve_asset_fields=True,
+                actor_user_id=current_user_id(request),
+            )
         return render_record_edit_page(
             request,
             session,
             record_id=record_id,
             error_message=str(exc),
             validation_issues=exc.issues,
+            submitted_payload=payload if completed_edit else None,
             status_code=422,
         )
     except ValueError as exc:
@@ -1697,6 +1737,7 @@ async def update_record_page(
             session,
             record_id=record_id,
             error_message=str(exc),
+            submitted_payload=payload if completed_edit else None,
             status_code=422,
         )
 
@@ -3286,6 +3327,8 @@ def update_record_endpoint(
         return update_record(session, record_id, payload, actor_user_id=current_user_id(request))
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Record not found.") from exc
+    except RecordEditConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 

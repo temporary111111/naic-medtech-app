@@ -14,7 +14,7 @@ from typing import Any, Callable
 from uuid import uuid4
 
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.orm import Session, selectinload
 
 from .config import (
@@ -38,6 +38,7 @@ from .models import (
     Record,
     RecordAsset,
     RecordPrintPresentation,
+    RecordRevision,
     User,
     utc_now,
 )
@@ -65,7 +66,7 @@ MAX_RECORD_IMAGE_BYTES = 10 * 1024 * 1024
 MAX_CLINIC_LOGO_BYTES = 5 * 1024 * 1024
 MAX_USER_AVATAR_BYTES = 2 * 1024 * 1024
 MAX_SIGNATORY_STAMP_BYTES = 5 * 1024 * 1024
-EDITABLE_RECORD_STATUSES = {"draft"}
+EDITABLE_RECORD_STATUSES = {"draft", "completed"}
 VISIBLE_RECORD_STATUSES = {"draft", "completed", "voided"}
 RECORD_DATE_SCOPES = {"today", "last_7_days", "this_month"}
 RECORD_STATUS_LABELS = {
@@ -5470,9 +5471,13 @@ def record_lifecycle_meta(indexed_meta: dict[str, Any]) -> dict[str, Any]:
 
 
 class RecordCompletionValidationError(ValueError):
-    def __init__(self, issues: list[str]):
+    def __init__(self, issues: list[str], message: str = "Complete this record after filling the missing required details."):
         self.issues = issues
-        super().__init__("Complete this record after filling the missing required details.")
+        super().__init__(message)
+
+
+class RecordEditConflict(ValueError):
+    pass
 
 
 def has_meaningful_record_value(value: Any) -> bool:
@@ -7286,6 +7291,8 @@ def serialize_record(
         compact_text(asset.field_block_id): serialize_record_asset(asset)
         for asset in record.assets
         if compact_text(asset.field_block_id)
+        and isinstance(stored_values.get(asset.field_block_id), dict)
+        and stored_values[asset.field_block_id].get("asset_id") == asset.id
     }
     payload = {
         "id": record.id,
@@ -7323,6 +7330,7 @@ def serialize_record(
         "indexed_meta": indexed_meta,
         "lifecycle": lifecycle,
         "voided_event": lifecycle.get("voided") if isinstance(lifecycle.get("voided"), dict) else None,
+        "edited_event": lifecycle.get("edited") if isinstance(lifecycle.get("edited"), dict) else None,
         "deleted_event": lifecycle.get("deleted") if isinstance(lifecycle.get("deleted"), dict) else None,
         "signatories": signatory_snapshots,
     }
@@ -7569,20 +7577,27 @@ def update_record(
     if record is None:
         raise KeyError(record_id)
     if record.status not in EDITABLE_RECORD_STATUSES:
-        raise ValueError("Only draft records can be edited.")
+        raise ValueError("Only draft or completed records can be edited.")
+    is_completed = record.status == "completed"
+    if is_completed and payload.expected_updated_at is not None:
+        if payload.expected_updated_at != record.updated_at.astimezone(timezone.utc).isoformat():
+            raise RecordEditConflict("This record was changed elsewhere. Reload the record before saving.")
 
     existing_meta = load_json_object(record.indexed_meta_json)
     patient_name = compact_text(payload.patient_name) if payload.patient_name is not None else compact_text(record.patient_name)
     patient_age = compact_text(payload.patient_age) if payload.patient_age is not None else compact_text(existing_meta.get("patient_age"))
     patient_sex = compact_text(payload.patient_sex) if payload.patient_sex is not None else compact_text(existing_meta.get("patient_sex"))
     case_number = compact_text(payload.case_number) if payload.case_number is not None else compact_text(record.case_number)
-    normalized_values = normalize_record_values(payload.values)
+    incoming_values = payload.values
     if preserve_asset_fields:
-        normalized_values = preserve_existing_asset_values(current_record_values(record), normalized_values)
+        incoming_values = preserve_existing_asset_values(current_record_values(record), incoming_values)
+    normalized_values = normalize_record_values(incoming_values)
+    incoming_meta = dict(payload.indexed_meta) if isinstance(payload.indexed_meta, dict) else {}
+    incoming_meta.pop("lifecycle", None)
     indexed_meta, identity = build_record_indexed_meta(
         {
             **existing_meta,
-            **(payload.indexed_meta if isinstance(payload.indexed_meta, dict) else {}),
+            **incoming_meta,
         },
         record.form_version,
         normalized_values,
@@ -7592,11 +7607,61 @@ def update_record(
         case_number=case_number,
     )
 
-    record.patient_name = identity["primary_value"] or patient_name or None
-    record.case_number = identity["secondary_value"] or case_number or None
-    record.values_json = json.dumps(normalized_values, ensure_ascii=False)
-    record.indexed_meta_json = json.dumps(indexed_meta, ensure_ascii=False)
-    record.updated_by_user_id = actor_user_id
+    new_name = identity["primary_value"] or patient_name or None
+    new_case = identity["secondary_value"] or case_number or None
+    if is_completed:
+        # Uploaded images are staged until Save changes. References can only
+        # point to an image belonging to this record and this field.
+        for field_id, value in normalized_values.items():
+            if not isinstance(value, dict) or value.get("kind") != "image":
+                continue
+            resolve_record_image_field(record, field_id)
+            asset = session.get(RecordAsset, value.get("asset_id"))
+            if asset is None or asset.record_id != record.id or asset.field_block_id != field_id:
+                raise ValueError("Choose an image uploaded for this record.")
+        issues = list_record_completion_issues(record, values=normalized_values, indexed_meta=indexed_meta)
+        if issues:
+            raise RecordCompletionValidationError(issues, "Fill in the missing required details before saving.")
+        before = {
+            "patient_name": record.patient_name, "case_number": record.case_number,
+            "values": current_record_values(record), "indexed_meta": existing_meta,
+        }
+        after = {
+            "patient_name": new_name, "case_number": new_case,
+            "values": normalized_values, "indexed_meta": indexed_meta,
+        }
+        if before == after:
+            return serialize_record(record, include_entry_schema=True)
+        lifecycle = dict(record_lifecycle_meta(indexed_meta))
+        lifecycle["edited"] = lifecycle_event_payload(session, actor_user_id=actor_user_id)
+        indexed_meta["lifecycle"] = lifecycle
+        changed = session.execute(
+            update(Record).where(
+                Record.id == record.id,
+                Record.status == "completed",
+                Record.updated_at == record.updated_at,
+            ).values(
+                patient_name=new_name, case_number=new_case,
+                values_json=json.dumps(normalized_values, ensure_ascii=False),
+                indexed_meta_json=json.dumps(indexed_meta, ensure_ascii=False),
+                updated_by_user_id=actor_user_id, updated_at=utc_now(),
+            ).execution_options(synchronize_session=False)
+        )
+        if changed.rowcount != 1:
+            session.rollback()
+            raise RecordEditConflict("This record was changed elsewhere. Reload the record before saving.")
+        session.add(RecordRevision(
+            record_id=record.id, form_version_id=record.form_version_id,
+            before_json=json.dumps(before, ensure_ascii=False),
+            after_json=json.dumps(after, ensure_ascii=False),
+            actor_json=json.dumps(serialize_record_actor_snapshot(session, actor_user_id), ensure_ascii=False),
+        ))
+    else:
+        record.patient_name = new_name
+        record.case_number = new_case
+        record.values_json = json.dumps(normalized_values, ensure_ascii=False)
+        record.indexed_meta_json = json.dumps(indexed_meta, ensure_ascii=False)
+        record.updated_by_user_id = actor_user_id
     session.commit()
     session.expire_all()
 
@@ -7747,7 +7812,7 @@ def store_record_image_asset(
     if record is None:
         raise KeyError(record_id)
     if record.status not in EDITABLE_RECORD_STATUSES:
-        raise ValueError("Only draft records can be edited.")
+        raise ValueError("Only draft or completed records can be edited.")
 
     field_block = resolve_record_image_field(record, field_block_id)
     mime_type = compact_text(content_type)
@@ -7769,7 +7834,7 @@ def store_record_image_asset(
 
     current_values = current_record_values(record)
     existing_ref = current_values.get(field_block_id)
-    if isinstance(existing_ref, dict) and existing_ref.get("asset_id"):
+    if record.status == "draft" and isinstance(existing_ref, dict) and existing_ref.get("asset_id"):
         existing_asset = session.scalar(
             select(RecordAsset).where(
                 RecordAsset.id == int(existing_ref["asset_id"]),
@@ -7794,6 +7859,11 @@ def store_record_image_asset(
     session.add(asset)
     session.flush()
 
+    if record.status == "completed":
+        session.commit()
+        session.refresh(asset)
+        return {"staged_asset": serialize_record_asset(asset)}
+
     current_values[compact_text(field_block_id)] = {
         "asset_id": asset.id,
         "kind": "image",
@@ -7812,8 +7882,8 @@ def delete_record_asset(session: Session, record_id: int, asset_id: int) -> dict
     record = get_record_or_none(session, record_id)
     if record is None:
         raise KeyError(record_id)
-    if record.status not in EDITABLE_RECORD_STATUSES:
-        raise ValueError("Only draft records can be edited.")
+    if record.status != "draft":
+        raise ValueError("Remove the image in Edit record and save your changes.")
 
     asset = session.scalar(
         select(RecordAsset).where(

@@ -23,7 +23,7 @@
     <div class="record-row-details">
       <span>{{ record.form_path_label }}</span>
       <span>
-        {{ "Completed" if record.completed_at_label else "Updated" }} {{ record.completed_at_label or record.updated_at_label }}
+        {{ "Updated" if record.edited_event else ("Completed" if record.completed_at_label else "Updated") }} {{ record.edited_event.at_label if record.edited_event else (record.completed_at_label or record.updated_at_label) }}
         {% if activity_user %} - {{ activity_user.full_name }}{% endif %}
       </span>
     </div>
@@ -31,7 +31,9 @@
   <div class="record-card-actions">
     {% if record.status == "draft" %}
     <a class="primary-button" href="{{ edit_href }}">Continue</a>
-    <a class="ghost-button" href="{{ view_href }}">View</a>
+    <details class="record-actions-menu">
+    <summary aria-label="More record actions" title="More record actions">&hellip;</summary>
+    <div class="record-actions-menu__panel">
     <form
       method="post"
       action="/records/{{ record.id }}/delete-draft"
@@ -49,10 +51,12 @@
       {% endif %}
       <button class="ghost-button danger-button" type="submit">Delete</button>
     </form>
+    </div>
+    </details>
     {% elif record.status == "voided" %}
-    <a class="primary-button" href="{{ view_href }}">View</a>
+    <a class="ghost-button" href="{{ view_href }}">Details</a>
     {% else %}
-    <a class="primary-button" href="{{ view_href }}">View</a>
+    <a class="primary-button" href="{{ edit_href }}">Edit</a>
     <a class="ghost-button" href="{{ print_href }}">Print</a>
     {% endif %}
   </div>

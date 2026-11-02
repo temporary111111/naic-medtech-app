@@ -5,7 +5,7 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
-  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20260612-temporal-compact">
+  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20261103-record-editing">
 {% endblock %}
 
 {% block shell_eyebrow %}Records{% endblock %}
@@ -18,8 +18,25 @@
 
 {% block topbar_actions %}
   <div class="record-top-actions record-top-actions--edit">
-  <a class="ghost-button" href="/records/{{ record.id }}{% if record_context_query %}?{{ record_context_query }}{% endif %}">View</a>
+  {% if record.status == "completed" %}
+  <a class="ghost-button" href="/records/{{ record.id }}/print{% if record_context_query %}?{{ record_context_query }}{% endif %}">Print</a>
+  <details class="record-actions-menu" id="record-void">
+    <summary aria-label="More record actions" title="More record actions">&hellip;</summary>
+    <div class="record-actions-menu__panel">
+      <form method="post" action="/records/{{ record.id }}/void" class="record-void-form"
+        data-confirm="This record stays in history as voided and should no longer be printed as a valid release."
+        data-confirm-title="Void this completed record?" data-confirm-confirm-label="Void record" data-confirm-tone="danger">
+        <input type="hidden" name="return_url" value="{{ history_return_url or '/records/history' }}">
+        <label>Reason for voiding<textarea name="void_reason" rows="2" required></textarea></label>
+        <button class="ghost-button danger-button" type="submit">Void record</button>
+      </form>
+    </div>
+  </details>
+  {% endif %}
   {% if record.status == "draft" %}
+  <details class="record-actions-menu">
+    <summary aria-label="More record actions" title="More record actions">&hellip;</summary>
+    <div class="record-actions-menu__panel">
   <form
     method="post"
     action="/records/{{ record.id }}/delete-draft"
@@ -37,6 +54,8 @@
     {% endif %}
     <button class="ghost-button danger-button" type="submit">Delete draft</button>
   </form>
+    </div>
+  </details>
   {% endif %}
   </div>
 {% endblock %}
@@ -102,6 +121,9 @@
 
         {% if props.data_type == "image" %}
         <div class="entry-image-field">
+          {% if record.status == "completed" %}
+          <input type="hidden" name="image__{{ block.id }}" value="{{ block_value.asset_id if block_value is mapping else '' }}" data-staged-image-value>
+          {% endif %}
           <div data-record-image-current>
           {% if image_asset %}
           <img class="entry-image-preview" src="/records/{{ record_id }}/assets/{{ image_asset.id }}/file" alt="{{ block.name }}">
@@ -139,6 +161,10 @@
         {% elif props.control == "select" %}
         <select name="value__{{ block.id }}">
           <option value=""></option>
+          {% set option_names = (props.options or []) | map(attribute='name') | list %}
+          {% if record.status == 'completed' and block_value and block_value not in option_names %}
+          <option value="{{ block_value }}" selected>{{ block_value }}</option>
+          {% endif %}
           {% for option in props.options or [] %}
           <option value="{{ option.name }}" {% if block_value == option.name %}selected{% endif %}>{{ option.name }}</option>
           {% endfor %}
@@ -152,7 +178,7 @@
             data-temporal-input
             data-temporal-kind="date"
             data-temporal-label="{{ block.name }}"
-            data-temporal-default="{{ props.default_value_mode or 'smart' }}"
+            data-temporal-default="{{ 'blank' if record.status == 'completed' else (props.default_value_mode or 'smart') }}"
           >
         </div>
         {% elif props.data_type == "time" %}
@@ -164,7 +190,7 @@
             data-temporal-input
             data-temporal-kind="time"
             data-temporal-label="{{ block.name }}"
-            data-temporal-default="{{ props.default_value_mode or 'smart' }}"
+            data-temporal-default="{{ 'blank' if record.status == 'completed' else (props.default_value_mode or 'smart') }}"
           >
         </div>
         {% elif props.data_type == "datetime" %}
@@ -176,11 +202,11 @@
             data-temporal-input
             data-temporal-kind="datetime"
             data-temporal-label="{{ block.name }}"
-            data-temporal-default="{{ props.default_value_mode or 'smart' }}"
+            data-temporal-default="{{ 'blank' if record.status == 'completed' else (props.default_value_mode or 'smart') }}"
           >
         </div>
         {% elif props.data_type == "number" %}
-        <input type="number" step="any" name="value__{{ block.id }}" value="{{ block_value }}">
+        <input type="{{ 'text' if record.status == 'completed' and block.id in text_number_fields else 'number' }}" step="any" name="value__{{ block.id }}" value="{{ block_value }}">
         {% else %}
         <input type="text" name="value__{{ block.id }}" value="{{ block_value }}">
         {% endif %}
@@ -370,6 +396,9 @@
       <div class="record-entry-alerts">
       {% if error_message %}
       <div class="error-banner">{{ error_message }}</div>
+      {% if record.status == 'completed' and validation_issues %}
+      <ul class="completion-issues">{% for issue in validation_issues %}<li>{{ issue }}</li>{% endfor %}</ul>
+      {% endif %}
       {% endif %}
       {% if success_message %}
       <div class="success-banner">{{ success_message }}</div>
@@ -377,7 +406,10 @@
       </div>
       {% endif %}
 
-      <form method="post" action="/records/{{ record.id }}/edit" class="record-entry-form" data-dirty-guard>
+      <form method="post" action="/records/{{ record.id }}/edit{% if record_context_query %}?{{ record_context_query }}{% endif %}" class="record-entry-form" data-dirty-guard data-initial-dirty="{{ 'true' if has_unsaved_changes else 'false' }}">
+        {% if record.status == 'completed' %}
+        <input type="hidden" name="expected_updated_at" value="{{ record.updated_at }}">
+        {% endif %}
         {% if jump_nav.count > 1 %}
         <nav class="record-section-jumps" aria-label="Record sections">
           {% for block in entry_schema["blocks"] or [] %}
@@ -395,9 +427,18 @@
 
         <div class="entry-actions">
           <p class="entry-save-state" data-dirty-state>All changes saved.</p>
+          {% if record.status == 'completed' %}
+          <a class="ghost-button" href="{{ back_href }}" data-discard-record-changes>Cancel</a>
+          {% if edit_conflict %}
+          <a class="primary-button" href="{{ request.url }}">Reload record</a>
+          {% else %}
+          <button class="primary-button" type="submit" name="action" value="save" data-save-record data-submit-status="Saving changes...">Save changes</button>
+          {% endif %}
+          {% else %}
           <button class="ghost-button entry-action-secondary" type="submit" name="action" value="draft" data-save-draft data-submit-status="Saving draft...">Save</button>
           <button class="ghost-button entry-action-complete" type="submit" name="action" value="complete" data-submit-status="Completing...">Complete</button>
           <button class="primary-button entry-action-print" type="submit" name="action" value="complete_print" data-submit-status="Completing and opening print...">Complete and print</button>
+          {% endif %}
         </div>
       </form>
     </section>
@@ -405,5 +446,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', path='records.js') }}?v=20260731-record-image-preview-fix" defer></script>
+  <script src="{{ url_for('static', path='records.js') }}?v=20261103-record-editing" defer></script>
 {% endblock %}

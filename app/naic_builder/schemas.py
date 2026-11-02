@@ -56,6 +56,7 @@ class RecordUpdatePayload(BaseModel):
     patient_age: str | None = None
     patient_sex: str | None = None
     case_number: str | None = None
+    expected_updated_at: str | None = None
     values: dict[str, Any] = Field(default_factory=dict)
     indexed_meta: dict[str, Any] = Field(default_factory=dict)
 

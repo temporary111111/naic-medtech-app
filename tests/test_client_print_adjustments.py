@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import atexit
 import os
 from pathlib import Path
 import sys
@@ -126,7 +127,14 @@ from naic_builder.services import (
 
 def tearDownModule() -> None:
     runtime_engine.dispose()
+
+
+def cleanup_test_runtime() -> None:
+    runtime_engine.dispose()
     TEST_RUNTIME.cleanup()
+
+
+atexit.register(cleanup_test_runtime)
 
 
 class ClientPrintAdjustmentTests(unittest.TestCase):

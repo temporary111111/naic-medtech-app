@@ -21,6 +21,7 @@
   {% if record.status == "draft" %}
   <a class="primary-button" href="/records/{{ record.id }}/edit{% if record_context_query %}?{{ record_context_query }}{% endif %}">Continue editing</a>
   {% elif record.status == "completed" %}
+  <a class="ghost-button" href="/records/{{ record.id }}/edit{% if record_context_query %}?{{ record_context_query }}{% endif %}">Edit</a>
   <a class="primary-button" href="/records/{{ record.id }}/print{% if record_context_query %}?{{ record_context_query }}{% endif %}">Print</a>
   {% endif %}
   </div>
