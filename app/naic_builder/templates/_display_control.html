@@ -1,0 +1,26 @@
+<div class="display-control" data-display-control>
+  <button class="display-toggle" type="button" data-display-toggle aria-label="Display settings" aria-haspopup="dialog" aria-expanded="false" aria-controls="display-settings" title="Display settings">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4v16a8 8 0 0 0 0-16Z" fill="currentColor" stroke="none"/></svg>
+    <span>Display</span>
+  </button>
+  <section class="display-panel" id="display-settings" data-display-panel popover="auto" role="dialog" aria-labelledby="display-settings-title" hidden>
+    <div class="display-panel__heading">
+      <strong id="display-settings-title">Display</strong>
+      <button type="button" data-display-close aria-label="Close display settings">&times;</button>
+    </div>
+    <div class="display-panel__row">
+      <span id="display-theme-label">Theme</span>
+      <div class="display-choices" role="group" aria-labelledby="display-theme-label">
+        <button type="button" data-display-theme="light" aria-pressed="false">Light</button>
+        <button type="button" data-display-theme="dark" aria-pressed="false">Dark</button>
+      </div>
+    </div>
+    <div class="display-panel__row">
+      <span id="display-contrast-label">Contrast</span>
+      <div class="display-choices" role="group" aria-labelledby="display-contrast-label">
+        <button type="button" data-display-contrast="normal" aria-pressed="false">Normal</button>
+        <button type="button" data-display-contrast="high" aria-pressed="false">High</button>
+      </div>
+    </div>
+  </section>
+</div>
