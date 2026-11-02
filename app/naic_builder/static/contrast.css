@@ -62,9 +62,10 @@ html[data-theme][data-contrast="high"] :is(body, .app-shell-body) :is(input[type
 
 /* Reinforce shared surfaces and controls across Records, Forms, Settings,
    Overview, dialogs and the builder, keeping their original geometry and
-   decorative gradients instead of replacing the premium theme. */
+   decorative gradients instead of replacing the premium theme. Page headers
+   stay transparent so they remain part of the page, rather than boxed cards. */
 html[data-theme][data-contrast="high"] :is(body, .app-shell-body) :is(
-  .panel, .record-card, .form-card, .tree-folder, .tree-folder-nested,
+  .panel:not(.app-page-header), .record-card, .form-card, .tree-folder, .tree-folder-nested,
   .user-card, .settings-utility-card, .account-profile-card, .settings-count-card,
   .drawer-card, .confirm-dialog, .records-start-modal__dialog,
   .app-decision-modal, .record-actions-menu__panel, .display-panel,
