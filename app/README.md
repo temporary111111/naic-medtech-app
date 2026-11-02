@@ -411,7 +411,7 @@ Printed reports now have independent **Test names** and **Results** size control
 
 ## Optional contrast
 
-The existing theme icon in the authenticated top bar opens **Display**, with **Light / Dark** and **Normal / High** contrast. Normal preserves the current premium theme. High strengthens input boundaries, field text, and focus feedback while retaining the layout, typography, gradients, glass effects, and rounded corners. The additional styles live in `contrast.css` and apply only when `data-contrast="high"` is active.
+The existing theme icon opens **Display**, with **Light / Dark** and **Normal / High** contrast. Normal preserves the current premium theme. High applies throughout the app, including Records, Forms, the builder, Settings, Overview, Backup, and sign-in screens. It makes cards stand apart from the page background and strengthens navigation, menus, input boundaries, text, and focus feedback in both themes. Layout, typography, gradients, glass effects, and rounded corners are retained. The additional styles live in `contrast.css` and apply only when `data-contrast="high"` is active.
 
 Choices are remembered in this browser. The existing `naic-theme` preference is retained; `naic-premium-contrast` stores the new contrast preference independently of the discarded display redesign. With no saved choice, system theme and contrast preferences are respected. Printed reports keep their own presentation settings.
 

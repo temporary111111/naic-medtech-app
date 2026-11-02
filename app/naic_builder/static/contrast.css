@@ -1,26 +1,123 @@
 /* Optional contrast treatment. Normal has no overrides of the existing theme.
    Keep this file separate from the clinic's print document stylesheet. */
-html[data-contrast="high"] .app-shell-body {
-  --text: #071b1c;
-  --muted: #2d484a;
+html[data-contrast="high"] {
+  --bg: #c4d4ce;
+  --bg-soft: #d6e2dd;
+  --panel: rgba(255, 255, 255, .98);
+  --panel-strong: #ffffff;
+  --surface-elevated: rgba(255, 255, 255, .99);
+  --line: #526e64;
+  --line-strong: #284b40;
+  --text: #061d17;
+  --muted: #2c4943;
+  --accent-strong: #06474b;
+  --accent-soft: #d5ebe5;
+  --warm: #714600;
+  --warm-soft: #f5e4be;
+  --success: #14543d;
+  --success-soft: #d5eddf;
+  --danger: #912f26;
+  --danger-soft: #f4d9d5;
+  --shell-bg: #f8fcfa;
+  --shell-line: var(--line-strong);
+  --shell-text: var(--text);
+  --shell-muted: var(--muted);
+  --shell-button: var(--panel-strong);
+  --shell-button-border: var(--line);
   --input-bg: #ffffff;
-  --input-border: #4d6b65;
+  --input-border: #345c50;
   --input-focus-ring: rgba(7, 95, 100, .4);
 }
-html[data-theme="dark"][data-contrast="high"] .app-shell-body {
+html[data-theme="dark"][data-contrast="high"] {
+  --bg: #060f12;
+  --bg-soft: #0b171b;
+  --panel: rgba(14, 29, 34, .96);
+  --panel-strong: rgba(26, 47, 53, .98);
+  --surface-elevated: rgba(27, 50, 57, .98);
+  --line: #749499;
+  --line-strong: #b4d1d4;
   --text: #f7fbfc;
-  --muted: #c7d8dd;
-  --input-bg: rgba(3, 15, 20, .82);
-  --input-border: #8faeb5;
+  --muted: #c4d8d9;
+  --accent-strong: #2d7c8b;
+  --accent-soft: #183e45;
+  --warm: #ffd48a;
+  --warm-soft: #3a2c18;
+  --success: #a1e4bd;
+  --success-soft: #16382b;
+  --danger: #ffb6aa;
+  --danger-soft: #422323;
+  --shell-bg: #0d2026;
+  --shell-button: #183139;
+  --input-bg: #07161c;
+  --input-border: #91b4b9;
   --input-focus-ring: rgba(99, 188, 205, .42);
 }
-html[data-contrast="high"] .app-shell-body :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, textarea) {
+html[data-theme][data-contrast="high"] :is(body, .app-shell-body) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, textarea) {
   background-color: var(--input-bg);
   border-color: var(--input-border);
   color: var(--text);
 }
-html[data-contrast="high"] .app-shell-body .record-shell--entry .entry-field {
-  border-color: color-mix(in srgb, var(--input-border) 45%, transparent);
+html[data-theme][data-contrast="high"] :is(body, .app-shell-body) :is(input, textarea)::placeholder { color: var(--muted); opacity: 1; }
+html[data-theme][data-contrast="high"] :is(body, .app-shell-body) :is(input[type="checkbox"], input[type="radio"]) { accent-color: var(--accent); }
+
+/* Reinforce shared surfaces and controls across Records, Forms, Settings,
+   Overview, dialogs and the builder, keeping their original geometry and
+   decorative gradients instead of replacing the premium theme. */
+html[data-theme][data-contrast="high"] :is(body, .app-shell-body) :is(
+  .panel, .record-card, .form-card, .tree-folder, .tree-folder-nested,
+  .user-card, .settings-utility-card, .account-profile-card, .settings-count-card,
+  .drawer-card, .confirm-dialog, .records-start-modal__dialog,
+  .app-decision-modal, .record-actions-menu__panel, .display-panel,
+  .library-card-menu__list, .action-menu, .records-filter-panel,
+  .field-card, .recursive-container-card, .section-card, .stage-shell,
+  .inspector-section, .auth-login-card
+) {
+  border-color: var(--line);
+  background-color: var(--panel);
+}
+html[data-theme][data-contrast="high"] :is(body, .app-shell-body) :is(
+  .entry-field, .entry-group, .entry-signatories, .record-value-row,
+  .entry-image-placeholder, .record-meta-pill, .entry-chip,
+  .settings-utility-section, .settings-utility-actions,
+  .field-stack, .inspector-group, .organizer-item,
+  .app-drawer__item, .app-drawer__close, .app-drawer__account,
+  .app-drawer__account-avatar, .app-drawer__footer, .records-subnav-link
+) { border-color: var(--line); }
+html[data-theme][data-contrast="high"] :is(body, .app-shell-body) :is(
+  .entry-field-head > span, .field-stack > span, .field-label,
+  .entry-field > span, .settings-nav__group, .search-wrap > span,
+  .record-card h3, .form-card h3, .user-card h3
+) { color: var(--text); }
+html[data-theme][data-contrast="high"] :is(body, .app-shell-body) :is(
+  .panel-copy, .entry-inline-hint, .field-help, .form-card-meta,
+  .record-row-details, .entry-save-state, .record-audit-item p,
+  .settings-utility-head p, .tree-folder-copy p, .app-toolbar__copy,
+  .app-global-header__brand-copy > span
+) { color: var(--muted); }
+html[data-theme][data-contrast="high"] :is(body, .app-shell-body) :is(
+  .app-menu-toggle, .app-account-toggle, .shell-theme-toggle,
+  .app-zoom-chip, .record-actions-menu > summary, .records-filter-details > summary,
+  .library-card-menu > summary, .action-details > summary, .library-quick-jump > summary,
+  .ghost-button, button.ghost, button.secondary, .settings-tab, .user-status-filter,
+  .record-filter-pill, .record-section-jumps a, .library-jump-link,
+  .container-toggle, .field-details-toggle, .outline-item, .outline-subitem,
+  .password-toggle-button, .display-choices
+) {
+  border-color: var(--line);
+  color: var(--text);
+  background-color: var(--panel-strong);
+}
+html[data-theme][data-contrast="high"] :is(body, .app-shell-body) :is(
+  .records-subnav-link.is-active, .settings-tab.is-active, .app-drawer__item.is-active,
+  .form-link.active, .outline-item.active, .outline-subitem.active,
+  .section-organizer-item.active, .item-organizer-item.active, .option-organizer-item.active,
+  .field-card.is-open
+) {
+  border-color: var(--accent);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+html[data-theme][data-contrast="high"] :is(body, .app-shell-body) :is(.app-global-header, .app-drawer, .builder-command-bar, .entry-actions, .save-dock) {
+  border-color: var(--line-strong);
 }
 html[data-contrast="high"] .app-shell-body .record-shell--entry .entry-field-head > span {
   color: var(--text);
@@ -32,7 +129,7 @@ html[data-contrast="high"] .app-shell-body .record-shell--entry .entry-field:foc
   border-color: var(--accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 24%, transparent);
 }
-html[data-contrast="high"] .app-shell-body :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, textarea):focus {
+html[data-theme][data-contrast="high"] :is(body, .app-shell-body) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, textarea):focus {
   border-color: var(--accent);
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -41,6 +138,15 @@ html[data-contrast="high"] .app-shell-body :is(input:not([type="checkbox"]):not(
 html[data-contrast="high"] .app-shell-body .entry-field--attention {
   border-color: var(--warm);
 }
+html[data-theme][data-contrast="high"] :is(body, .app-shell-body) :is(a, button, summary):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+html[data-theme][data-contrast="high"] :is(body, .app-shell-body) :is(.record-status-chip, .status-chip, .role-chip) { border-color: currentColor; }
+html[data-contrast="high"] .record-status-chip[data-status="completed"] { color: var(--success); background-color: var(--success-soft); }
+html[data-theme][data-contrast="high"] :is(body, .app-shell-body) :is(.record-status-chip[data-status="draft"], .status-chip[data-status="pending"]) { color: var(--warm); background-color: var(--warm-soft); }
+html[data-theme][data-contrast="high"] :is(body, .app-shell-body) :is(.record-status-chip[data-status="voided"], .danger-button) { color: var(--danger); border-color: var(--danger); background-color: var(--danger-soft); }
+html[data-theme][data-contrast="high"] :is(body, .app-shell-body) :is(input, select, textarea):disabled { opacity: 1; color: var(--muted); border-style: dashed; }
 
 /* Only the new menu has normal-mode styles. Its trigger keeps the exact
    classes, size, and placement of the previous theme button. */
