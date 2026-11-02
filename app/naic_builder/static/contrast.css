@@ -6,8 +6,8 @@ html[data-contrast="high"] {
   --panel: rgba(255, 255, 255, .98);
   --panel-strong: #ffffff;
   --surface-elevated: rgba(255, 255, 255, .99);
-  --line: #526e64;
-  --line-strong: #284b40;
+  --line: #111111;
+  --line-strong: #000000;
   --text: #061d17;
   --muted: #2c4943;
   --accent-strong: #06474b;
@@ -25,7 +25,7 @@ html[data-contrast="high"] {
   --shell-button: var(--panel-strong);
   --shell-button-border: var(--line);
   --input-bg: #ffffff;
-  --input-border: #345c50;
+  --input-border: #111111;
   --input-focus-ring: rgba(7, 95, 100, .4);
 }
 html[data-theme="dark"][data-contrast="high"] {

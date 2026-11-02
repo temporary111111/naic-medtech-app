@@ -62,7 +62,7 @@
   {% block extra_css %}{% endblock %}
   <link rel="stylesheet" href="{{ url_for('static', path='theme.css') }}?v=20260801-shared-layout-foundation">
   <link rel="stylesheet" href="{{ url_for('static', path='shell.css') }}?v=20260801-clinic-logo-plain">
-  <link rel="stylesheet" href="{{ url_for('static', path='contrast.css') }}?v=20261103-app-wide-contrast">
+  <link rel="stylesheet" href="{{ url_for('static', path='contrast.css') }}?v=20261103-black-borders">
 </head>
 <body class="app-shell-body{% if shell_variant|default('default') == 'workspace' %} app-shell-body--workspace{% endif %}" {% block body_attrs %}{% endblock %}>
   {% set clinic_profile = request.state.clinic_profile or {} %}
