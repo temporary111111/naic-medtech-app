@@ -295,7 +295,8 @@
     }
 
     guardedForms.forEach((form) => {
-      const statusEl = form.querySelector("[data-dirty-state]");
+      const actions = document.getElementById(form.dataset.actionsId) || form;
+      const statusEl = actions.querySelector("[data-dirty-state]");
       let dirty = false;
       let allowUnload = false;
 
@@ -330,40 +331,30 @@
 
       form.addEventListener("input", markDirty);
       form.addEventListener("change", markDirty);
-      form.querySelector('[data-discard-record-changes]')?.addEventListener('click', () => {
+      actions.querySelector('[data-discard-record-changes]')?.addEventListener('click', () => {
         allowUnload = true;
       });
 
-      form.addEventListener("keydown", (event) => {
+      const handleSaveShortcut = (event) => {
         const key = String(event.key || "").toLowerCase();
         const isSaveShortcut = (event.ctrlKey || event.metaKey) && key === "s";
         if (!isSaveShortcut) {
           return;
         }
 
-        const saveButton = form.querySelector("[data-save-record], [data-save-draft]");
+        // Native form ownership includes buttons in the separate action footer.
+        const saveButton = Array.from(form.elements).find((element) =>
+          element.matches("[data-save-record], [data-save-draft]")
+        );
         if (!saveButton) {
           return;
         }
 
         event.preventDefault();
-        allowUnload = true;
-        if (statusEl) {
-          statusEl.textContent = "Saving...";
-          statusEl.classList.remove("is-dirty");
-        }
         saveButton.click();
-      });
-
-      form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach((button) => {
-        button.addEventListener("click", () => {
-          allowUnload = true;
-          if (statusEl) {
-            statusEl.textContent = button.dataset.submitStatus || "Saving...";
-            statusEl.classList.remove("is-dirty");
-          }
-        });
-      });
+      };
+      form.addEventListener("keydown", handleSaveShortcut);
+      if (actions !== form) actions.addEventListener("keydown", handleSaveShortcut);
 
       form.addEventListener("submit", (event) => {
         if (form.querySelector('.is-uploading')) {
@@ -373,6 +364,10 @@
           return;
         }
         allowUnload = true;
+        if (statusEl) {
+          statusEl.textContent = event.submitter?.dataset.submitStatus || "Saving...";
+          statusEl.classList.remove("is-dirty");
+        }
       });
 
       window.addEventListener("naic:allow-unload", () => {
@@ -386,7 +381,7 @@
 
         const clickTarget = event.target instanceof Element ? event.target : null;
         const link = clickTarget?.closest("a[href]");
-        if (!link || form.contains(link) || (link.target && link.target !== "_self") || link.hasAttribute("download")) {
+        if (!link || form.contains(link) || actions.contains(link) || (link.target && link.target !== "_self") || link.hasAttribute("download")) {
           return;
         }
 

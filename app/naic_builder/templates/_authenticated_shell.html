@@ -61,7 +61,7 @@
   <script src="{{ url_for('static', path='theme.js') }}?v=20261103-premium-contrast"></script>
   {% block extra_css %}{% endblock %}
   <link rel="stylesheet" href="{{ url_for('static', path='theme.css') }}?v=20260801-shared-layout-foundation">
-  <link rel="stylesheet" href="{{ url_for('static', path='shell.css') }}?v=20260801-clinic-logo-plain">
+  <link rel="stylesheet" href="{{ url_for('static', path='shell.css') }}?v=20261103-record-footer">
   <link rel="stylesheet" href="{{ url_for('static', path='contrast.css') }}?v=20261103-transparent-headers">
 </head>
 <body class="app-shell-body{% if shell_variant|default('default') == 'workspace' %} app-shell-body--workspace{% endif %}" {% block body_attrs %}{% endblock %}>
@@ -74,7 +74,7 @@
   {% set user_avatar_url = '/settings/account/avatar?v=' ~ user_avatar_version if current_user.get('has_avatar') else '' %}
 
   <div class="app-zoom-stage" data-app-zoom-stage>
-    <div class="app-frame{% if shell_variant|default('default') == 'workspace' %} app-frame--workspace{% endif %}" data-app-frame>
+    <div class="app-frame{% if shell_variant|default('default') == 'workspace' %} app-frame--workspace{% endif %}{% if shell_has_footer|default(false) %} app-frame--with-footer{% endif %}" data-app-frame>
       <div class="app-drawer-scrim" data-shell-drawer-scrim data-shell-drawer-close hidden></div>
 
     <aside class="app-drawer panel" data-shell-drawer aria-hidden="true" hidden inert>
@@ -228,6 +228,7 @@
         {% block content %}{% endblock %}
       </section>
     </main>
+    {% block shell_footer %}{% endblock %}
     </div>
 
     <div class="app-modal-layer" data-app-modal-layer hidden>

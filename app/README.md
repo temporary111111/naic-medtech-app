@@ -419,6 +419,8 @@ Choices are remembered in this browser. The existing `naic-theme` preference is 
 
 Work queue uses **Continue** for drafts; Find records uses **Edit** and **Print** for completed records. Draft deletion is under the row's more-actions menu, and completed-record voiding is under the editor's more-actions menu.
 
+The record editor keeps its actions in a separate bottom footer, outside the scrolling form. Fields never pass behind the buttons. Drafts show **Save**, **Complete**, and **Complete and print**; completed records show **Cancel** and **Save changes**. The footer retains the unsaved-changes indicator and supports Ctrl/Cmd+S from both the form and its actions.
+
 Completed records use the existing editor with **Save changes** and **Cancel**. Saving retains the completed status, original completion time, frozen form version, and saved print presentation. Required-field validation runs before saving, and stale editor sessions receive a reload notice instead of overwriting newer changes. Each saved change records its before/after values and acting staff member in `record_revisions`. Image changes are staged until Save changes; previous image files remain available to the history. Opening a completed record preserves blank date fields and older values that no longer match a numeric control or dropdown option.
 
 ## Run locally

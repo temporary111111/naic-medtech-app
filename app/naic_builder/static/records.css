@@ -1180,10 +1180,6 @@
   gap: 14px;
 }
 
-.record-shell--entry .record-entry-form {
-  padding-bottom: 78px;
-}
-
 .record-section-jumps {
   display: flex;
   gap: 7px;
@@ -1886,19 +1882,22 @@
   padding-top: 2px;
 }
 
-.record-shell--entry .record-entry-form > .entry-actions {
-  position: sticky;
-  bottom: max(14px, env(safe-area-inset-bottom));
-  z-index: 46;
-  width: min(848px, 100%);
-  margin: 14px auto 0;
-  padding: 10px;
-  border: 1px solid color-mix(in srgb, var(--line) 90%, transparent);
-  border-radius: calc(var(--radius-xl) + 2px);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--panel-strong) 94%, transparent), color-mix(in srgb, var(--panel) 90%, transparent));
-  box-shadow: 0 18px 48px rgba(9, 23, 29, 0.2);
-  backdrop-filter: blur(14px);
+.record-entry-footer {
+  width: min(var(--shell-main-width), 100%);
+  min-width: 0;
+  margin-inline: auto;
+  padding: 12px 0 max(12px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line-strong);
+  background-color: var(--bg);
+  background-image: linear-gradient(var(--panel-strong), var(--panel-strong));
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.record-entry-footer > .entry-actions {
+  width: min(880px, 100%);
+  margin-inline: auto;
+  padding: 0 12px;
 }
 
 .entry-save-state {
@@ -1908,7 +1907,7 @@
   font-weight: 700;
 }
 
-.record-shell--entry .entry-save-state {
+.record-entry-footer .entry-save-state {
   flex: 1 1 150px;
 }
 
@@ -2457,26 +2456,26 @@ html[data-theme="dark"] .completion-checklist.is-ready {
     justify-content: stretch;
   }
 
-  .record-shell--entry .record-entry-form > .entry-actions {
+  .record-entry-footer > .entry-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: stretch;
   }
 
-  .record-shell--entry .entry-save-state {
+  .record-entry-footer .entry-save-state {
     grid-column: 1 / -1;
     margin: 0;
   }
 
-  .record-shell--entry .entry-action-secondary {
+  .record-entry-footer .entry-action-secondary {
     order: 2;
   }
 
-  .record-shell--entry .entry-action-complete {
+  .record-entry-footer .entry-action-complete {
     order: 3;
   }
 
-  .record-shell--entry .entry-action-print {
+  .record-entry-footer .entry-action-print {
     grid-column: 1 / -1;
     order: 4;
   }
@@ -2623,10 +2622,7 @@ html[data-theme="dark"] .completion-checklist.is-ready {
     grid-template-columns: 1fr;
   }
 
-  .record-shell--entry .record-entry-form > .entry-actions {
-    width: min(100%, calc(100vw - 24px));
-    bottom: max(10px, env(safe-area-inset-bottom));
-    padding: 9px;
-    border-radius: var(--radius-lg);
+  .record-entry-footer > .entry-actions {
+    padding-inline: 9px;
   }
 }

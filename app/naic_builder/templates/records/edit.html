@@ -1,11 +1,12 @@
 {% extends "_authenticated_shell.html" %}
 {% set shell_active = "records" %}
+{% set shell_has_footer = true %}
 
 {% block html_title %}Edit Record | {{ app_title }}{% endblock %}
 
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
-  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20261103-record-editing">
+  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20261103-record-footer">
 {% endblock %}
 
 {% block shell_eyebrow %}Records{% endblock %}
@@ -406,7 +407,7 @@
       </div>
       {% endif %}
 
-      <form method="post" action="/records/{{ record.id }}/edit{% if record_context_query %}?{{ record_context_query }}{% endif %}" class="record-entry-form" data-dirty-guard data-initial-dirty="{{ 'true' if has_unsaved_changes else 'false' }}">
+      <form id="record-entry-form" method="post" action="/records/{{ record.id }}/edit{% if record_context_query %}?{{ record_context_query }}{% endif %}" class="record-entry-form" data-actions-id="record-entry-actions" data-dirty-guard data-initial-dirty="{{ 'true' if has_unsaved_changes else 'false' }}">
         {% if record.status == 'completed' %}
         <input type="hidden" name="expected_updated_at" value="{{ record.updated_at }}">
         {% endif %}
@@ -425,26 +426,31 @@
           {{ render_signatory_inputs(signatory_slots, record_signatories) }}
         </div>
 
-        <div class="entry-actions">
-          <p class="entry-save-state" data-dirty-state>All changes saved.</p>
-          {% if record.status == 'completed' %}
-          <a class="ghost-button" href="{{ back_href }}" data-discard-record-changes>Cancel</a>
-          {% if edit_conflict %}
-          <a class="primary-button" href="{{ request.url }}">Reload record</a>
-          {% else %}
-          <button class="primary-button" type="submit" name="action" value="save" data-save-record data-submit-status="Saving changes...">Save changes</button>
-          {% endif %}
-          {% else %}
-          <button class="ghost-button entry-action-secondary" type="submit" name="action" value="draft" data-save-draft data-submit-status="Saving draft...">Save</button>
-          <button class="ghost-button entry-action-complete" type="submit" name="action" value="complete" data-submit-status="Completing...">Complete</button>
-          <button class="primary-button entry-action-print" type="submit" name="action" value="complete_print" data-submit-status="Completing and opening print...">Complete and print</button>
-          {% endif %}
-        </div>
       </form>
     </section>
   </div>
 {% endblock %}
 
+{% block shell_footer %}
+  <footer class="record-entry-footer" id="record-entry-actions" aria-label="Record actions">
+    <div class="entry-actions">
+      <p class="entry-save-state" data-dirty-state>All changes saved.</p>
+      {% if record.status == 'completed' %}
+      <a class="ghost-button" href="{{ back_href }}" data-discard-record-changes>Cancel</a>
+      {% if edit_conflict %}
+      <a class="primary-button" href="{{ request.url }}">Reload record</a>
+      {% else %}
+      <button class="primary-button" type="submit" form="record-entry-form" name="action" value="save" data-save-record data-submit-status="Saving changes...">Save changes</button>
+      {% endif %}
+      {% else %}
+      <button class="ghost-button entry-action-secondary" type="submit" form="record-entry-form" name="action" value="draft" data-save-draft data-submit-status="Saving draft...">Save</button>
+      <button class="ghost-button entry-action-complete" type="submit" form="record-entry-form" name="action" value="complete" data-submit-status="Completing...">Complete</button>
+      <button class="primary-button entry-action-print" type="submit" form="record-entry-form" name="action" value="complete_print" data-submit-status="Completing and opening print...">Complete and print</button>
+      {% endif %}
+    </div>
+  </footer>
+{% endblock %}
+
 {% block page_scripts %}
-  <script src="{{ url_for('static', path='records.js') }}?v=20261103-record-editing" defer></script>
+  <script src="{{ url_for('static', path='records.js') }}?v=20261103-record-footer" defer></script>
 {% endblock %}

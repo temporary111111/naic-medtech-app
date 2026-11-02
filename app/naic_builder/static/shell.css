@@ -45,6 +45,10 @@
   --shell-main-width: 1440px;
 }
 
+.app-frame--with-footer {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
 .app-drawer-scrim {
   position: fixed;
   inset: 0;
