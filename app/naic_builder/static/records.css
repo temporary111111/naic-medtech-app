@@ -1888,8 +1888,7 @@
   margin-inline: auto;
   padding: 12px 0 max(12px, env(safe-area-inset-bottom));
   border-top: 1px solid var(--line-strong);
-  background-color: var(--bg);
-  background-image: linear-gradient(var(--panel-strong), var(--panel-strong));
+  background: transparent;
   overflow: auto;
   scrollbar-gutter: stable;
 }
