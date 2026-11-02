@@ -19,6 +19,7 @@ class FormDefinition(Base):
     slug: Mapped[str] = mapped_column(String(120), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(255))
     library_parent_node_key: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    print_text_defaults_json: Mapped[str] = mapped_column(Text, default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -209,6 +210,8 @@ class RecordPrintPresentation(Base):
     template_id: Mapped[str] = mapped_column(String(80))
     text_size: Mapped[str] = mapped_column(String(40), default="standard")
     paper_size: Mapped[str] = mapped_column(String(40), default="a4")
+    test_name_scale: Mapped[int] = mapped_column(Integer, default=100)
+    result_scale: Mapped[int] = mapped_column(Integer, default=100)
     layout_json: Mapped[str] = mapped_column(Text, default="{}")
     saved_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

@@ -406,7 +406,11 @@ The app now starts from a builder-first FastAPI scaffold.
 - richer block kinds like `note`, `divider`, and `table` are now available through advanced `Content` editing, while the legacy compatibility projection is still intentionally limited to `field`, `field_group`, and `section`
 - reusable preset concepts are deferred, not active, until the core builder flow is finished and simpler
 
+## Print text sizes
+Printed reports now have independent **Test names** and **Results** size controls in **Print setup**. Use the minus/plus buttons (5% steps) or type an exact whole percentage (50-200%). Changes preview immediately; Cancel discards them. **Save settings** stores the current record's sizes and a shared default for future records of the same form, style, orientation, and paper size. Existing saved record presentations keep their sizes. Results include units; reference ranges, branding, and signatures keep their existing typography. The one-page indicator is advisory and never shrinks the chosen font sizes.
+
 ## Run locally
+
 1. Create and activate a virtual environment.
 2. Install dependencies:
 

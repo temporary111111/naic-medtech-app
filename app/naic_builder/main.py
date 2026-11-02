@@ -16,6 +16,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.requests import ClientDisconnect
 
 from .backup import (
     BackupOperationBusyError,
@@ -125,6 +126,8 @@ from .services import (
     normalize_print_profile,
     filter_print_layout_preference_for_items,
     form_version_print_layout_preference,
+    form_print_text_sizes,
+    load_json_object,
     print_orientation_options,
     print_paper_size_options,
     print_style_options,
@@ -145,6 +148,7 @@ from .services import (
     save_user_print_layout_preference,
     save_user_print_preferences,
     save_record_print_presentation,
+    save_form_print_text_sizes,
     store_record_image_asset,
     update_user_admin_details,
     update_user_status,
@@ -1209,6 +1213,8 @@ def render_record_print_page(
         orientation=profile["orientation"],
         text_size=profile["text_size"],
         paper_size=profile["paper_size"],
+        test_name_scale=profile["test_name_scale"],
+        result_scale=profile["result_scale"],
     )
     layout_preference = filter_print_layout_preference_for_items(
         effective_presentation["layout"],
@@ -1246,6 +1252,8 @@ def render_record_print_page(
             "print_fit_url": f"/records/{record.id}/print-fit",
             "print_settings_action": f"/records/{record.id}/print-options",
             "print_settings_method": "post",
+            "print_text_defaults": load_json_object(record.form.print_text_defaults_json),
+            "print_sizes_saved": request.query_params.get("sizes_saved") == "1",
             "document": build_record_print_document(
                 record,
                 clinic_profile=clinic_profile,
@@ -1255,6 +1263,8 @@ def render_record_print_page(
                 orientation=profile["orientation"],
                 text_size=profile["text_size"],
                 paper_size=profile["paper_size"],
+                test_name_scale=profile["test_name_scale"],
+                result_scale=profile["result_scale"],
                 print_layout_preference=layout_preference,
             ),
         },
@@ -1897,6 +1907,29 @@ async def save_record_print_options(
         text_size=(form_data.get("text_size") or [""])[0],
         paper_size=(form_data.get("paper_size") or [""])[0] or saved_preference["paper_size"],
     )
+    save_sizes = (form_data.get("save_text_sizes") or [""])[0] == "1"
+    if save_sizes:
+        for name in ("test_name_scale", "result_scale"):
+            value = (form_data.get(name) or [""])[0]
+            try:
+                scale = int(value)
+            except (ValueError, TypeError) as exc:
+                raise HTTPException(status_code=422, detail="Text sizes must be whole percentages from 50 to 200.") from exc
+            if not 50 <= scale <= 200:
+                raise HTTPException(status_code=422, detail="Text sizes must be whole percentages from 50 to 200.")
+            profile[name] = scale
+
+        existing = record.print_presentation
+        same_layout = existing is not None and existing.template_id == profile["template_id"] and existing.paper_size == profile["paper_size"]
+        layout = load_json_object(existing.layout_json) if same_layout else form_version_print_layout_preference(
+            record.form_version,
+            template_id=profile["template_id"],
+            paper_size=profile["paper_size"],
+        )
+        # Save the shared default and this record together, without changing
+        # the presentation snapshots of previously completed records.
+        save_form_print_text_sizes(session, record.form, profile)
+        save_record_print_presentation(session, record, user=user, profile=profile, layout=layout)
     preference_saved = False
     paper_preference_saved = False
     if user is not None and (form_data.get("set_default") or [""])[0] in {"1", "on", "true"}:
@@ -1932,7 +1965,9 @@ async def save_record_print_options(
         query["preference_saved"] = "1"
     if paper_preference_saved:
         query["paper_preference_saved"] = "1"
-    if can_manage_presentation and record.print_presentation is not None:
+    if save_sizes:
+        query["sizes_saved"] = "1"
+    elif can_manage_presentation and record.print_presentation is not None:
         query["edit_presentation"] = "1"
     if (form_data.get("from") or [""])[0] == "history":
         query["from"] = "history"
@@ -1974,6 +2009,8 @@ async def save_record_print_layout(
         template_id=payload.get("template_id"),
         text_size=payload.get("text_size"),
         paper_size=payload.get("paper_size"),
+        test_name_scale=payload.get("test_name_scale", record.print_presentation.test_name_scale if record.print_presentation else 100),
+        result_scale=payload.get("result_scale", record.print_presentation.result_scale if record.print_presentation else 100),
     )
     document = build_record_print_document(
         record,
@@ -2042,7 +2079,7 @@ async def estimate_record_print_fit(
     record_id: int,
     request: Request,
     session: Session = Depends(get_session),
-) -> JSONResponse:
+) -> Response:
     record = get_record_or_none(session, record_id)
     if record is None or record.status == "deleted":
         raise HTTPException(status_code=404, detail="Record not found.")
@@ -2051,6 +2088,8 @@ async def estimate_record_print_fit(
 
     try:
         payload = await request.json()
+    except ClientDisconnect:
+        return Response(status_code=204)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid print fit payload.") from exc
     if not isinstance(payload, dict):
@@ -2060,12 +2099,16 @@ async def estimate_record_print_fit(
         template_id=payload.get("template_id"),
         text_size=payload.get("text_size"),
         paper_size=payload.get("paper_size"),
+        test_name_scale=payload.get("test_name_scale", record.print_presentation.test_name_scale if record.print_presentation else 100),
+        result_scale=payload.get("result_scale", record.print_presentation.result_scale if record.print_presentation else 100),
     )
     base_document = build_record_print_document(
         record,
         template_id=profile["template_id"],
         text_size=profile["text_size"],
         paper_size=profile["paper_size"],
+        test_name_scale=profile["test_name_scale"],
+        result_scale=profile["result_scale"],
     )
     preference = filter_print_layout_preference_for_items(
         payload.get("layout"),
@@ -2077,6 +2120,8 @@ async def estimate_record_print_fit(
         template_id=profile["template_id"],
         text_size=profile["text_size"],
         paper_size=profile["paper_size"],
+        test_name_scale=profile["test_name_scale"],
+        result_scale=profile["result_scale"],
         print_layout_preference=preference,
     )
     return JSONResponse({"fit": document["fit_estimate"]})
@@ -2458,6 +2503,7 @@ def form_default_print_layout_page(
         text_size=request.query_params.get("text_size"),
         paper_size=request.query_params.get("paper_size"),
     )
+    profile.update(form_print_text_sizes(definition, profile))
     serialized_form = serialize_form(definition)
     clinic_profile = get_clinic_profile(session)
     clinic_logo_url = "/settings/clinic/logo" if clinic_profile.get("has_logo") else ""
@@ -2470,6 +2516,8 @@ def form_default_print_layout_page(
         template_id=profile["template_id"],
         text_size=profile["text_size"],
         paper_size=profile["paper_size"],
+        test_name_scale=profile["test_name_scale"],
+        result_scale=profile["result_scale"],
     )
     default_layout = form_version_print_layout_preference(
         definition.versions[-1],
@@ -2521,6 +2569,8 @@ def form_default_print_layout_page(
                 template_id=profile["template_id"],
                 text_size=profile["text_size"],
                 paper_size=profile["paper_size"],
+                test_name_scale=profile["test_name_scale"],
+                result_scale=profile["result_scale"],
                 print_layout_preference=default_layout,
             ),
         },

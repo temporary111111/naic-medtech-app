@@ -277,6 +277,19 @@ def ensure_runtime_schema() -> None:
         )
         if needs_tree_first_rebuild:
             migrate_form_definitions_tree_first_shape(connection)
+        if needs_tree_first_rebuild or "print_text_defaults_json" not in form_definition_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE form_definitions ADD COLUMN print_text_defaults_json TEXT NOT NULL DEFAULT '{}'"
+            )
+        presentation_columns = {
+            str(row[1])
+            for row in connection.exec_driver_sql("PRAGMA table_info(record_print_presentations)").all()
+        }
+        for column_name in ("test_name_scale", "result_scale"):
+            if column_name not in presentation_columns:
+                connection.exec_driver_sql(
+                    f"ALTER TABLE record_print_presentations ADD COLUMN {column_name} INTEGER NOT NULL DEFAULT 100"
+                )
         user_columns = {
             str(row[1])
             for row in connection.exec_driver_sql("PRAGMA table_info(users)").all()

@@ -1399,6 +1399,8 @@ def normalize_print_profile(
     orientation: Any = "",
     text_size: Any = "",
     paper_size: Any = "",
+    test_name_scale: Any = 100,
+    result_scale: Any = 100,
 ) -> dict[str, Any]:
     selected_template_id = normalize_print_template_id(template_id)
     fallback_parts = print_template_parts(selected_template_id)
@@ -1433,7 +1435,36 @@ def normalize_print_profile(
         "orientation": selected_orientation,
         "text_size": selected_text_size,
         "paper_size": selected_paper_size,
+        "test_name_scale": normalize_print_text_scale(test_name_scale),
+        "result_scale": normalize_print_text_scale(result_scale),
     }
+
+
+def normalize_print_text_scale(value: Any) -> int:
+    try:
+        scale = int(str(value))
+    except (TypeError, ValueError, OverflowError):
+        return 100
+    return max(50, min(200, scale))
+
+
+def form_print_text_sizes(definition: FormDefinition, profile: dict[str, Any]) -> dict[str, int]:
+    defaults = load_json_object(definition.print_text_defaults_json)
+    key = print_layout_default_profile_key(profile["template_id"], profile["paper_size"])
+    sizes = defaults.get(key)
+    sizes = sizes if isinstance(sizes, dict) else {}
+    return {name: normalize_print_text_scale(sizes.get(name, 100)) for name in ("test_name_scale", "result_scale")}
+
+
+def save_form_print_text_sizes(session: Session, definition: FormDefinition, profile: dict[str, Any]) -> None:
+    defaults = load_json_object(definition.print_text_defaults_json)
+    key = print_layout_default_profile_key(profile["template_id"], profile["paper_size"])
+    defaults[key] = {
+        name: normalize_print_text_scale(profile.get(name, 100))
+        for name in ("test_name_scale", "result_scale")
+    }
+    definition.print_text_defaults_json = json.dumps(defaults)
+    session.add(definition)
 
 
 def apply_print_presentation(
@@ -1444,6 +1475,8 @@ def apply_print_presentation(
     orientation: Any = "",
     text_size: Any = "",
     paper_size: Any = "",
+    test_name_scale: Any = 100,
+    result_scale: Any = 100,
 ) -> dict[str, Any]:
     config = dict(print_config) if isinstance(print_config, dict) else {}
     profile = normalize_print_profile(
@@ -1452,6 +1485,8 @@ def apply_print_presentation(
         orientation=orientation,
         text_size=text_size,
         paper_size=paper_size,
+        test_name_scale=test_name_scale,
+        result_scale=result_scale,
     )
     config.update(profile)
     return config
@@ -2047,6 +2082,8 @@ def record_print_presentation_profile(
         template_id=presentation.template_id,
         text_size=presentation.text_size,
         paper_size=presentation.paper_size,
+        test_name_scale=presentation.test_name_scale,
+        result_scale=presentation.result_scale,
     )
 
 
@@ -2066,6 +2103,8 @@ def serialize_record_print_presentation(
         "orientation": profile["orientation"],
         "text_size": profile["text_size"],
         "paper_size": profile["paper_size"],
+        "test_name_scale": profile["test_name_scale"],
+        "result_scale": profile["result_scale"],
         "layout": normalize_print_layout_preference(load_json_object(presentation.layout_json)),
         "saved_by": {
             "id": saved_by.id,
@@ -2111,6 +2150,8 @@ def apply_record_print_presentation(
         normalize_print_layout_preference(layout),
         ensure_ascii=False,
     )
+    presentation.test_name_scale = normalize_print_text_scale(profile.get("test_name_scale", 100))
+    presentation.result_scale = normalize_print_text_scale(profile.get("result_scale", 100))
     session.add(presentation)
     return presentation
 
@@ -2122,6 +2163,7 @@ def snapshot_completed_record_print_presentation(
     user: User | None,
 ) -> RecordPrintPresentation:
     profile = user_print_preferences(user)
+    profile.update(form_print_text_sizes(record.form, profile))
     form_layout = form_version_print_layout_preference(
         record.form_version,
         template_id=profile["template_id"],
@@ -2187,6 +2229,7 @@ def effective_record_print_presentation(
             "presentation": serialize_record_print_presentation(presentation),
         }
 
+    fallback_profile = {**fallback_profile, **form_print_text_sizes(record.form, fallback_profile)}
     layout = form_version_print_layout_preference(
         record.form_version,
         template_id=fallback_profile["template_id"],
@@ -6893,7 +6936,11 @@ def estimate_print_page_fit(document: dict[str, Any]) -> dict[str, Any]:
     capabilities = print_template_paper_capabilities(template_id, profile["paper_size"])
     if text_size == "large":
         density_factor *= capabilities["large_text_fit_factor"]
-    estimated_units = (base_units + print_item_fit_units(normalize_items(document.get("items")))) * density_factor
+    text_factor = max(
+        normalize_print_text_scale(print_config.get("test_name_scale", 100)),
+        normalize_print_text_scale(print_config.get("result_scale", 100)),
+    ) / 100
+    estimated_units = (base_units + print_item_fit_units(normalize_items(document.get("items"))) * text_factor) * density_factor
     limit_units = print_page_fit_limit_units(profile)
     paper_size = profile["paper_size"]
     page_size_label = PRINT_PAPER_SIZE_DETAILS[paper_size]["label"]
@@ -6950,6 +6997,8 @@ def build_form_print_preview_document(
     orientation: Any = "",
     text_size: Any = "",
     paper_size: Any = "",
+    test_name_scale: Any = 100,
+    result_scale: Any = 100,
     print_layout_preference: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     entry_schema = json.loads(json.dumps(block_schema if isinstance(block_schema, dict) else {}))
@@ -6977,6 +7026,8 @@ def build_form_print_preview_document(
         orientation=orientation,
         text_size=text_size,
         paper_size=paper_size,
+        test_name_scale=test_name_scale,
+        result_scale=result_scale,
     )
     signatory_slots = normalize_signatory_slots(meta.get("signatories"), use_defaults=False)
     signatory_samples = normalize_record_signatory_snapshots({}, signatory_slots)
@@ -7080,6 +7131,8 @@ def build_record_print_document(
     orientation: Any = "",
     text_size: Any = "",
     paper_size: Any = "",
+    test_name_scale: Any = 100,
+    result_scale: Any = 100,
     print_layout_preference: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     serialized = serialize_record(record, include_entry_schema=True)
@@ -7101,6 +7154,8 @@ def build_record_print_document(
         orientation=orientation,
         text_size=text_size,
         paper_size=paper_size,
+        test_name_scale=test_name_scale,
+        result_scale=result_scale,
     )
     print_accent_ink = print_accent_text_color(print_config.get("accent_color"))
     print_header_ink = print_header_text_color(print_config)

@@ -7,12 +7,12 @@
     <span class="print-image-meta">{{ display.filename }}</span>
     {% endif %}
     {% else %}
-    <span class="print-answer is-empty">No image uploaded.</span>
+    <span class="print-answer is-empty"><span class="print-scaled-result">No image uploaded.</span></span>
     {% endif %}
   {% elif display.text %}
-  <span class="print-answer{% if item.is_abnormal %} is-abnormal{% endif %}">{{ display.text }}</span>
+  <span class="print-answer{% if item.is_abnormal %} is-abnormal{% endif %}"><span class="print-scaled-result">{{ display.text }}</span></span>
   {% else %}
-  <span class="print-answer is-empty">No value recorded.</span>
+  <span class="print-answer is-empty"><span class="print-scaled-result">&mdash;</span></span>
   {% endif %}
 {% endmacro %}
 
@@ -26,7 +26,7 @@
   <span class="print-result-inline">
     {{ render_print_field_answer(item) }}
     {% if display.text and item.unit_hint %}
-    <span class="print-result-unit">{{ item.unit_hint }}</span>
+    <span class="print-result-unit"><span class="print-scaled-result">{{ item.unit_hint }}</span></span>
     {% endif %}
   </span>
   {% endif %}
@@ -44,7 +44,7 @@
     {{ render_print_layout_move_handle(field.name) }}
     {% endif %}
     <div class="print-grid-cell-head">
-      <strong>{{ field.name }}</strong>
+      <strong><span class="print-scaled-test-name">{{ field.name }}</span></strong>
     </div>
     <div class="print-grid-cell-result">
       {{ render_print_field_result(field) }}
@@ -169,7 +169,7 @@
     {% elif item.kind == "field" %}
     <article class="print-row" data-layout-source-id="{{ item.id }}">
       <div class="print-row-name">
-        <strong>{{ item.name }}</strong>
+        <strong><span class="print-scaled-test-name">{{ item.name }}</span></strong>
       </div>
 
       <div class="print-row-result">
@@ -229,7 +229,7 @@
   {% set print_config = document["print_config"] or {} %}
   {% set presentation = document["template"] or {} %}
   {% set field_grid_columns = presentation.field_grid_columns or 2 %}
-  <section class="print-page">
+  <section class="print-page" style="--print-test-name-scale: {{ (print_config.test_name_scale | default(100, true)) / 100 }}; --print-result-scale: {{ (print_config.result_scale | default(100, true)) / 100 }};">
     {% if print_config.style == "legacy" %}
     <header class="print-legacy-header{% if not print_config.show_logo %} no-logo{% endif %}{% if not print_config.show_clinic_info %} no-clinic-info{% endif %}">
       {% if print_config.show_logo %}

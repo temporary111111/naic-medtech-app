@@ -6,7 +6,7 @@
   <title>Print Record | {{ document.form_name }}</title>
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
-  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20260801-responsive-cells">
+  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20261101-print-text-sizes">
   {% set presentation = document.template or {} %}
   {% set record_meta = document["record"] or {} %}
 </head>
@@ -33,14 +33,14 @@
         {% if can_manage_print_presentation %}
         <button class="print-active-profile" type="button" data-print-profile data-fit="{{ fit.status or 'likely' }}" data-open-print-settings aria-haspopup="dialog" aria-label="Change print settings" title="Change print settings">
           <span>Print setup</span>
-          <strong>{{ presentation.style_label }} | {{ presentation.orientation }} | {{ presentation.text_size_label }} | {{ presentation.paper_size_label }}</strong>
+          <strong>{{ presentation.style_label }} | {{ presentation.orientation }} | {{ presentation.paper_size_label }}</strong>
           <small class="print-fit-status" data-print-fit-status data-fit="{{ fit.status or 'likely' }}" title="{{ fit.detail or 'Use browser print preview for final confirmation.' }}"><span data-print-fit-label>{{ fit.label or 'One-page check' }}</span></small>
         </button>
         <button class="print-link print-layout-command" type="button" data-open-layout-editor>Adjust layout</button>
         {% else %}
         <div class="print-active-profile" data-print-profile data-fit="{{ fit.status or 'likely' }}" aria-label="Print setup">
           <span>Print setup</span>
-          <strong>{{ presentation.style_label }} | {{ presentation.orientation }} | {{ presentation.text_size_label }} | {{ presentation.paper_size_label }}</strong>
+          <strong>{{ presentation.style_label }} | {{ presentation.orientation }} | {{ presentation.paper_size_label }}</strong>
           <small class="print-fit-status" data-print-fit-status data-fit="{{ fit.status or 'likely' }}" title="{{ fit.detail or 'Use browser print preview for final confirmation.' }}"><span data-print-fit-label>{{ fit.label or 'One-page check' }}</span></small>
         </div>
         {% endif %}
@@ -71,6 +71,9 @@
         {% endif %}
       </div>
     </header>
+    {% if print_sizes_saved %}
+    <p class="print-sizes-saved" role="status">Text sizes saved for this form and print layout.</p>
+    {% endif %}
 
     {% if can_manage_print_presentation %}
     <section class="print-layout-editor" data-print-layout-editor hidden aria-labelledby="print-layout-editor-title">
@@ -107,7 +110,7 @@
       <div class="print-settings-heading">
         <div>
           <h2 id="print-settings-title">Print settings</h2>
-          <p>{{ presentation.style_label }} | {{ presentation.orientation }} | {{ presentation.text_size_label }} text | {{ presentation.paper_size_label }}</p>
+          <p>{{ document.form_name }}</p>
         </div>
       </div>
       <form method="{{ print_settings_method }}" action="{{ print_settings_action }}" class="print-settings-form">
@@ -139,7 +142,8 @@
             {% endfor %}
           </div>
         </fieldset>
-        <div class="print-settings-grid">
+        <div class="print-settings-grid{% if not is_form_layout_builder %} print-settings-grid--single{% endif %}">
+          {% if is_form_layout_builder %}
           <label class="print-layout-field">
             <span>Text size</span>
             <select name="text_size">
@@ -148,6 +152,9 @@
               {% endfor %}
             </select>
           </label>
+          {% else %}
+          <input type="hidden" name="text_size" value="{{ document.print_config.text_size }}">
+          {% endif %}
           <label class="print-layout-field">
             <span>Paper size</span>
             <select name="paper_size">
@@ -158,9 +165,32 @@
           </label>
         </div>
         {% if not is_form_layout_builder %}
+        <fieldset class="print-text-sizes">
+          <legend>Text sizes</legend>
+          <input type="hidden" name="save_text_sizes" value="1">
+          {% for name, label in [('test_name_scale', 'Test names'), ('result_scale', 'Results')] %}
+          <div class="print-text-size-row">
+            <label for="{{ name }}">{{ label }}</label>
+            <div class="print-text-stepper" data-text-stepper>
+              <button type="button" data-text-step="-5" aria-label="Decrease {{ label | lower }} size">&minus;</button>
+              <div class="print-text-percent">
+                <input id="{{ name }}" name="{{ name }}" type="number" min="50" max="200" step="1" value="{{ document.print_config[name] }}" data-text-scale aria-label="{{ label }} size in percent">
+                <span aria-hidden="true">%</span>
+              </div>
+              <button type="button" data-text-step="5" aria-label="Increase {{ label | lower }} size">+</button>
+            </div>
+          </div>
+          {% endfor %}
+          <div class="print-text-size-footer">
+            <span data-text-size-scope>{{ presentation.style_label }} &middot; {{ presentation.paper_size_label }}</span>
+            <button type="button" data-reset-text-sizes>Reset sizes</button>
+          </div>
+          <p class="print-text-size-hint">Saved for this form and print layout. Results include units.</p>
+          <p class="print-text-size-warning" data-text-size-warning role="status" hidden></p>
+        </fieldset>
         <label class="print-default-option">
           <input type="checkbox" name="set_default" value="1">
-          <span>Use these print settings as my default</span>
+          <span>Use this style and paper for new records</span>
         </label>
         {% if print_preference_saved or print_paper_preference_saved %}
         <p class="print-layout-notice">Your default print settings were saved.</p>
@@ -168,7 +198,7 @@
         {% endif %}
         <div class="print-settings-actions">
           <button class="print-link" type="button" data-close-print-settings>Cancel</button>
-          <button class="print-link print-link--next" type="submit">Apply settings</button>
+          <button class="print-link print-link--next" type="submit">{{ 'Apply settings' if is_form_layout_builder else 'Save settings' }}</button>
         </div>
       </form>
     </dialog>
@@ -251,6 +281,78 @@
       syncOrientation();
       syncTextSize();
 
+      const scaleInputs = Array.from(document.querySelectorAll('[data-text-scale]'));
+      const settingsForm = document.querySelector('.print-settings-form');
+      const initialTextSizes = {
+        test_name_scale: {{ document.print_config.test_name_scale | default(100) }},
+        result_scale: {{ document.print_config.result_scale | default(100) }},
+      };
+      const savedTextDefaults = {{ print_text_defaults | default({}) | tojson }};
+      const initialSizeKey = {{ (document.print_config.template_id ~ ':' ~ presentation.paper_size) | tojson }};
+      let draftTextSizes = { [initialSizeKey]: { ...initialTextSizes } };
+      const currentSizeKey = () => {
+        const style = styleInputs.find(input => input.checked)?.value || 'modern';
+        const orientation = document.querySelector('input[name="orientation"]:checked')?.value || 'portrait';
+        return `${style}_${orientation}:${paperSizeSelect?.value || 'a4'}`;
+      };
+      const activeTextSizes = () => ({
+        test_name_scale: Number(document.body.dataset.testNameScale || initialTextSizes.test_name_scale),
+        result_scale: Number(document.body.dataset.resultScale || initialTextSizes.result_scale),
+      });
+      const previewTextSizes = () => {
+        const page = document.querySelector('.print-page');
+        const sizes = activeTextSizes();
+        scaleInputs.forEach(input => {
+          if (input.value !== '' && input.checkValidity()) sizes[input.name] = Number(input.value);
+          const stepper = input.closest('[data-text-stepper]');
+          stepper.querySelector('[data-text-step="-5"]').disabled = Number(input.value) <= 50;
+          stepper.querySelector('[data-text-step="5"]').disabled = Number(input.value) >= 200;
+        });
+        page?.style.setProperty('--print-test-name-scale', sizes.test_name_scale / 100);
+        page?.style.setProperty('--print-result-scale', sizes.result_scale / 100);
+        document.body.dataset.testNameScale = sizes.test_name_scale;
+        document.body.dataset.resultScale = sizes.result_scale;
+        draftTextSizes[currentSizeKey()] = { ...sizes };
+        schedulePrintFitCheck();
+      };
+      const switchTextSizeProfile = () => {
+        if (!scaleInputs.length) return;
+        const sizes = draftTextSizes[currentSizeKey()] || savedTextDefaults[currentSizeKey()] || {};
+        scaleInputs.forEach(input => {
+          const value = Number(sizes[input.name] ?? 100);
+          input.value = Number.isInteger(value) && value >= 50 && value <= 200 ? value : 100;
+        });
+        const styleLabel = styleInputs.find(input => input.checked)?.closest('label')?.textContent.trim() || '';
+        const paperLabel = paperSizeSelect?.selectedOptions[0]?.textContent.split('|')[0].trim() || '';
+        document.querySelector('[data-text-size-scope]').textContent = `${styleLabel} · ${paperLabel}`;
+        previewTextSizes();
+      };
+      scaleInputs.forEach(input => {
+        input.addEventListener('input', previewTextSizes);
+        input.closest('[data-text-stepper]').querySelectorAll('[data-text-step]').forEach(button => {
+          button.addEventListener('click', () => {
+            const current = input.value !== '' && input.checkValidity() ? Number(input.value) : 100;
+            input.value = Math.max(50, Math.min(200, current + Number(button.dataset.textStep)));
+            previewTextSizes();
+          });
+        });
+      });
+      document.querySelector('[data-reset-text-sizes]')?.addEventListener('click', () => {
+        scaleInputs.forEach(input => { input.value = 100; });
+        previewTextSizes();
+      });
+      styleInputs.forEach(input => input.addEventListener('change', switchTextSizeProfile));
+      orientationChoices.forEach(choice => choice.addEventListener('change', switchTextSizeProfile));
+      paperSizeSelect?.addEventListener('change', switchTextSizeProfile);
+      settingsDialog?.addEventListener('close', () => {
+        if (!scaleInputs.length) return;
+        settingsForm.reset();
+        syncOrientation();
+        syncTextSize();
+        draftTextSizes = { [initialSizeKey]: { ...initialTextSizes } };
+        switchTextSizeProfile();
+      });
+
       const printFitStatus = document.querySelector("[data-print-fit-status]");
       const printFitLabel = document.querySelector("[data-print-fit-label]");
       const printProfile = document.querySelector("[data-print-profile]");
@@ -283,6 +385,13 @@
           labels[status],
           fit?.detail || "Use the browser print preview for final confirmation.",
         );
+        const warning = document.querySelector('[data-text-size-warning]');
+        if (warning) {
+          warning.hidden = status === 'likely';
+          warning.textContent = status === 'long'
+            ? 'May continue onto another page. Check print preview.'
+            : 'Space is tight. Check print preview.';
+        }
       };
 
       const schedulePrintFitCheck = () => {
@@ -298,6 +407,7 @@
                 template_id: fitTemplateId,
                 paper_size: fitPaperSize,
                 text_size: fitTextSize,
+                ...activeTextSizes(),
                 layout: currentLayoutPreference(),
               }),
             });
@@ -885,6 +995,7 @@
               template_id: layoutTemplateId,
               text_size: layoutTextSize,
               paper_size: layoutPaperSize,
+              ...activeTextSizes(),
               layout: currentLayoutPreference(),
             }),
           });
@@ -929,7 +1040,8 @@
           restoreFormDefaultButton.disabled = false;
         }
       });
-      schedulePrintFitCheck();
+      if (scaleInputs.length) previewTextSizes();
+      else schedulePrintFitCheck();
     })();
   </script>
 </body>
