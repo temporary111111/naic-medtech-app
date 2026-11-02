@@ -1,0 +1,84 @@
+/* Optional contrast treatment. Normal has no overrides of the existing theme.
+   Keep this file separate from the clinic's print document stylesheet. */
+html[data-contrast="high"] .app-shell-body {
+  --text: #071b1c;
+  --muted: #2d484a;
+  --input-bg: #ffffff;
+  --input-border: #4d6b65;
+  --input-focus-ring: rgba(7, 95, 100, .4);
+}
+html[data-theme="dark"][data-contrast="high"] .app-shell-body {
+  --text: #f7fbfc;
+  --muted: #c7d8dd;
+  --input-bg: rgba(3, 15, 20, .82);
+  --input-border: #8faeb5;
+  --input-focus-ring: rgba(99, 188, 205, .42);
+}
+html[data-contrast="high"] .app-shell-body :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, textarea) {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--text);
+}
+html[data-contrast="high"] .app-shell-body .record-shell--entry .entry-field {
+  border-color: color-mix(in srgb, var(--input-border) 45%, transparent);
+}
+html[data-contrast="high"] .app-shell-body .record-shell--entry .entry-field-head > span {
+  color: var(--text);
+}
+html[data-contrast="high"] .app-shell-body .record-shell--entry :is(.entry-inline-hint, .entry-save-state) {
+  color: var(--muted);
+}
+html[data-contrast="high"] .app-shell-body .record-shell--entry .entry-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+html[data-contrast="high"] .app-shell-body :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, textarea):focus {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px var(--input-focus-ring);
+}
+html[data-contrast="high"] .app-shell-body .entry-field--attention {
+  border-color: var(--warm);
+}
+
+/* Only the new menu has normal-mode styles. Its trigger keeps the exact
+   classes, size, and placement of the previous theme button. */
+.display-control { display: inline-flex; }
+.display-panel {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  width: 292px;
+  max-width: calc(100vw - 24px);
+  padding: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--modal-radius, 18px);
+  background: var(--panel-strong);
+  color: var(--text);
+  box-shadow: var(--shadow-strong);
+  backdrop-filter: blur(18px);
+  font: 14px/1.5 var(--font-body);
+}
+.display-panel[hidden] { display: none !important; }
+.display-panel::backdrop { background: transparent; }
+.display-panel__heading,
+.display-panel__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.display-panel__heading { margin-bottom: 14px; }
+.display-panel__heading strong { color: var(--text); font: 700 16px/1.3 var(--font-body); letter-spacing: 0; }
+.display-panel__heading > button {
+  display: grid; place-items: center; width: 30px; height: 30px;
+  padding: 0; border: 0; border-radius: 6px; background: transparent;
+  color: var(--muted); font: 24px/1 var(--font-body); cursor: pointer;
+}
+.display-panel__row + .display-panel__row { margin-top: 12px; }
+.display-choices { display: flex; padding: 3px; gap: 3px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); }
+.display-choices button {
+  min-width: 65px; min-height: 36px; padding: 6px 10px;
+  border: 1px solid transparent; border-radius: 6px; background: transparent;
+  color: var(--text); font: 600 13px/1.2 var(--font-body); cursor: pointer;
+}
+.display-choices button[aria-pressed="true"] { background: var(--accent); color: #ffffff; border-color: var(--accent); }
+html[data-theme="dark"] .display-choices button[aria-pressed="true"] { color: #082329; }
+.display-panel button:hover { border-color: var(--accent); }
+.display-panel button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

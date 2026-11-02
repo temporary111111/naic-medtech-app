@@ -1,5 +1,6 @@
 (() => {
   const storageKey = "naic-theme";
+  const contrastStorageKey = "naic-premium-contrast";
   const root = document.documentElement;
 
   const applyTheme = (theme) => {
@@ -21,10 +22,22 @@
 
   const getActiveTheme = () => getStoredTheme() || getSystemTheme();
 
+  const getStoredContrast = () => {
+    try {
+      const value = window.localStorage.getItem(contrastStorageKey);
+      return value === "normal" || value === "high" ? value : null;
+    } catch (_error) {
+      return null;
+    }
+  };
+  const getSystemContrast = () => window.matchMedia("(prefers-contrast: more)").matches ? "high" : "normal";
+  const applyContrast = (contrast) => { root.dataset.contrast = contrast; };
+
   const allToggleButtons = () =>
     Array.from(document.querySelectorAll("[data-theme-toggle]"));
 
   applyTheme(getActiveTheme());
+  applyContrast(getStoredContrast() || getSystemContrast());
 
   const themeIcon = (theme) => {
     if (theme === "dark") {
@@ -71,6 +84,7 @@
 
   const refreshToggleCopy = () => {
     allToggleButtons().forEach(updateToggleCopy);
+    refreshDisplayCopy();
   };
 
   const bindToggle = (button) => {
@@ -94,6 +108,76 @@
     updateToggleCopy(button);
   };
 
+  const refreshDisplayCopy = () => {
+    document.querySelectorAll('[data-display-theme]').forEach(button => {
+      button.setAttribute('aria-pressed', String(button.dataset.displayTheme === root.dataset.theme));
+    });
+    document.querySelectorAll('[data-display-contrast]').forEach(button => {
+      button.setAttribute('aria-pressed', String(button.dataset.displayContrast === root.dataset.contrast));
+    });
+    document.querySelectorAll('[data-display-toggle]').forEach(button => {
+      button.title = `Display: ${root.dataset.theme}, ${root.dataset.contrast} contrast`;
+    });
+  };
+
+  const bindDisplay = (control) => {
+    if (control.dataset.displayReady === 'true') return;
+    control.dataset.displayReady = 'true';
+    const button = control.querySelector('[data-display-toggle]');
+    const panel = control.querySelector('[data-display-panel]');
+    const nativePopover = typeof panel.showPopover === 'function';
+    if (!nativePopover) panel.removeAttribute('popover');
+    const isOpen = () => nativePopover ? panel.matches(':popover-open') : !panel.hidden;
+    const position = () => {
+      const anchor = button.getBoundingClientRect();
+      const box = panel.getBoundingClientRect();
+      panel.style.left = `${Math.max(12, Math.min(innerWidth - box.width - 12, anchor.right - box.width))}px`;
+      panel.style.top = `${anchor.bottom + box.height + 20 <= innerHeight ? anchor.bottom + 8 : Math.max(12, anchor.top - box.height - 8)}px`;
+    };
+    const close = (restoreFocus = false) => {
+      if (nativePopover && isOpen()) panel.hidePopover();
+      panel.hidden = true;
+      button.setAttribute('aria-expanded', 'false');
+      if (restoreFocus) button.focus();
+    };
+    button.addEventListener('click', () => {
+      if (isOpen()) { close(); return; }
+      panel.hidden = false;
+      if (nativePopover) panel.showPopover();
+      position();
+      button.setAttribute('aria-expanded', 'true');
+      panel.querySelector('[aria-pressed="true"]')?.focus({preventScroll:true});
+    });
+    panel.addEventListener('toggle', () => {
+      if (!isOpen()) close();
+    });
+    control.querySelector('[data-display-close]').addEventListener('click', () => close(true));
+    control.querySelectorAll('[data-display-theme]').forEach(choice => {
+      choice.addEventListener('click', () => {
+        applyTheme(choice.dataset.displayTheme);
+        try { window.localStorage.setItem(storageKey, root.dataset.theme); } catch (_error) { /* Keep session choice. */ }
+        refreshToggleCopy();
+      });
+    });
+    control.querySelectorAll('[data-display-contrast]').forEach(choice => {
+      choice.addEventListener('click', () => {
+        applyContrast(choice.dataset.displayContrast);
+        try { window.localStorage.setItem(contrastStorageKey, root.dataset.contrast); } catch (_error) { /* Keep session choice. */ }
+        refreshDisplayCopy();
+      });
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && isOpen()) {
+        event.preventDefault();
+        close(true);
+      }
+    });
+    document.addEventListener('click', event => {
+      if (isOpen() && !control.contains(event.target)) close();
+    });
+    window.addEventListener('resize', () => { if (isOpen()) position(); });
+  };
+
   const mountToggle = () => {
     if (!document.body) {
       return;
@@ -101,6 +185,8 @@
 
     const inlineButtons = document.querySelectorAll("[data-theme-toggle]");
     inlineButtons.forEach(bindToggle);
+    document.querySelectorAll('[data-display-control]').forEach(bindDisplay);
+    refreshDisplayCopy();
   };
 
   const syncToSystemIfNeeded = () => {
@@ -126,4 +212,20 @@
   }
 
   syncToSystemIfNeeded();
+  const contrastMedia = window.matchMedia('(prefers-contrast: more)');
+  const syncContrast = () => {
+    if (!getStoredContrast()) {
+      applyContrast(getSystemContrast());
+      refreshDisplayCopy();
+    }
+  };
+  if (typeof contrastMedia.addEventListener === 'function') contrastMedia.addEventListener('change', syncContrast);
+  else if (typeof contrastMedia.addListener === 'function') contrastMedia.addListener(syncContrast);
+  window.addEventListener('storage', event => {
+    if (event.key === storageKey || event.key === contrastStorageKey || event.key === null) {
+      applyTheme(getActiveTheme());
+      applyContrast(getStoredContrast() || getSystemContrast());
+      refreshToggleCopy();
+    }
+  });
 })();
