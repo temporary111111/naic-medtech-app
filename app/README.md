@@ -409,12 +409,6 @@ The app now starts from a builder-first FastAPI scaffold.
 ## Print text sizes
 Printed reports now have independent **Test names** and **Results** size controls in **Print setup**. Use the minus/plus buttons (5% steps) or type an exact whole percentage (50-200%). Changes preview immediately; Cancel discards them. **Save settings** stores the current record's sizes and a shared default for future records of the same form, style, orientation, and paper size. Existing saved record presentations keep their sizes. Results include units; reference ranges, branding, and signatures keep their existing typography. The one-page indicator is advisory and never shrinks the chosen font sizes.
 
-## Display preferences
-
-**Display** in the top bar groups **Light / Dark** and **Normal / High** contrast. Choices apply immediately and are remembered in this browser using `naic-theme` and `naic-contrast`; the existing theme preference is preserved. With no saved choice, system theme and increased-contrast preferences are respected. The same control is available on sign-in and setup screens. Display preferences change only the app interface; printed reports retain their own typography and layout settings.
-
-The default records workspace uses solid working surfaces, clearer input borders and labels, visible focus outlines, and solid primary action buttons. High contrast strengthens text and boundaries while keeping the same workflow and layout. The existing view-size control remains available.
-
 ## Editing saved records
 
 Work queue uses **Continue** for drafts; Find records uses **Edit** and **Print** for completed records. Draft deletion is under the row's more-actions menu, and completed-record voiding is under the editor's more-actions menu.

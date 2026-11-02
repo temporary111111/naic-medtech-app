@@ -7,11 +7,10 @@
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
   <link rel="manifest" href="{{ url_for('static', path='manifest.webmanifest') }}?v=20260606-app-icon-source">
-  <script src="{{ url_for('static', path='theme.js') }}?v=20261103-display-settings"></script>
+  <script src="{{ url_for('static', path='theme.js') }}?v=20260606-icon-system"></script>
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
   <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20260612-public-auth">
   <link rel="stylesheet" href="{{ url_for('static', path='theme.css') }}?v=20260731-light-mode-contrast">
-  <link rel="stylesheet" href="{{ url_for('static', path='display.css') }}?v=20261103-display-settings">
 </head>
 <body>
   <main class="auth-login-shell">
@@ -85,7 +84,7 @@
 
         <div class="auth-login-footnote">
           <span>Preferred login ID is optional; the app can generate one.</span>
-          {% include "_display_control.html" %}
+          <button class="shell-theme-toggle shell-theme-toggle--inline" type="button" data-theme-toggle></button>
         </div>
       </div>
     </section>
