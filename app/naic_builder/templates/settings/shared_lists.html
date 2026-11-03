@@ -2,10 +2,20 @@
 {% set shell_active = "settings" %}
 {% set settings_active = "shared_lists" %}
 
+{% macro delete_choice_form(item) %}
+  <form id="delete-shared-choice-{{ item.id }}" method="post" hidden
+    data-confirm='"{{ item.name }}" will be removed permanently from this list. Saved record answers and prints will stay unchanged.'
+    data-confirm-title="Delete this choice?" data-confirm-confirm-label="Delete choice" data-confirm-cancel-label="Keep choice" data-confirm-tone="danger">
+    <input type="hidden" name="revision" value="{{ selected_list.revision }}">
+    <input type="hidden" name="item_id" value="{{ item.id }}">
+    <input type="hidden" name="action" value="delete_choice">
+  </form>
+{% endmacro %}
+
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
   <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20260607-ui-root-phase2">
-  <link rel="stylesheet" href="{{ url_for('static', path='shared-lists.css') }}?v=20261103-shared-lists">
+  <link rel="stylesheet" href="{{ url_for('static', path='shared-lists.css') }}?v=20261103-shared-list-delete">
 {% endblock %}
 {% block shell_eyebrow %}Settings{% endblock %}
 {% block shell_title %}{{ selected_list.name if selected_list else 'Shared lists' }}{% endblock %}
@@ -18,6 +28,7 @@
   <div class="shared-lists-content">
     {% if error_message %}<div class="banner error" role="alert">{{ error_message }}</div>{% endif %}
     {% if saved %}<div class="banner success" role="status">Changes saved.</div>{% endif %}
+    {% if list_deleted %}<div class="banner success" role="status">List deleted. Saved records are unchanged.</div>{% endif %}
     {% if not selected_list %}
     <section class="panel settings-utility-card">
       <div class="settings-utility-head"><h2>One list, used across forms</h2><p>Update choices here once. Connected dropdowns use the latest choices; saved records keep their original answers.</p></div>
@@ -51,8 +62,9 @@
             <form method="post" class="shared-choice-edit-form">
               <input type="hidden" name="revision" value="{{ selected_list.revision }}"><input type="hidden" name="item_id" value="{{ item.id }}">
               <label class="field-stack"><span>Choice name</span><input name="name" required maxlength="200" value="{{ submitted_name if submitted_action == 'rename' and submitted_item_id == item.id else item.name }}"></label>
-              <div class="shared-choice-buttons"><button type="submit" class="primary-button" name="action" value="rename">Save</button><button type="submit" class="ghost-button" name="action" value="deactivate" formnovalidate>Deactivate</button></div>
+              <div class="shared-choice-buttons"><button type="submit" class="primary-button" name="action" value="rename">Save</button><button type="submit" class="ghost-button" name="action" value="deactivate" formnovalidate>Deactivate</button><button type="submit" form="delete-shared-choice-{{ item.id }}" class="ghost-button warn-button">Delete</button></div>
             </form>
+            {{ delete_choice_form(item) }}
           </details>
         </div>
       {% else %}<p class="panel-copy">No active choices yet. Add one above.</p>{% endfor %}
@@ -61,7 +73,8 @@
       {% if inactive %}
       <details class="shared-list-details"><summary>Inactive choices ({{ inactive | length }})</summary>
         {% for item in inactive %}
-        <form method="post" class="shared-choice-row"><span>{{ item.name }}</span><input type="hidden" name="revision" value="{{ selected_list.revision }}"><input type="hidden" name="item_id" value="{{ item.id }}"><button class="ghost-button" name="action" value="reactivate" type="submit">Reactivate</button></form>
+        <div class="shared-choice-row"><span>{{ item.name }}</span><div class="shared-choice-buttons"><form method="post"><input type="hidden" name="revision" value="{{ selected_list.revision }}"><input type="hidden" name="item_id" value="{{ item.id }}"><button class="ghost-button" name="action" value="reactivate" type="submit">Reactivate</button></form><button type="submit" form="delete-shared-choice-{{ item.id }}" class="ghost-button warn-button">Delete</button></div></div>
+        {{ delete_choice_form(item) }}
         {% endfor %}
       </details>
       {% endif %}
@@ -69,8 +82,15 @@
     <section class="panel settings-utility-card">
       <div class="settings-utility-head"><h2>Used in {{ usage | length }} form{{ '' if usage | length == 1 else 's' }}</h2></div>
       {% for form in usage %}<a class="shared-list-usage" href="/forms/{{ form.slug }}/builder">{{ form.name }} <small>{{ form.fields | join(', ') }}</small></a>{% else %}<p class="panel-copy">To connect a field: open its form, choose a dropdown field, then select this list under Choices.</p>{% endfor %}
-      <details class="shared-list-details"><summary>Rename list</summary>
+      <details class="shared-list-details"><summary>List options</summary>
         <form method="post" class="shared-list-add"><input type="hidden" name="revision" value="{{ selected_list.revision }}"><input type="hidden" name="action" value="rename_list"><label class="field-stack"><span>List name</span><input name="name" required maxlength="160" value="{{ submitted_name if submitted_action == 'rename_list' else selected_list.name }}"></label><button class="ghost-button" type="submit">Save name</button></form>
+        <form method="post" class="shared-list-delete"
+          data-confirm='"{{ selected_list.name }}" and its choices will be removed permanently. Saved record answers and prints will stay unchanged.'
+          data-confirm-title="Delete this list?" data-confirm-confirm-label="Delete list" data-confirm-cancel-label="Keep list" data-confirm-tone="danger">
+          <input type="hidden" name="revision" value="{{ selected_list.revision }}"><input type="hidden" name="action" value="delete_list">
+          {% if usage %}<p class="panel-copy">Disconnect this list from the forms above before deleting it.</p>{% endif %}
+          <button type="submit" class="ghost-button warn-button" {% if usage %}disabled{% endif %}>Delete list</button>
+        </form>
       </details>
     </section>
     {% endif %}

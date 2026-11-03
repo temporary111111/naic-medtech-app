@@ -2750,6 +2750,7 @@ def render_shared_lists(request: Request, session: Session, list_id: int | None 
         "selected_list": serialize_shared_list(selected) if selected else None,
         "usage": shared_list_usage(session, list_id) if selected else [],
         "error_message": error_message, "saved": not error_message and request.query_params.get("saved") == "1",
+        "list_deleted": request.query_params.get("deleted") == "1",
         "submitted_name": submitted_name, "submitted_action": submitted_action, "submitted_item_id": submitted_item_id,
     }, status_code=status_code)
 
@@ -2779,6 +2780,8 @@ def edit_shared_list(list_id: int, request: Request, revision: int = Form(...), 
         return render_shared_lists(request, session, list_id, error_message=str(exc),
             status_code=409 if isinstance(exc, SharedListConflict) else 422,
             submitted_name=name, submitted_action=action, submitted_item_id=item_id)
+    if action == "delete_list":
+        return RedirectResponse("/settings/shared-lists?deleted=1", status_code=303)
     return RedirectResponse(f"/settings/shared-lists/{list_id}?saved=1", status_code=303)
 
 

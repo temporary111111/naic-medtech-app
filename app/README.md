@@ -411,13 +411,15 @@ Printed reports now have independent **Test names** and **Results** size control
 
 ## Shared lists
 
-Admins manage reusable dropdown choices at **Settings → Shared lists**. Create a list, add choices, or open **Edit** beside a choice to rename or deactivate it. Inactive choices can be reactivated. Names are sorted alphabetically, duplicate names are rejected, and concurrent edits receive a reload notice instead of overwriting a newer change.
+Admins manage reusable dropdown choices at **Settings → Shared lists**. Create a list, add choices, or open **Edit** beside a choice to rename, deactivate, or permanently delete it. Inactive choices can be reactivated or deleted. Delete asks for confirmation; cancelling makes no change. Names are sorted alphabetically, duplicate names are rejected, and concurrent edits receive a reload notice instead of overwriting a newer change.
+
+**List options → Delete list** is available only after all current form fields have been disconnected. The server checks this too. Historical records can retain their original selected text and prints even after the list is deleted. List deletion removes its choices and name, retaining only an internal identity/seed marker so a new list cannot inherit old bindings and startup cannot recreate the deleted default list. Deleted lists cannot be restored from this screen; their previous names can be reused for a new list.
 
 In the Form Builder, a dropdown field's **Choices → Choices source** offers **Own choices** and **Shared list**. Choose a list and save the form once; later list changes require no form edits. **Manage lists** opens Settings separately, and **Refresh choices** updates the builder without losing unsaved form changes. Own choices remain available for fields that need a separate set of options.
 
 On first startup after this update, recognizable standard Requesting Physician and Room fields are connected automatically. Their existing choices are combined into **Requesting physicians** and **Rooms**, and new current form versions retain all other form settings. This setup runs once and does not overwrite later list edits or reconnect custom fields. Newly added standard patient-information blocks use those same lists.
 
-Stored record answers, original form versions, print settings, and printed reports are not rewritten. The editor resolves current choices on a separate copy of the schema. Older records can use a newly connected list through the same field ID; their existing selected text is retained even when renamed or deactivated in the list. Switching to a different answer requires an explicit record edit and Save. Shared lists are part of the database and are included in normal backups.
+Stored record answers, original form versions, print settings, and printed reports are not rewritten. The editor resolves current choices on a separate copy of the schema. Older records can use a newly connected list through the same field ID; their existing selected text is retained even when renamed, deactivated, or deleted in the list. Switching to a different answer requires an explicit record edit and Save. Shared lists are part of the database and are included in normal backups.
 
 ## Optional contrast
 

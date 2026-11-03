@@ -241,6 +241,13 @@ def migrate_form_versions_legacy_schema_nullable(connection) -> None:
 def ensure_runtime_schema() -> None:
     Base.metadata.create_all(bind=engine)
     with engine.begin() as connection:
+        shared_list_columns = {
+            str(row[1]) for row in connection.exec_driver_sql("PRAGMA table_info(shared_choice_lists)").all()
+        }
+        if "deleted" not in shared_list_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE shared_choice_lists ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT 0"
+            )
         columns = {
             str(row[1])
             for row in connection.exec_driver_sql("PRAGMA table_info(form_versions)").all()

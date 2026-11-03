@@ -20,6 +20,7 @@ class SharedChoiceList(Base):
     name_key: Mapped[str] = mapped_column(String(160), unique=True)
     seed_key: Mapped[str | None] = mapped_column(String(80), nullable=True, unique=True)
     revision: Mapped[int] = mapped_column(Integer, default=1)
+    deleted: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     items: Mapped[list["SharedChoiceItem"]] = relationship(back_populates="choice_list", cascade="all, delete-orphan")
 

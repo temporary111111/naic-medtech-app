@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 import re
+from uuid import uuid4
 
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
@@ -22,12 +23,15 @@ def clean_name(value: str, limit: int = 200) -> str:
     return name
 
 
-def get_shared_list(session: Session, list_id: int) -> SharedChoiceList | None:
-    return session.scalar(select(SharedChoiceList).where(SharedChoiceList.id == list_id).options(selectinload(SharedChoiceList.items)))
+def get_shared_list(session: Session, list_id: int, *, include_deleted: bool = False) -> SharedChoiceList | None:
+    query = select(SharedChoiceList).where(SharedChoiceList.id == list_id)
+    if not include_deleted:
+        query = query.where(SharedChoiceList.deleted.is_(False))
+    return session.scalar(query.options(selectinload(SharedChoiceList.items)))
 
 
 def list_shared_lists(session: Session) -> list[dict]:
-    lists = session.scalars(select(SharedChoiceList).options(selectinload(SharedChoiceList.items))).all()
+    lists = session.scalars(select(SharedChoiceList).where(SharedChoiceList.deleted.is_(False)).options(selectinload(SharedChoiceList.items))).all()
     return [serialize_shared_list(item) for item in sorted(lists, key=lambda row: row.name.casefold())]
 
 
@@ -55,20 +59,32 @@ def change_shared_list(session: Session, list_id: int, revision: int, action: st
     if choice_list is None:
         raise KeyError(list_id)
     item = next((row for row in choice_list.items if row.id == item_id), None)
-    if action not in {"rename_list", "add", "rename", "deactivate", "reactivate"}:
+    if action not in {"rename_list", "add", "rename", "deactivate", "reactivate", "delete_choice", "delete_list"}:
         raise ValueError("Choose a valid list action.")
-    if action in {"rename", "deactivate", "reactivate"} and item is None:
+    if action in {"rename", "deactivate", "reactivate", "delete_choice"} and item is None:
         raise ValueError("This choice is no longer available. Reload the list.")
     if action in {"rename_list", "add", "rename"}:
         name = clean_name(name, 160 if action == "rename_list" else 200)
     changed = session.execute(update(SharedChoiceList).where(
-        SharedChoiceList.id == list_id, SharedChoiceList.revision == revision
+        SharedChoiceList.id == list_id, SharedChoiceList.revision == revision, SharedChoiceList.deleted.is_(False)
     ).values(revision=SharedChoiceList.revision + 1, updated_at=utc_now()))
     if changed.rowcount != 1:
         session.rollback()
         raise SharedListConflict("This list was updated elsewhere. Reload it before saving your change.")
     if action == "rename_list":
         choice_list.name, choice_list.name_key = name, name.casefold()
+    elif action == "delete_list":
+        if shared_list_usage(session, list_id):
+            session.rollback()
+            raise ValueError("This list is still connected to a form. Switch those fields to own choices or another shared list before deleting it.")
+        # Keep only its identity/seed marker: historical references cannot be
+        # reassigned to a new list, and startup must not recreate a deleted list.
+        choice_list.items.clear()
+        choice_list.name = ""
+        choice_list.name_key = f"deleted:{uuid4().hex}"
+        choice_list.deleted = True
+    elif action == "delete_choice":
+        session.delete(item)
     elif action == "add":
         session.add(SharedChoiceItem(list_id=list_id, name=name, name_key=name.casefold()))
     elif action == "rename":
@@ -114,11 +130,19 @@ def resolve_shared_choices(session: Session, schema: dict, *, validate: bool = F
                 raise ValueError("Shared lists can only be used with dropdown fields. Choose a valid list.")
             continue
         if list_id not in cache:
-            cache[list_id] = get_shared_list(session, list_id)
+            if validate:
+                # SQLite serializes writers. Hold the list until the form save
+                # commits, so deleting a list cannot race a new field binding.
+                session.execute(update(SharedChoiceList).where(
+                    SharedChoiceList.id == list_id, SharedChoiceList.deleted.is_(False)
+                ).values(revision=SharedChoiceList.revision))
+            cache[list_id] = get_shared_list(session, list_id, include_deleted=True)
         choice_list = cache[list_id]
-        if choice_list is None:
+        if choice_list is None or choice_list.deleted:
             if validate:
                 raise ValueError("A selected shared list could not be found. Choose another list or use own choices.")
+            if choice_list is not None and choice_list.deleted:
+                props["options"] = []
             continue
         normal_names = {option.get("name") for option in props.get("options", []) if isinstance(option, dict) and option.get("is_normal")}
         props["options"] = [{"name": row.name, "key": f"shared_{row.id}", "order": index,

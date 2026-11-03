@@ -13,10 +13,10 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from naic_builder import main, services
+from naic_builder import database, main, services
 from naic_builder.config import SESSION_SECRET
 from naic_builder.database import Base, SKIP_CHANGE_BACKUP_SESSION_KEY, get_session
-from naic_builder.models import FormDefinition, FormVersion, SharedChoiceList, User
+from naic_builder.models import FormDefinition, FormVersion, SharedChoiceItem, SharedChoiceList, User
 from naic_builder.schemas import FormSavePayload, RecordCreatePayload, RecordUpdatePayload
 from naic_builder.shared_lists import (
     SharedListConflict, change_shared_list, create_shared_list, ensure_standard_shared_lists,
@@ -205,6 +205,114 @@ class SharedListsTests(unittest.TestCase):
         self.assertEqual(response.status_code, 422)
         response = self.client.post('/settings/shared-lists', data={"name": "Departments"}, follow_redirects=False)
         self.assertEqual(response.status_code, 303)
+
+    def test_delete_choice_keeps_saved_draft_and_completed_answers_and_print(self):
+        doctors = self.seed()
+        with self.Session() as session:
+            draft = services.create_record(session, RecordCreatePayload(form_slug="alpha", values=self.values), actor_user_id=self.admin_id)
+            completed = services.create_record(session, RecordCreatePayload(form_slug="alpha", values=self.values), actor_user_id=self.admin_id)
+            services.complete_record(session, completed["id"], RecordUpdatePayload(values=self.values), actor_user_id=self.admin_id)
+            before = services.build_record_print_document(services.get_record_or_none(session, completed["id"]))
+            selected = next(item for item in doctors["items"] if item["name"] == "Dr. Alpha")
+            change_shared_list(session, doctors["id"], 1, "delete_choice", item_id=selected["id"])
+            self.assertIsNone(session.get(SharedChoiceItem, selected["id"]))
+            self.assertEqual(services.build_record_print_document(services.get_record_or_none(session, completed["id"])), before)
+            self.assertEqual(ensure_standard_shared_lists(session), 0)
+            self.assertNotIn("Dr. Alpha", [item.name for item in get_shared_list(session, doctors["id"]).items])
+        for record_id in [draft["id"], completed["id"], self.record_id]:
+            page = self.client.get(f"/records/{record_id}/edit")
+            self.assertIn('<option value="Dr. Alpha" selected>Dr. Alpha</option>', page.text)
+            response = self.client.post(f"/records/{record_id}/edit", data={**{f"value__{key}": value for key, value in self.values.items()}, "action": "save"}, follow_redirects=False)
+            self.assertEqual(response.status_code, 303)
+            self.assertEqual(self.client.get(f"/api/records/{record_id}").json()["values"], self.values)
+
+    def test_inactive_delete_and_stale_delete_are_guarded(self):
+        doctors = self.seed()
+        item_id = doctors['items'][0]['id']
+        with self.Session() as session:
+            change_shared_list(session, doctors['id'], 1, 'deactivate', item_id=item_id)
+            with self.assertRaises(SharedListConflict):
+                change_shared_list(session, doctors['id'], 1, 'delete_choice', item_id=item_id)
+            self.assertIsNotNone(session.get(SharedChoiceItem, item_id))
+            change_shared_list(session, doctors['id'], 2, 'delete_choice', item_id=item_id)
+            self.assertIsNone(session.get(SharedChoiceItem, item_id))
+
+    def test_connected_list_cannot_be_deleted_even_with_direct_post(self):
+        doctors = self.seed()
+        response = self.client.post(f'/settings/shared-lists/{doctors["id"]}', data={"revision": 1, "action": "delete_list"})
+        self.assertEqual(response.status_code, 422)
+        self.assertIn('still connected', response.text)
+        with self.Session() as session:
+            item = get_shared_list(session, doctors['id'])
+            self.assertEqual(item.revision, 1)
+            self.assertEqual(len(item.items), 2)
+
+    def test_list_delete_preserves_history_prevents_id_reuse_and_does_not_reseed(self):
+        doctors = self.seed()
+        with self.Session() as session:
+            completed = services.create_record(session, RecordCreatePayload(form_slug='alpha', values=self.values), actor_user_id=self.admin_id)
+            services.complete_record(session, completed['id'], RecordUpdatePayload(values=self.values), actor_user_id=self.admin_id)
+            before = services.build_record_print_document(services.get_record_or_none(session, completed['id']))
+            old_schema = services.serialize_form(services.get_form_or_none(session, 'alpha'))['block_schema']
+            for slug in ['alpha', 'beta']:
+                form = services.serialize_form(services.get_form_or_none(session, slug))
+                form['block_schema']['blocks'][1]['props'].pop('shared_list_id')
+                services.update_form(session, slug, FormSavePayload(name=form['name'], form_schema=form['block_schema']))
+            change_shared_list(session, doctors['id'], 1, 'delete_list')
+            self.assertIsNone(get_shared_list(session, doctors['id']))
+            tombstone = get_shared_list(session, doctors['id'], include_deleted=True)
+            self.assertTrue(tombstone.deleted)
+            self.assertEqual(tombstone.name, '')
+            self.assertEqual(tombstone.items, [])
+            self.assertEqual(ensure_standard_shared_lists(session), 0)
+            replacement = create_shared_list(session, doctors['name'])
+            self.assertNotEqual(replacement.id, doctors['id'])
+            change_shared_list(session, replacement.id, 1, 'add', name='Replacement choice')
+            self.assertEqual(resolve_shared_choices(session, old_schema)['blocks'][1]['props']['options'], [])
+            with self.assertRaises(ValueError):
+                services.update_form(session, 'alpha', FormSavePayload(form_schema=old_schema))
+            session.rollback()
+            self.assertEqual(services.build_record_print_document(services.get_record_or_none(session, completed['id'])), before)
+        self.assertEqual(self.client.get(f'/settings/shared-lists/{doctors["id"]}').status_code, 404)
+        page = self.client.get(f'/records/{completed["id"]}/edit')
+        self.assertIn('<option value="Dr. Alpha" selected>Dr. Alpha</option>', page.text)
+        self.assertNotIn('<option value="Replacement choice"', page.text)
+
+    def test_delete_routes_require_admin_and_unused_list_returns_to_index(self):
+        with self.Session() as session:
+            item = create_shared_list(session, 'Temporary list')
+            list_id = item.id
+            change_shared_list(session, list_id, 1, 'add', name='Temporary choice')
+            choice_id = get_shared_list(session, list_id).items[0].id
+        self.login(self.staff_id)
+        url = f'/settings/shared-lists/{list_id}'
+        for action in ['delete_choice', 'delete_list']:
+            response = self.client.post(url, data={'revision': 2, 'action': action, 'item_id': choice_id}, follow_redirects=False)
+            self.assertEqual(response.status_code, 303)
+        with self.Session() as session:
+            self.assertIsNotNone(get_shared_list(session, list_id))
+            self.assertIsNotNone(session.get(SharedChoiceItem, choice_id))
+        self.login(self.admin_id)
+        stale = self.client.post(url, data={'revision': 1, 'action': 'delete_list'})
+        self.assertEqual(stale.status_code, 409)
+        response = self.client.post(url, data={'revision': 2, 'action': 'delete_list'}, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response.headers['location'], '/settings/shared-lists?deleted=1')
+        self.assertNotIn('Temporary list', self.client.get('/settings/shared-lists').text)
+
+    def test_old_database_adds_deletion_column_without_losing_lists(self):
+        with self.engine.begin() as connection:
+            connection.exec_driver_sql('DROP TABLE shared_choice_lists')
+            connection.exec_driver_sql('CREATE TABLE shared_choice_lists (id INTEGER PRIMARY KEY, name VARCHAR(160) NOT NULL, name_key VARCHAR(160) NOT NULL UNIQUE, seed_key VARCHAR(80) UNIQUE, revision INTEGER NOT NULL, updated_at DATETIME NOT NULL)')
+            connection.exec_driver_sql("INSERT INTO shared_choice_lists VALUES (1, 'Legacy list', 'legacy list', NULL, 4, '2026-11-03 00:00:00')")
+        with patch.object(database, 'engine', self.engine):
+            database.ensure_runtime_schema()
+            database.ensure_runtime_schema()
+        with self.Session() as session:
+            item = get_shared_list(session, 1)
+            self.assertEqual(item.name, 'Legacy list')
+            self.assertEqual(item.revision, 4)
+            self.assertFalse(item.deleted)
 
 
 if __name__ == "__main__":
