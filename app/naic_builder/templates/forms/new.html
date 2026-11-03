@@ -4,7 +4,7 @@
 {% block html_title %}Start New Form | {{ app_title }}{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{{ url_for('static', path='new-form.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='new-form.css') }}?v=20261103-focused-setup">
 {% endblock %}
 
 {% block shell_eyebrow %}Forms{% endblock %}
@@ -35,11 +35,6 @@
       <input id="newContainerNameInput" type="hidden" name="library_new_container_name" value="">
 
       <section class="panel form-flow-card form-flow-card--compose">
-        <div class="section-head">
-          <p class="eyebrow">Form setup</p>
-          <h2>Choose the basics</h2>
-        </div>
-
         <div class="new-form-section">
           <label class="field-stack field-stack--wide">
             <span>Form name</span>
@@ -54,86 +49,15 @@
         </div>
 
         <div class="new-form-section">
-          <div class="section-head section-head--compact">
-            <p class="eyebrow">Location</p>
-            <h3>Where should it live?</h3>
-          </div>
-
-          <div class="choice-row">
-            <label class="choice-pill">
-              <input type="radio" name="location_mode" value="existing" {% if default_location_mode == 'existing' %}checked{% endif %}>
-              <span>Use existing folder</span>
-            </label>
-            <label class="choice-pill">
-              <input type="radio" name="location_mode" value="root" {% if default_location_mode == 'root' %}checked{% endif %}>
-              <span>Keep at top level</span>
-            </label>
-            <label class="choice-pill">
-              <input type="radio" name="location_mode" value="new" {% if default_location_mode == 'new' %}checked{% endif %}>
-              <span>Create new folder</span>
-            </label>
-          </div>
-
-          <div id="existingLocationWrap" class="field-stack field-stack--wide">
-            <label class="field-stack">
-              <span>Folder</span>
-              <select id="existingLocationSelect">
-                {% for container in container_options %}
-                <option
-                  value="{{ container.node_key }}"
-                  data-location-name="{{ container.name }}"
-                  data-folder-path-label="{{ container.folder_path_label }}"
-                  {% if container.node_key == default_parent_node_key %}selected{% endif %}
-                >{{ container.folder_path_label }}</option>
-                {% endfor %}
-              </select>
-            </label>
-          </div>
-
-          <div id="newLocationWrap" class="field-stack field-stack--wide hidden" hidden>
-            <label class="field-stack">
-              <span>New folder name</span>
-              <input id="newLocationName" type="text" placeholder="Example: Rapid Tests">
-            </label>
-            <label class="field-stack">
-              <span>Inside</span>
-              <select id="newLocationParentSelect">
-                <option value="" {% if not default_new_folder_parent_key %}selected{% endif %}>Top level</option>
-                {% for container in container_options %}
-                <option
-                  value="{{ container.node_key }}"
-                  data-folder-path-label="{{ container.folder_path_label }}"
-                  {% if container.node_key == default_new_folder_parent_key %}selected{% endif %}
-                >{{ container.folder_path_label }}</option>
-                {% endfor %}
-              </select>
-            </label>
-            <p class="panel-copy">You can move it later.</p>
-          </div>
-          <p id="rootLocationHint" class="panel-copy{% if default_location_mode != 'root' %} hidden{% endif %}" {% if default_location_mode != 'root' %}hidden{% endif %}>
-            This form will stay at the top level.
-          </p>
-        </div>
-
-        <div class="new-form-section">
-          <div class="section-head section-head--compact">
-            <p class="eyebrow">Start</p>
-            <h3>How should it start?</h3>
-          </div>
-
-          <div class="start-method-grid">
+          <div class="start-method-grid" role="group" aria-label="Starting point">
             <label class="start-card">
               <input type="radio" name="start_mode" value="blank" {% if not source_form %}checked{% endif %}>
-              <span class="start-card-eyebrow">Blank</span>
-              <strong>Start empty</strong>
-              <span>Build from scratch.</span>
+              {{ shell_icon("file") }} <strong>Start empty</strong>
             </label>
 
             <label class="start-card">
-              <input type="radio" name="start_mode" value="duplicate" {% if source_form %}checked{% endif %}>
-              <span class="start-card-eyebrow">Fastest</span>
-              <strong>Copy existing form</strong>
-              <span>Reuse fields and sections.</span>
+              <input type="radio" name="start_mode" value="duplicate" {% if source_form %}checked{% endif %} {% if not duplicate_options %}disabled{% endif %}>
+              {{ shell_icon("copy") }} <strong>Copy existing form</strong>
             </label>
           </div>
 
@@ -152,35 +76,73 @@
             </label>
           </div>
         </div>
-      </section>
+        <details id="formLocation" class="form-location"{% if default_location_mode == 'new' %} open{% endif %}>
+          <summary>
+            <strong>Folder</strong>
+            <span id="summaryLocation">{{ 'Top level' if default_location_mode == 'root' else (default_location_name or 'Choose a folder') }}</span>
+          </summary>
+          <div class="new-form-section">
+            <div class="choice-row">
+              <label class="choice-pill">
+                <input type="radio" name="location_mode" value="existing" {% if default_location_mode == 'existing' %}checked{% endif %} {% if not container_options %}disabled{% endif %}>
+                <span>Use existing folder</span>
+              </label>
+              <label class="choice-pill">
+                <input type="radio" name="location_mode" value="root" {% if default_location_mode == 'root' %}checked{% endif %}>
+                <span>Keep at top level</span>
+              </label>
+              <label class="choice-pill">
+                <input type="radio" name="location_mode" value="new" {% if default_location_mode == 'new' %}checked{% endif %}>
+                <span>Create new folder</span>
+              </label>
+            </div>
 
-      <aside class="panel summary-card">
-        <div class="section-head">
-          <p class="eyebrow">Summary</p>
-          <h2>Ready to continue</h2>
+            <div id="existingLocationWrap" class="field-stack field-stack--wide{% if default_location_mode != 'existing' %} hidden{% endif %}" {% if default_location_mode != 'existing' %}hidden{% endif %}>
+              <label class="field-stack">
+                <span>Folder</span>
+                <select id="existingLocationSelect">
+                  {% for container in container_options %}
+                  <option
+                    value="{{ container.node_key }}"
+                    data-location-name="{{ container.name }}"
+                    data-folder-path-label="{{ container.folder_path_label }}"
+                    {% if container.node_key == default_parent_node_key %}selected{% endif %}
+                  >{{ container.folder_path_label }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+            </div>
+
+            <div id="newLocationWrap" class="field-stack field-stack--wide{% if default_location_mode != 'new' %} hidden{% endif %}" {% if default_location_mode != 'new' %}hidden{% endif %}>
+              <label class="field-stack">
+                <span>New folder name</span>
+                <input id="newLocationName" type="text" placeholder="Example: Rapid Tests">
+              </label>
+              <label class="field-stack">
+                <span>Inside</span>
+                <select id="newLocationParentSelect">
+                  <option value="" {% if not default_new_folder_parent_key %}selected{% endif %}>Top level</option>
+                  {% for container in container_options %}
+                  <option
+                    value="{{ container.node_key }}"
+                    data-folder-path-label="{{ container.folder_path_label }}"
+                    {% if container.node_key == default_new_folder_parent_key %}selected{% endif %}
+                  >{{ container.folder_path_label }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+            </div>
+          </div>
+        </details>
+
+        <div class="new-form-section form-setup-actions">
+          <button class="primary-button" type="submit">Open Builder</button>
         </div>
-
-        <dl class="summary-list">
-          <div>
-            <dt>Form name</dt>
-            <dd id="summaryName">Choose a name</dd>
-          </div>
-          <div>
-            <dt>Location</dt>
-            <dd id="summaryLocation">{% if default_location_mode == 'root' %}Top level{% else %}{{ default_location_name or 'Choose a folder' }}{% endif %}</dd>
-          </div>
-          <div>
-            <dt>Starting point</dt>
-            <dd id="summaryStart">{% if source_form %}Copy existing form{% else %}Start empty{% endif %}</dd>
-          </div>
-        </dl>
-
-        <button class="primary-button" type="submit">Open Builder</button>
-      </aside>
+      </section>
     </form>
   </div>
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', path='new-form.js') }}" defer></script>
+  <script src="{{ url_for('static', path='new-form.js') }}?v=20261103-focused-setup" defer></script>
 {% endblock %}

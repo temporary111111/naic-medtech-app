@@ -2,13 +2,17 @@
 {% set shell_active = "settings" %}
 {% set settings_active = "desktop" %}
 {% set desktop_settings_action = desktop_settings_action|default('/settings/desktop') %}
-{% set lan_chip_status = 'active' if desktop_status.network.status == 'ready' else ('disabled' if desktop_status.network.status == 'disabled' else 'pending') %}
+{% set lan_enabled = desktop_settings.network_mode == 'lan' %}
+{% set lan_runtime_ready = desktop_status.network.status == 'ready' %}
+{% set lan_firewall_ready = desktop_status.firewall.status == 'ready' %}
+{% set lan_share_ready = lan_enabled and lan_runtime_ready and lan_firewall_ready %}
+{% set data_ready = desktop_status.data_folder.status == 'ready' %}
 
 {% block html_title %}App Preferences | {{ app_title }}{% endblock %}
 
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
-  <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20260608-ia-split">
+  <link rel="stylesheet" href="{{ url_for('static', path='auth.css') }}?v=20261103-focused-utilities">
 {% endblock %}
 
 {% block shell_eyebrow %}Settings{% endblock %}
@@ -30,115 +34,97 @@
     <div class="banner success">{{ success_message }}</div>
     {% endif %}
 
-    <section class="settings-utility-grid">
-      <div class="settings-utility-main">
+    <div class="utility-focus">
+      <section class="panel settings-utility-card">
         <form
           id="desktopSettingsForm"
           method="post"
           action="{{ desktop_settings_action }}"
-          class="panel settings-utility-card"
-          data-confirm="These settings affect how this workstation launches, how same-network access behaves, and where external backup copies are written."
-          data-confirm-eyebrow="App preferences"
+          data-confirm="Save the browser, clinic network, and backup preferences for this PC?"
           data-confirm-title="Save app preferences?"
-          data-confirm-cancel-label="Review first"
-          data-confirm-confirm-label="Save settings"
+          data-confirm-confirm-label="Save changes"
         >
-          <div class="settings-utility-head">
-            <div>
-              <p class="eyebrow">Workstation</p>
-              <h2>Desktop behavior</h2>
+          <section class="utility-focus-section">
+            <h2 class="utility-focus-title">{{ shell_icon("computer") }} This computer</h2>
+            <label class="field-stack">
+              <span>Preferred browser</span>
+              <select name="browser_preference">
+                {% for option in browser_options %}
+                <option value="{{ option.value }}" {% if desktop_settings.browser_preference == option.value %}selected{% endif %}>{{ option.label }}</option>
+                {% endfor %}
+              </select>
+            </label>
+          </section>
+
+          <section class="utility-focus-section">
+            <div class="utility-focus-heading">
+              <h2 class="utility-focus-title">{{ shell_icon("clinic_link") }} Clinic network</h2>
+              <span class="status-chip" data-status="{{ 'active' if lan_share_ready else ('pending' if lan_enabled else 'disabled') }}">
+                {{ 'Ready to share' if lan_share_ready else ('Check firewall' if lan_runtime_ready else desktop_status.network.label) }}
+              </span>
             </div>
-            <span class="settings-utility-pill">Admin</span>
-          </div>
+            <label class="field-stack">
+              <span>Same-network access</span>
+              <select name="network_mode">
+                {% for option in network_options %}
+                <option value="{{ option.value }}" {% if desktop_settings.network_mode == option.value %}selected{% endif %}>{{ option.label }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            {% if lan_enabled and not lan_runtime_ready %}
+            <p class="utility-focus-note">Restart the desktop app to apply the network setting.</p>
+            {% endif %}
+            <div class="utility-focus-actions">
+              <a class="ghost-button" href="/clinic-link">Open Clinic link</a>
+              {% if lan_enabled and not lan_firewall_ready %}
+              <button class="ghost-button" type="submit" form="repairLanForm">Repair access</button>
+              {% endif %}
+            </div>
+          </section>
 
-          <div class="settings-utility-section">
-            <div class="settings-utility-field-grid">
+          <section class="utility-focus-section">
+            <h2 class="utility-focus-title">{{ shell_icon("backup") }} Backup settings</h2>
+            <div class="utility-preferences-fields">
               <label class="field-stack">
-                <span>Preferred browser</span>
-                <select name="browser_preference">
-                  {% for option in browser_options %}
-                  <option value="{{ option.value }}" {% if desktop_settings.browser_preference == option.value %}selected{% endif %}>{{ option.label }}</option>
-                  {% endfor %}
-                </select>
-                <p class="field-help">Controls the browser/app window used by the desktop launcher.</p>
-              </label>
-
-              <label class="field-stack">
-                <span>Same-network access</span>
-                <select name="network_mode">
-                  {% for option in network_options %}
-                  <option value="{{ option.value }}" {% if desktop_settings.network_mode == option.value %}selected{% endif %}>{{ option.label }}</option>
-                  {% endfor %}
-                </select>
-                <p class="field-help">LAN is the recommended default for clinic flexibility.</p>
-              </label>
-
-              <label class="field-stack settings-utility-span">
                 <span>External backup folder</span>
-                <input name="external_backup_dir" type="text" value="{{ desktop_settings.external_backup_dir or '' }}" placeholder="Example: E:\NDHI LabRecords Backups">
-                <p class="field-help">Optional second copy location, such as a USB drive or shared folder.</p>
+                <input name="external_backup_dir" type="text" value="{{ desktop_settings.external_backup_dir or '' }}" placeholder="Optional folder path">
               </label>
-
               <label class="field-stack">
                 <span>Backups to keep</span>
                 <input name="backup_retention_count" type="number" min="5" max="365" step="1" value="{{ desktop_settings.backup_retention_count or 30 }}">
-                <p class="field-help">Older local and external archives are pruned after this limit.</p>
               </label>
             </div>
-          </div>
-
-          <div class="settings-utility-actions">
-            <button class="primary-button" type="submit">Save settings</button>
-          </div>
+            <div class="utility-focus-actions">
+              <a class="ghost-button" href="/backup">Open Backup</a>
+            </div>
+          </section>
         </form>
-      </div>
 
-      <aside class="panel settings-utility-card settings-utility-card--aside">
-        <div class="settings-utility-head">
-          <div>
-            <p class="eyebrow">Readiness</p>
-            <h2>Current status</h2>
-          </div>
-          <span class="status-chip" data-status="{{ lan_chip_status }}">{{ desktop_status.network.label }}</span>
-        </div>
+        {% if lan_enabled and not lan_firewall_ready %}
+        <form
+          id="repairLanForm"
+          method="post"
+          action="/settings/desktop/repair-lan"
+          data-confirm="Windows may ask for administrator permission to repair same-network access."
+          data-confirm-title="Repair network access?"
+          data-confirm-confirm-label="Repair access"
+        ></form>
+        {% endif %}
 
-        <div class="settings-utility-section">
-          <div class="lan-guidance">
-            <strong>Clinic link is available from the main navigation.</strong>
-            <p>Staff can open the same-network link or QR without needing admin access.</p>
-          </div>
-        </div>
-
-        <div class="settings-utility-actions">
-          <a class="ghost-button" href="/clinic-link">Open Clinic link</a>
+        <details class="safety-details">
+          <summary>{{ 'Troubleshooting · Check data access' if desktop_status.data_folder.status in ['warning', 'error'] else 'Troubleshooting' }}</summary>
+          {% if not data_ready %}
           <form
             method="post"
             action="/settings/desktop/repair-data-folder"
-            class="inline-action-form"
-            data-confirm="Windows may ask for administrator permission. Approve the prompt to repair backup, restore, upload, and settings access without launching the app as administrator."
-            data-confirm-eyebrow="Data folder access"
+            class="utility-focus-disclosure utility-focus-actions"
+            data-confirm="Windows may ask for administrator permission to repair access to app data."
             data-confirm-title="Repair app data access?"
-            data-confirm-cancel-label="Cancel"
             data-confirm-confirm-label="Repair access"
           >
             <button class="ghost-button" type="submit">Repair data access</button>
           </form>
-          <form
-            method="post"
-            action="/settings/desktop/repair-lan"
-            class="inline-action-form"
-            data-confirm="Windows may ask for administrator permission. Approve the prompt to repair same-network access without reinstalling the app."
-            data-confirm-eyebrow="Same-network access"
-            data-confirm-title="Repair LAN access?"
-            data-confirm-cancel-label="Cancel"
-            data-confirm-confirm-label="Repair access"
-          >
-            <button class="primary-button" type="submit">Repair LAN access</button>
-          </form>
-          <a class="ghost-button" href="/backup">Open Backup</a>
-        </div>
-
-        <div class="settings-utility-section">
+          {% endif %}
           <div class="lan-status-grid">
             {% for key, item in desktop_status.items() %}
             <article class="lan-status-card" data-status="{{ item.status }}">
@@ -148,29 +134,24 @@
             </article>
             {% endfor %}
           </div>
-        </div>
-
-        <details class="safety-details">
-          <summary>Detected browsers</summary>
-          <div class="safety-browser-list">
-            {% for key, browser in browser_status.items() %}
-            <article class="user-card user-card--compact">
-              <div class="user-card-copy">
-                <div class="user-card-title-row">
-                  <h3>{{ browser.label }}</h3>
-                  <span class="status-chip" data-status="{{ 'active' if browser.installed else 'disabled' }}">{{ 'available' if browser.installed else 'not found' }}</span>
+          <details class="safety-details">
+            <summary>Detected browsers</summary>
+            <div class="safety-browser-list">
+              {% for key, browser in browser_status.items() %}
+              <article class="user-card user-card--compact">
+                <div class="user-card-copy">
+                  <div class="user-card-title-row">
+                    <h3>{{ browser.label }}</h3>
+                    <span class="status-chip" data-status="{{ 'active' if browser.installed else 'disabled' }}">{{ 'available' if browser.installed else 'not found' }}</span>
+                  </div>
+                  {% if browser.path %}<p>{{ browser.path }}</p>{% endif %}
                 </div>
-                <p>{{ browser.path }}</p>
-              </div>
-            </article>
-            {% endfor %}
-          </div>
+              </article>
+              {% endfor %}
+            </div>
+          </details>
         </details>
-      </aside>
-    </section>
+      </section>
+    </div>
   </div>
-{% endblock %}
-
-{% block page_scripts %}
-  <script src="{{ url_for('static', path='settings.js') }}" defer></script>
 {% endblock %}

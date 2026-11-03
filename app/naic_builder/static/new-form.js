@@ -1,11 +1,11 @@
 const startFormEl = document.getElementById("startForm");
 const formNameEl = document.getElementById("formName");
+const formLocationEl = document.getElementById("formLocation");
 const existingLocationWrapEl = document.getElementById("existingLocationWrap");
 const newLocationWrapEl = document.getElementById("newLocationWrap");
 const existingLocationSelectEl = document.getElementById("existingLocationSelect");
 const newLocationNameEl = document.getElementById("newLocationName");
 const newLocationParentSelectEl = document.getElementById("newLocationParentSelect");
-const rootLocationHintEl = document.getElementById("rootLocationHint");
 const duplicateSourceWrapEl = document.getElementById("duplicateSourceWrap");
 const duplicateSourceSelectEl = document.getElementById("duplicateSourceSelect");
 const modeInputEl = document.getElementById("modeInput");
@@ -14,9 +14,7 @@ const draftNameInputEl = document.getElementById("draftNameInput");
 const locationNameInputEl = document.getElementById("locationNameInput");
 const parentNodeKeyInputEl = document.getElementById("parentNodeKeyInput");
 const newContainerNameInputEl = document.getElementById("newContainerNameInput");
-const summaryNameEl = document.getElementById("summaryName");
 const summaryLocationEl = document.getElementById("summaryLocation");
-const summaryStartEl = document.getElementById("summaryStart");
 
 function visibleChoice(name) {
   return document.querySelector(`input[name="${name}"]:checked`)?.value || "";
@@ -47,14 +45,11 @@ function syncLocationMode() {
   const mode = visibleChoice("location_mode") || "existing";
   const useExistingLocation = mode === "existing";
   const useNewLocation = mode === "new";
-  const useRoot = mode === "root";
 
   existingLocationWrapEl?.classList.toggle("hidden", !useExistingLocation);
   existingLocationWrapEl && (existingLocationWrapEl.hidden = !useExistingLocation);
   newLocationWrapEl?.classList.toggle("hidden", !useNewLocation);
   newLocationWrapEl && (newLocationWrapEl.hidden = !useNewLocation);
-  rootLocationHintEl?.classList.toggle("hidden", !useRoot);
-  rootLocationHintEl && (rootLocationHintEl.hidden = !useRoot);
 
   if (newLocationNameEl) {
     newLocationNameEl.required = useNewLocation;
@@ -73,10 +68,8 @@ function syncStartMode() {
   }
 }
 
-function updateSummary() {
-  const formName = String(formNameEl?.value || "").trim();
+function updateLocationSummary() {
   const locationMode = visibleChoice("location_mode") || "existing";
-  const startMode = visibleChoice("start_mode") || "blank";
 
   let locationName = "Top level";
   if (locationMode === "new") {
@@ -87,19 +80,8 @@ function updateSummary() {
     locationName = String(selectedLocationOption()?.dataset.folderPathLabel || selectedLocationOption()?.textContent || "").trim();
   }
 
-  let startLabel = "Start empty";
-  if (startMode === "duplicate") {
-    startLabel = `Copy ${selectedDuplicateLabel()}`;
-  }
-
-  if (summaryNameEl) {
-    summaryNameEl.textContent = formName || "Choose a name";
-  }
   if (summaryLocationEl) {
     summaryLocationEl.textContent = locationName || "Choose a folder";
-  }
-  if (summaryStartEl) {
-    summaryStartEl.textContent = startLabel;
   }
 }
 
@@ -108,7 +90,6 @@ function syncHiddenInputs() {
   const startMode = visibleChoice("start_mode") || "blank";
   const selectedOption = selectedLocationOption();
   const selectedNewParentOption = selectedNewLocationParentOption();
-  const draftName = String(formNameEl?.value || "").trim();
 
   const usingNewLocation = locationMode === "new";
   const usingRoot = locationMode === "root";
@@ -163,7 +144,7 @@ function refreshScreen() {
   syncLocationMode();
   syncStartMode();
   syncHiddenInputs();
-  updateSummary();
+  updateLocationSummary();
 }
 
 document.querySelectorAll('input[name="location_mode"], input[name="start_mode"]').forEach((input) => {
@@ -204,6 +185,7 @@ startFormEl?.addEventListener("submit", (event) => {
 
   if (visibleChoice("location_mode") === "new" && !String(newLocationNameEl?.value || "").trim()) {
     event.preventDefault();
+    formLocationEl.open = true;
     newLocationNameEl?.focus();
     newLocationNameEl?.setCustomValidity("Name the new folder before you continue.");
     newLocationNameEl?.reportValidity();
@@ -211,12 +193,11 @@ startFormEl?.addEventListener("submit", (event) => {
   }
 
   newLocationNameEl?.setCustomValidity("");
+});
 
-  startFormEl
-    .querySelectorAll('input[name="location_mode"], input[name="start_mode"]')
-    .forEach((input) => {
-      input.disabled = true;
-    });
+startFormEl?.addEventListener("formdata", ({ formData }) => {
+  formData.delete("location_mode");
+  formData.delete("start_mode");
 });
 
 if (visibleChoice("start_mode") === "duplicate") {

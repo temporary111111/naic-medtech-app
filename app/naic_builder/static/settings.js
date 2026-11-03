@@ -32,12 +32,13 @@
 
   const copyButtons = Array.from(document.querySelectorAll("[data-copy-value]"));
   copyButtons.forEach((button) => {
-    const defaultLabel = button.textContent || "Copy link";
+    const label = button.querySelector("[data-copy-label]") || button;
+    const defaultLabel = label.textContent || "Copy link";
     button.addEventListener("click", async () => {
       const copied = await copyText(button.dataset.copyValue);
-      button.textContent = copied ? "Copied" : "Copy failed";
+      label.textContent = copied ? "Copied" : "Copy failed";
       window.setTimeout(() => {
-        button.textContent = defaultLabel;
+        label.textContent = defaultLabel;
       }, 1400);
     });
   });

@@ -611,6 +611,109 @@ html[data-theme="dark"] .auth-login-atmosphere {
   box-shadow: var(--shadow-soft);
 }
 
+.utility-focus {
+  width: min(100%, 820px);
+  margin-inline: auto;
+}
+
+.utility-focus-section {
+  display: grid;
+  gap: 14px;
+  padding: clamp(14px, 3vw, 24px);
+}
+
+.utility-focus-section + .utility-focus-section {
+  border-top: 1px solid var(--line);
+}
+
+.utility-focus-heading,
+.utility-focus-actions,
+.utility-focus-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.utility-focus-heading {
+  justify-content: space-between;
+}
+
+.utility-focus-title {
+  margin: 0;
+  font-size: 1.12rem;
+}
+
+.utility-focus svg:is(.app-icon, .app-symbol) {
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+}
+
+.utility-focus-title svg {
+  color: var(--accent);
+}
+
+.utility-focus-section > .field-stack {
+  max-width: 420px;
+}
+
+.utility-preferences-fields,
+.utility-share-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(10rem, auto);
+  align-items: start;
+  gap: 16px;
+}
+
+.utility-focus-stack {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.utility-focus-stack > .field-stack {
+  width: 100%;
+}
+
+.utility-focus-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.utility-focus-disclosure {
+  margin: 0 18px 16px;
+}
+
+.utility-focus-status {
+  display: grid;
+  gap: 12px;
+}
+
+.utility-focus-status dt {
+  font-weight: 700;
+}
+
+.utility-focus-status dd {
+  margin-inline-start: 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.utility-focus .safety-details > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
+}
+
+@media (max-width: 560px) {
+  .utility-preferences-fields,
+  .utility-share-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .settings-utility-card--aside {
   position: sticky;
   top: 86px;

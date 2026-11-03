@@ -157,10 +157,10 @@ h3 {
 }
 
 .new-form-grid {
-  margin-top: 16px;
+  width: min(100%, 720px);
+  margin: 16px auto 0;
   display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
 
@@ -176,6 +176,7 @@ h3 {
 
 .form-flow-card--compose {
   gap: 0;
+  padding: 0;
   overflow: hidden;
 }
 
@@ -188,6 +189,73 @@ h3 {
   gap: 14px;
   padding: 18px 22px;
   border-top: 1px solid color-mix(in srgb, var(--line) 86%, transparent);
+}
+
+.form-flow-card > .new-form-section:first-child {
+  border-top: 0;
+}
+
+.form-location {
+  border-top: 1px solid var(--line);
+}
+
+.form-location > summary {
+  padding: 14px 22px;
+  cursor: pointer;
+}
+
+.form-location > summary span {
+  margin-inline-start: 8px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.form-setup-actions {
+  justify-items: end;
+}
+
+.form-flow-card--compose .start-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-flow-card--compose :is(.choice-pill, .start-card) {
+  cursor: pointer;
+}
+
+.form-flow-card--compose :is(.choice-pill, .start-card) input {
+  position: static;
+  opacity: 1;
+  margin: 0;
+  accent-color: var(--accent);
+  flex: none;
+}
+
+.form-flow-card--compose .choice-pill {
+  gap: 8px;
+}
+
+.start-card .app-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+  flex: none;
+}
+
+.form-flow-card--compose :is(.choice-pill, .start-card):has(input:checked) {
+  border-color: var(--accent);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.form-flow-card--compose :is(.choice-pill, .start-card):focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.form-flow-card--compose :is(.choice-pill, .start-card):has(input:disabled) {
+  color: var(--muted);
+  cursor: default;
 }
 
 .section-head--compact {
