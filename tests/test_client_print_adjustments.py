@@ -2636,10 +2636,7 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn('class="print-container-run print-layout-grid"', grid_html)
         self.assertEqual(grid_html.count('data-container-id="root/'), 2)
 
-        editor_source = (ROOT / "app" / "naic_builder" / "templates" / "records" / "print.html").read_text(encoding="utf-8")
         stylesheet = (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8")
-        self.assertIn("cell.dataset.containerId", editor_source)
-        self.assertIn("containers[gridId]", editor_source)
         self.assertIn(".print-container-run.print-layout-grid", stylesheet)
 
     def test_mixed_print_blocks_make_a_nested_container_independently_layoutable(self) -> None:
@@ -2745,76 +2742,18 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
         self.assertIn(f'data-block-id="{vital_signs["id"]}"', rendered)
         self.assertIn('class="print-layout-move-handle"', rendered)
 
-    def test_print_layout_editor_uses_explicit_modes_and_scopes_to_direct_children(self) -> None:
-        editor_source = (
-            ROOT / "app" / "naic_builder" / "templates" / "records" / "print.html"
-        ).read_text(encoding="utf-8")
-
-        self.assertIn('data-layout-flow', editor_source)
-        self.assertIn('data-layout-grid', editor_source)
-        self.assertIn('Reset selection', editor_source)
-        self.assertIn('Restore form default', editor_source)
-        self.assertIn('Save layout', editor_source)
-        self.assertIn('data-layout-restore-form title="Remove this record setup and use the form-version default"{% if not record_has_print_presentation %} hidden{% endif %}', editor_source)
-        self.assertIn('restoreFormDefaultButton.hidden = false;', editor_source)
-        self.assertIn('const directGridCellFromElement = (grid, element) => {', editor_source)
-        self.assertIn('cell.parentElement?.closest("[data-print-grid-cell]") || null;', editor_source)
-        self.assertNotIn('data-layout-arrange', editor_source)
-        self.assertNotIn('data-layout-balance', editor_source)
-        self.assertIn('querySelectorAll(":scope > [data-print-grid-cell]")', editor_source)
-        self.assertIn('cell.closest("[data-print-layout-grid]") !== grid', editor_source)
-        self.assertIn('defaultGridMode(activeLayoutGrid)', editor_source)
-        self.assertIn('const blockIds', editor_source)
-        self.assertIn('blocks[gridId]', editor_source)
-        self.assertIn('data-layout-move-handle', editor_source)
-        self.assertIn('setMoveDropIndicator', editor_source)
-        self.assertIn('clearMoveDropIndicator', editor_source)
-        self.assertIn('data-layout-undo', editor_source)
-        self.assertIn('data-layout-redo', editor_source)
-        self.assertIn('recordLayoutHistory', editor_source)
-        self.assertIn('restoreLayoutHistorySnapshot', editor_source)
-        self.assertIn('layoutHistory.length > 31', editor_source)
-        self.assertIn('key === "z"', editor_source)
-        self.assertIn('activateBlockRunItem', editor_source)
-        self.assertIn('const syncResponsiveFieldRunCell = (cell) => {', editor_source)
-        self.assertIn('new ResizeObserver((entries) => {', editor_source)
-        self.assertIn('cell.getBoundingClientRect().width < 296', editor_source)
-        self.assertIn(
-            ".print-container-run.print-layout-grid,\n.print-block-run-grid.print-layout-grid {\n  display: grid;",
-            (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
-        )
-        self.assertIn(
-            "body.is-layout-editing .print-container-run.print-layout-grid > .print-container-run-item",
-            (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
-        )
-        self.assertIn(
-            ".print-container-run.print-layout-grid {\n  background: var(--paper);",
-            (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
-        )
-        self.assertIn(
-            ".print-block-run-grid.print-layout-grid {\n  gap: 0;\n  background: var(--paper);",
-            (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
-        )
-        self.assertIn(
-            "outline: 1px solid var(--line-soft);",
-            (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
-        )
-        self.assertIn(
-            'is-layout-drop-before-row',
-            (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
-        )
-        self.assertIn(
-            'is-layout-drop-after-column',
-            (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
-        )
-        self.assertIn(
-            '.print-field-run.print-layout-grid > .print-row.is-layout-cell-compact',
-            (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
-        )
-        self.assertNotIn(
-            ".print-font-times-new-roman .print-group-title,",
-            (ROOT / "app" / "naic_builder" / "static" / "print.css").read_text(encoding="utf-8"),
-        )
+    def test_print_layout_editor_has_clear_save_cancel_and_separate_controls(self) -> None:
+        template = (ROOT / "app/naic_builder/templates/records/print.html").read_text(encoding="utf-8")
+        for control in ("data-layout-save", "data-layout-cancel", "data-layout-undo", "data-layout-redo",
+                        "data-layout-resize-handle", "data-layout-future", "data-layout-fit"):
+            self.assertIn(control, template)
+        self.assertIn("Save changes", template)
+        self.assertIn("Restore form default", template)
+        self.assertNotIn("data-layout-done", template)
+        self.assertNotIn("data-layout-flow", template)
+        self.assertNotIn("data-layout-grid", template)
+        self.assertIn("path='print-layout.js'", template)
+        self.assertIn("path='print-layout.css'", template)
 
     def test_print_command_ui_uses_a_fixed_application_accent(self) -> None:
         print_page = (ROOT / "app" / "naic_builder" / "templates" / "records" / "print.html").read_text(encoding="utf-8")

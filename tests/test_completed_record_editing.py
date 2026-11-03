@@ -221,5 +221,35 @@ class CompletedRecordEditingTests(unittest.TestCase):
         self.assertEqual(response.headers['location'],f"/records/{created['id']}/edit")
 
 
+    def test_layout_save_can_target_one_record_without_changing_future_defaults(self):
+        with self.Session() as session:
+            editor = session.get(User, self.editor_id)
+            editor.role = 'admin'
+            editor.print_layout_preferences_json = '{"untouched":{"example":true}}'
+            other = create_record(session, RecordCreatePayload(form_slug='sample', values=self.values), actor_user_id=self.editor_id)
+            complete_record(session, other['id'], RecordUpdatePayload(values=self.values), actor_user_id=self.editor_id)
+            session.commit()
+            other_print = services.build_record_print_document(get_record_or_none(session, other['id']))
+        payload = {'template_id':'legacy_landscape', 'paper_size':'a5', 'text_size':'standard',
+                   'test_name_scale':115, 'result_scale':130, 'layout':{}, 'apply_to_future':False}
+        result = self.client.post(f'/records/{self.record_id}/print-layout', json=payload)
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(result.json()['message'], 'Layout saved for this record.')
+        with self.Session() as session:
+            self.assertEqual(session.get(User, self.editor_id).print_layout_preferences_json, '{"untouched":{"example":true}}')
+            record = get_record_or_none(session, self.record_id)
+            self.assertEqual(record.print_presentation.test_name_scale, 115)
+            self.assertEqual(record.print_presentation.result_scale, 130)
+            self.assertEqual(record.form_version_id, self.form_version_id)
+            self.assertEqual(services.current_record_values(record), self.values)
+            self.assertEqual(services.build_record_print_document(get_record_or_none(session, other['id'])), other_print)
+        invalid = self.client.post(f'/records/{self.record_id}/print-layout', json={**payload, 'apply_to_future':'false'})
+        self.assertEqual(invalid.status_code, 422)
+        future = self.client.post(f'/records/{self.record_id}/print-layout', json={**payload, 'apply_to_future':True})
+        self.assertEqual(future.status_code, 200)
+        with self.Session() as session:
+            self.assertNotEqual(session.get(User, self.editor_id).print_layout_preferences_json, '{"untouched":{"example":true}}')
+
+
 if __name__ == '__main__':
     unittest.main()

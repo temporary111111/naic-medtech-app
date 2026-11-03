@@ -1,0 +1,64 @@
+/* Editor chrome is separate from the report's printable stylesheet. */
+.print-layout-editor[hidden], .print-layout-selection[hidden], .print-layout-guide[hidden], .print-layout-page-edge[hidden], .print-layout-save-notice[hidden] { display: none !important; }
+.print-layout-editor { position: sticky; top: 8px; z-index: 30; display: grid; grid-template-columns: minmax(160px, 1fr) auto; align-items: center; gap: 12px 18px; width: min(1180px, calc(100vw - 32px)); margin: 0 0 18px; padding: 14px 16px; border: 1px solid #9caaa4; border-radius: 14px; color: #1e2b25; background: #f8fbf9; box-shadow: 0 10px 25px #193b2b16; font: 13px/1.4 Arial, sans-serif; }
+.print-layout-editor-copy { display: grid; gap: 3px; min-width: 0; }
+.print-layout-editor-copy strong, .print-layout-editor-copy > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.print-layout-editor-copy strong { font-size: 14px; }
+.print-layout-editor-copy > span { font-size: 12px; color: #465c51; }
+.print-layout-editor-actions, .print-layout-history, .print-layout-zoom, .print-layout-selection-tools { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.print-layout-editor-actions { justify-content: end; gap: 8px; }
+.print-layout-editor button, .print-layout-more summary, .print-layout-discard-dialog button { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 6px 10px; border: 1px solid #a4b1aa; border-radius: 7px; font: inherit; font-weight: 600; color: #1e2b25; background: white; cursor: pointer; }
+.print-layout-editor button:focus-visible, .print-layout-more summary:focus-visible, .print-layout-selection button:focus-visible { outline: 3px solid #138a91; outline-offset: 3px; }
+.print-layout-editor button:disabled { opacity: .45; cursor: default; }
+.print-layout-editor button.is-primary { color: white; background: #075f64; border-color: #075f64; }
+.print-layout-selection-tools { gap: 7px; min-height: 34px; }
+.print-layout-selection-tools[hidden] { display: flex; visibility: hidden; }
+.print-layout-selection-tools > span { margin-left: 8px; }
+.print-layout-selection-tools output { min-width: 42px; text-align: center; font-variant-numeric: tabular-nums; }
+.print-layout-save-scope { display: flex; gap: 12px 20px; align-items: center; justify-content: space-between; color: #465c51; font-size: 12px; flex-wrap: wrap; }
+.print-layout-save-scope label { display: flex; gap: 7px; align-items: center; }
+.print-layout-save-scope input { accent-color: #075f64; }
+.print-layout-fit-note[data-fit=tight], .print-layout-fit-note[data-fit=long] { color: #85501c; font-weight: 700; }
+.print-layout-editor-status { position: absolute; top: 100%; left: 12px; max-width: calc(100% - 24px); margin: 5px 0 0; padding: 5px 9px; border-radius: 6px; background: #f8fbf9; box-shadow: 0 4px 15px #10252622; font-size: 12px; }
+.print-layout-editor-status:empty { display: none; }
+.print-layout-editor-status[data-status=error] { color: #a02525; }
+.print-layout-more { position: relative; }
+.print-layout-more summary { list-style: none; }
+.print-layout-more summary::-webkit-details-marker { display: none; }
+.print-layout-more > div { position: absolute; right: 0; top: calc(100% + 6px); width: 200px; display: grid; gap: 8px; padding: 10px; border: 1px solid #9caaa4; border-radius: 10px; background: #fff; box-shadow: 0 10px 28px #10252622; }
+.print-layout-save-notice { color: #175541; font: 13px/1.4 Arial, sans-serif; margin: 0 0 12px; }
+.print-layout-selection { position: fixed; z-index: 25; pointer-events: none; border: 2px solid #087a85; box-shadow: 0 0 0 1px white; }
+.print-layout-selection-label { position: absolute; bottom: 100%; left: -2px; max-width: min(320px, 70vw); padding: 5px 9px; border: 0; border-radius: 6px 6px 0 0; color: #fff; background: #075f64; font: 600 12px/1.3 Arial, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: grab; pointer-events: auto; touch-action: none; }
+.print-layout-resize-handle { position: absolute; right: -7px; top: calc(50% - 12px); width: 12px; height: 24px; padding: 0; border: 2px solid #087a85; border-radius: 5px; background: white; pointer-events: auto; cursor: ew-resize; touch-action: none; }
+.print-layout-resize-handle::before { position: absolute; content: ''; inset: -7px; }
+.print-layout-guide { position: fixed; z-index: 35; pointer-events: none; background: #087a85; box-shadow: 0 0 0 1px #fff; }
+.print-layout-guide::after { content: ''; position: absolute; inset: -4px; border-radius: 5px; background: #138a9120; }
+.print-layout-page-edge { position: fixed; z-index: 22; border-top: 2px dashed #a0672d; pointer-events: none; }
+.print-layout-page-edge span { position: absolute; right: 0; top: 2px; padding: 3px 7px; border-radius: 0 0 5px 5px; color: #6d4118; background: #fff6e5; font: 600 11px/1.4 Arial, sans-serif; }
+.print-layout-drag-preview { position: fixed; z-index: 40; pointer-events: none; max-height: 230px; overflow: hidden; padding: 6px; border: 2px solid #087a85; border-radius: 5px; background: white; color: var(--ink); box-shadow: 0 12px 30px #10252644; opacity: .9; }
+.print-layout-drag-preview [data-print-grid-cell], .print-layout-drag-preview [data-layout-source-id] { width: 100%; }
+.is-layout-cell-moving { opacity: .35; }
+body.is-layout-editing .print-page { cursor: default; }
+body.is-layout-editing .print-command-actions { display: none; }
+body.is-layout-moving, body.is-layout-moving * { cursor: grabbing !important; user-select: none; }
+body.is-layout-resizing, body.is-layout-resizing * { cursor: ew-resize !important; user-select: none; }
+@media screen {
+  body.has-layout-preview-zoom .print-page { width: var(--print-page-width); min-width: var(--print-page-width); max-width: none; zoom: var(--layout-preview-zoom, 1); }
+  body.is-layout-editing .print-shell, body.has-layout-preview-zoom .print-shell { width: min(1180px, 100%); }
+  body.is-layout-editing .print-page-viewport, body.has-layout-preview-zoom .print-page-viewport { overflow-x: auto; padding: 20px 10px; }
+}
+.print-layout-discard-dialog { width: min(400px, calc(100vw - 32px)); padding: 24px; border: 1px solid #9caaa4; border-radius: 14px; font: 14px/1.5 Arial, sans-serif; color: #1e2b25; background: #f8fbf9; }
+.print-layout-discard-dialog::backdrop { background: #10252666; }
+.print-layout-discard-dialog h2 { font-size: 18px; margin: 0; }
+.print-layout-discard-dialog form > div { display: flex; justify-content: end; gap: 8px; margin-top: 20px; }
+@media (max-width: 800px) {
+  .print-layout-editor { grid-template-columns: minmax(0,1fr); width: 100%; top: 0; padding: 12px; gap: 10px; }
+  .print-layout-editor-actions { justify-content: start; gap: 6px; }
+  .print-layout-editor-copy > span { display: none; }
+  .print-layout-save-scope { gap: 6px; }
+  .print-layout-selection-tools[hidden] { display: none; }
+}
+@media print {
+  .print-layout-editor, .print-layout-selection, .print-layout-guide, .print-layout-page-edge, .print-layout-drag-preview, .print-layout-discard-dialog, .print-layout-save-notice { display: none !important; }
+  .is-layout-cell-moving { opacity: 1; }
+}

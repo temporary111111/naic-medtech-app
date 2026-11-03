@@ -2071,15 +2071,19 @@ async def save_record_print_layout(
         document["items"],
         field_grid_units=int(document["template"]["field_grid_units"]),
     )
-    save_user_print_layout_preference(
-        session,
-        user,
-        form_id=record.form_id,
-        template_id=profile["template_id"],
-        paper_size=profile["paper_size"],
-        preference=preference,
-        commit=False,
-    )
+    apply_to_future = payload.get("apply_to_future", True)
+    if type(apply_to_future) is not bool:
+        raise HTTPException(status_code=422, detail="Choose whether to use this layout for future records.")
+    if apply_to_future:
+        save_user_print_layout_preference(
+            session,
+            user,
+            form_id=record.form_id,
+            template_id=profile["template_id"],
+            paper_size=profile["paper_size"],
+            preference=preference,
+            commit=False,
+        )
     saved = save_record_print_presentation(
         session,
         record,
@@ -2089,7 +2093,7 @@ async def save_record_print_layout(
     )
     return JSONResponse({
         "presentation": saved,
-        "message": "Layout saved for this record and future records using this print setup.",
+        "message": "Layout saved for this record and future records using this print setup." if apply_to_future else "Layout saved for this record.",
     })
 
 

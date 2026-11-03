@@ -409,6 +409,12 @@ The app now starts from a builder-first FastAPI scaffold.
 ## Print text sizes
 Printed reports now have independent **Test names** and **Results** size controls in **Print setup**. Use the minus/plus buttons (5% steps) or type an exact whole percentage (50-200%). Changes preview immediately; Cancel discards them. **Save settings** stores the current record's sizes and a shared default for future records of the same form, style, orientation, and paper size. Existing saved record presentations keep their sizes. Results include units; reference ranges, branding, and signatures keep their existing typography. The one-page indicator is advisory and never shrinks the chosen font sizes.
 
+## Adjusting the printed layout
+
+Open **Adjust layout** on a record's print preview. Select a field or a section on the paper to reveal its outline and resize handle. Drag the item or its label and follow the placement guide, or use the selected item's arrow buttons. Fields stay in their own group and sections move with their contents. Resize with the right handle or the width buttons; widths snap to the same aligned slots supported by the print templates.
+
+Use **Fit page** or the zoom controls to inspect the paper. Zoom, guides, and the preview paper edge never print. **Undo** and **Redo** work during the session, and **Cancel** restores the exact layout from before editing. **Save changes** applies the layout to the current record; the checkbox lets you also use it for your future records of the same form and print setup. In the Form Builder's layout editor, saving sets a form default for future records. Previously saved record values, original form versions, and other records' printed layouts remain unchanged.
+
 ## Shared lists
 
 Admins manage reusable dropdown choices at **Settings → Shared lists**. Create a list, add choices, or open **Edit** beside a choice to rename, deactivate, or permanently delete it. Inactive choices can be reactivated or deleted. Delete asks for confirmation; cancelling makes no change. Names are sorted alphabetically, duplicate names are rejected, and concurrent edits receive a reload notice instead of overwriting a newer change.
