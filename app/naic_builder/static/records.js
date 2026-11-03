@@ -647,6 +647,7 @@
       const formSearch = picker.querySelector("[data-record-form-filter]");
       const formOptions = Array.from(picker.querySelectorAll("[data-record-start-option]"));
       const formEmpty = picker.querySelector("[data-record-form-empty]");
+      const formList = picker.querySelector("[data-record-form-list]");
 
       if (!formSearch || !formOptions.length) {
         return;
@@ -670,7 +671,10 @@
         }
       };
 
-      formSearch.addEventListener("input", filterForms);
+      formSearch.addEventListener("input", () => {
+        filterForms();
+        formList.scrollTop = 0;
+      });
       filterForms();
     });
   };
@@ -683,25 +687,30 @@
 
     const formSearch = modal.querySelector("[data-record-form-filter]");
     const dialog = modal.querySelector("[data-record-start-dialog]");
+    const closeButton = dialog.querySelector("[data-record-start-close]");
+    let opener = document.querySelector("[data-record-start-trigger]");
 
     const openModal = () => {
       modal.hidden = false;
       modal.setAttribute("aria-hidden", "false");
       document.body.classList.add("record-start-open");
-      window.requestAnimationFrame(() => {
-        formSearch?.focus();
-      });
+      (formSearch || closeButton)?.focus();
     };
 
     const closeModal = () => {
       modal.hidden = true;
       modal.setAttribute("aria-hidden", "true");
       document.body.classList.remove("record-start-open");
+      opener?.focus();
     };
 
     document.querySelectorAll("[data-record-start-trigger]").forEach((trigger) => {
       trigger.addEventListener("click", (event) => {
+        if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+          return;
+        }
         event.preventDefault();
+        opener = trigger;
         openModal();
       });
     });

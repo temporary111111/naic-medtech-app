@@ -696,32 +696,22 @@ def build_record_start_context(
         recent_completed if recent_completed is not None else list_records(session, status="completed", limit=8)
     )
 
-    quick_form_choices: list[dict[str, Any]] = []
-    seen_quick_slugs: set[str] = set()
-    for record in [*resolved_recent_drafts, *resolved_recent_completed]:
-        form_slug = str(record.get("form_slug") or "").strip()
-        if not form_slug or form_slug in seen_quick_slugs:
-            continue
-        matching_choice = next((choice for choice in resolved_form_choices if choice["slug"] == form_slug), None)
-        if matching_choice is None:
-            continue
-        quick_form_choices.append(matching_choice)
-        seen_quick_slugs.add(form_slug)
-        if len(quick_form_choices) >= 6:
-            break
-
-    if len(quick_form_choices) < 6:
-        for choice in resolved_form_choices:
-            if choice["slug"] in seen_quick_slugs:
-                continue
-            quick_form_choices.append(choice)
-            seen_quick_slugs.add(choice["slug"])
-            if len(quick_form_choices) >= 6:
-                break
+    choices_by_slug = {choice["slug"]: choice for choice in resolved_form_choices}
+    recent_records = sorted(
+        [*resolved_recent_drafts, *resolved_recent_completed],
+        key=lambda record: (record["updated_at"], record["id"]),
+        reverse=True,
+    )
+    recent_slugs = list(dict.fromkeys(
+        record["form_slug"] for record in recent_records if record["form_slug"] in choices_by_slug
+    ))[:6]
+    recent_slug_set = set(recent_slugs)
 
     return {
-        "form_choices": resolved_form_choices,
-        "quick_form_choices": quick_form_choices,
+        "record_start_forms": [
+            *(dict(choices_by_slug[slug], recent=True) for slug in recent_slugs),
+            *(choice for choice in resolved_form_choices if choice["slug"] not in recent_slug_set),
+        ],
         "recent_drafts": resolved_recent_drafts,
         "recent_completed": resolved_recent_completed,
     }
@@ -993,7 +983,7 @@ def render_records_history_page(
         limit=RECORDS_HISTORY_PAGE_SIZE,
         offset=matching_offset,
     )
-    record_start_context = build_record_start_context(session)
+    record_start_context = build_record_start_context(session, form_choices=form_choices)
     draft_count = count_records(session, status="draft")
     completed_count = count_records(session, status="completed")
     history_return_url = records_history_url(

@@ -1,0 +1,35 @@
+<div class="record-form-picker" data-record-form-picker>
+  {% if record_start_forms %}
+  <label class="records-search-input records-start-filter">
+    <span>Find form</span>
+    <input type="search" placeholder="Search form or department" autocomplete="off" data-record-form-filter>
+  </label>
+  <ul class="records-start-option-list app-scroll-region app-scroll-region--picker" data-record-form-list>
+    {% for form in record_start_forms %}
+    <li data-record-start-option data-search-text="{{ (form.form_path_label ~ ' ' ~ form.location_path_label)|lower }}">
+      <form method="post" action="/records/new" class="record-inline-form">
+        <input type="hidden" name="form_slug" value="{{ form.slug }}">
+        <input type="hidden" name="return_to" value="{{ record_start_return_to }}">
+        {% if record_start_return_to == 'history' %}
+        <input type="hidden" name="return_query" value="{{ search_query|default('') }}">
+        <input type="hidden" name="return_status" value="{{ status_filter|default('completed') }}">
+        <input type="hidden" name="return_form" value="{{ form_filter|default('') }}">
+        <input type="hidden" name="return_period" value="{{ date_scope|default('') }}">
+        <input type="hidden" name="return_page" value="{{ history_page|default(1) }}">
+        {% endif %}
+        <button class="record-form-option" type="submit">
+          <span class="record-form-option__name">
+            <strong>{{ form.name }}</strong>
+            {% if form.recent %}<small class="record-form-option__recent">Recent</small>{% endif %}
+          </span>
+          <span class="record-form-option__location">{{ form.location_path_label }}</span>
+        </button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="records-start-empty" role="status" data-record-form-empty hidden>No matching forms</p>
+  {% else %}
+  <p class="records-start-empty">No forms available yet.</p>
+  {% endif %}
+</div>

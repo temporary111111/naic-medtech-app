@@ -1,9 +1,4 @@
 {% set record_start_return_to = records_mode|default('work') %}
-{% set record_start_return_query = search_query|default('') %}
-{% set record_start_return_status = status_filter|default('completed') %}
-{% set record_start_return_form = form_filter|default('') %}
-{% set record_start_return_period = date_scope|default('') %}
-{% set record_start_return_page = history_page|default(1) %}
 <section
   class="records-start-modal"
   data-record-start-modal
@@ -26,70 +21,6 @@
     <div class="error-banner">{{ record_start_error }}</div>
     {% endif %}
 
-    <div class="records-start-modal__body{% if quick_form_choices %} records-start-modal__body--split{% endif %}" data-record-form-picker>
-      {% if quick_form_choices %}
-      <section class="records-start-cluster">
-        <div class="records-start-cluster__head">
-          <p class="eyebrow">Recent forms</p>
-        </div>
-        <div class="records-start-grid">
-          {% for form in quick_form_choices %}
-          <form method="post" action="/records/new" class="record-inline-form">
-            <input type="hidden" name="form_slug" value="{{ form.slug }}">
-            <input type="hidden" name="return_to" value="{{ record_start_return_to }}">
-            {% if record_start_return_to == 'history' %}
-            <input type="hidden" name="return_query" value="{{ record_start_return_query }}">
-            <input type="hidden" name="return_status" value="{{ record_start_return_status }}">
-            <input type="hidden" name="return_form" value="{{ record_start_return_form }}">
-            <input type="hidden" name="return_period" value="{{ record_start_return_period }}">
-            <input type="hidden" name="return_page" value="{{ record_start_return_page }}">
-            {% endif %}
-            <button class="record-quick-start-card" type="submit">
-              <span class="record-quick-start-card__eyebrow">Recent</span>
-              <strong>{{ form.name }}</strong>
-              <span>{{ form.location_path_label }}</span>
-            </button>
-          </form>
-          {% endfor %}
-        </div>
-      </section>
-      {% endif %}
-
-      <section class="records-start-cluster">
-        <div class="records-start-cluster__head">
-          <p class="eyebrow">All forms</p>
-        </div>
-        <label class="records-search-input records-start-filter">
-          <span>Find form</span>
-          <input type="search" placeholder="Search form or department" data-record-form-filter>
-        </label>
-        <div class="records-start-option-list app-scroll-region app-scroll-region--picker" data-record-form-list>
-          {% for form in form_choices %}
-          <form
-            method="post"
-            action="/records/new"
-            class="record-inline-form"
-            data-record-start-option
-            data-search-text="{{ (form.form_path_label ~ ' ' ~ form.name ~ ' ' ~ form.location_path_label)|lower }}"
-          >
-            <input type="hidden" name="form_slug" value="{{ form.slug }}">
-            <input type="hidden" name="return_to" value="{{ record_start_return_to }}">
-            {% if record_start_return_to == 'history' %}
-            <input type="hidden" name="return_query" value="{{ record_start_return_query }}">
-            <input type="hidden" name="return_status" value="{{ record_start_return_status }}">
-            <input type="hidden" name="return_form" value="{{ record_start_return_form }}">
-            <input type="hidden" name="return_period" value="{{ record_start_return_period }}">
-            <input type="hidden" name="return_page" value="{{ record_start_return_page }}">
-            {% endif %}
-            <button class="record-form-option" type="submit">
-              <strong>{{ form.name }}</strong>
-              <span>{{ form.location_path_label }}</span>
-            </button>
-          </form>
-          {% endfor %}
-        </div>
-        <p class="records-start-empty" data-record-form-empty hidden>No matching forms</p>
-      </section>
-    </div>
+    {% include "records/_record_form_picker.html" %}
   </div>
 </section>

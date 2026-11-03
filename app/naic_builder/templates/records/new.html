@@ -5,7 +5,7 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
-  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20260607-ui-root-phase4">
+  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20261103-unified-record-picker">
 {% endblock %}
 
 {% block shell_eyebrow %}Records{% endblock %}
@@ -30,68 +30,12 @@
       <div class="error-banner">{{ error_message }}</div>
       {% endif %}
 
-      <div class="records-fallback-stack{% if quick_form_choices %} records-fallback-stack--split{% endif %}">
-        {% if quick_form_choices %}
-        <section class="records-start-cluster">
-          <div class="records-start-cluster__head">
-            <p class="eyebrow">Recent forms</p>
-          </div>
-          <div class="records-start-grid">
-            {% for form in quick_form_choices %}
-            <form method="post" action="/records/new" class="record-inline-form">
-              <input type="hidden" name="form_slug" value="{{ form.slug }}">
-              <input type="hidden" name="return_to" value="new">
-              <button class="record-quick-start-card" type="submit">
-                <span class="record-quick-start-card__eyebrow">Recent</span>
-                <strong>{{ form.name }}</strong>
-                <span>{{ form.location_path_label }}</span>
-              </button>
-            </form>
-            {% endfor %}
-          </div>
-        </section>
-        {% endif %}
-
-        <section class="records-start-cluster">
-          <div class="records-start-cluster__head">
-            <p class="eyebrow">All forms</p>
-          </div>
-
-          <div data-record-form-picker>
-            <label class="records-search-input records-start-filter">
-              <span>Find form</span>
-              <input type="search" placeholder="Search form or department" data-record-form-filter>
-            </label>
-            <div class="records-start-option-list app-scroll-region app-scroll-region--picker" data-record-form-list>
-              {% for form in form_choices %}
-              <form
-                method="post"
-                action="/records/new"
-                class="record-inline-form"
-                data-record-start-option
-                data-search-text="{{ (form.form_path_label ~ ' ' ~ form.name ~ ' ' ~ form.location_path_label)|lower }}"
-              >
-                <input type="hidden" name="form_slug" value="{{ form.slug }}">
-                <input type="hidden" name="return_to" value="new">
-                <button class="record-form-option" type="submit">
-                  <strong>{{ form.name }}</strong>
-                  <span>{{ form.location_path_label }}</span>
-                </button>
-              </form>
-              {% endfor %}
-            </div>
-            <p class="records-start-empty" data-record-form-empty hidden>No matching forms</p>
-          </div>
-
-          <div class="records-fallback-actions">
-            <a class="ghost-button" href="/records">Cancel</a>
-          </div>
-        </section>
-      </div>
+      {% set record_start_return_to = 'new' %}
+      {% include "records/_record_form_picker.html" %}
     </section>
   </div>
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', path='records.js') }}?v=20260607-ui-root-phase5a" defer></script>
+  <script src="{{ url_for('static', path='records.js') }}?v=20261103-unified-record-picker" defer></script>
 {% endblock %}
