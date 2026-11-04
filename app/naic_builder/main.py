@@ -6,6 +6,7 @@ import re
 import tempfile
 import threading
 from contextlib import asynccontextmanager, suppress
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, parse_qsl, urlencode, urlsplit, urlunsplit
@@ -35,6 +36,7 @@ from .backup import (
 from .backup_schedule import (
     backup_schedule_summary,
     daily_backup_due,
+    latest_backup_datetime,
     request_change_backup,
     scheduled_backup_loop,
     start_change_backup_worker,
@@ -816,21 +818,37 @@ def overview_backup_marker() -> dict[str, Any]:
     try:
         local_status = local_backup_status(limit=1)
     except OSError:
-        return {"value": "Check backup", "scope": "Backup status is unavailable.", "attention": True}
+        return {"value": "Check backup", "scope": "Backup status is unavailable.", "attention": True, "recency": ""}
 
     latest = local_status["latest"]
     if latest is None:
-        return {"value": "No backup yet", "scope": "Create a verified backup to protect clinic records.", "attention": True}
+        return {"value": "No backup yet", "scope": "Create a verified backup to protect clinic records.", "attention": True, "recency": ""}
 
+    now = datetime.now().astimezone()
     schedule = backup_schedule_summary(local_status=local_status)
     if schedule["status"] != "ready":
         value = schedule["label"]
     else:
-        value = "Backup due" if daily_backup_due(local_status=local_status) else "Available"
+        value = "Backup due" if daily_backup_due(now=now, local_status=local_status) else "Available"
+
+    recency = latest["modified_label"]
+    latest_at = latest_backup_datetime(local_status)
+    if latest_at is not None:
+        local_time = latest_at.astimezone()
+        if local_time.date() == now.date():
+            date_label = "Today"
+        elif local_time.date() == now.date() - timedelta(days=1):
+            date_label = "Yesterday"
+        else:
+            date_label = f"{local_time:%b} {local_time.day}"
+            if local_time.year != now.year:
+                date_label += f", {local_time.year}"
+        recency = f"{date_label}, {local_time.strftime('%I:%M %p').lstrip('0')}"
     return {
         "value": value,
         "scope": f"Latest local backup · {latest['modified_label']}",
         "attention": value not in {"Available", "Running", "Waiting"},
+        "recency": recency,
     }
 
 

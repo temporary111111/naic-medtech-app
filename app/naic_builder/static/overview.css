@@ -191,12 +191,19 @@
   text-align: center;
 }
 
+.globe-pin--backup .globe-pin__label {
+  max-width: clamp(86px, 27cqw, 153px);
+  white-space: normal;
+}
+
 .globe-pin--backup .globe-pin__label small {
   display: block;
   margin-top: 2px;
-  color: var(--pin-color);
+  color: var(--globe-muted);
   font-size: .9em;
 }
+
+.globe-pin--backup .globe-pin__label .globe-backup-warning { color: var(--pin-color); }
 
 .globe-pin--form {
   --pin-color: var(--form-accent, var(--globe-accent));
