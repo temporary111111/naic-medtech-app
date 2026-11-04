@@ -6,7 +6,7 @@
   <title>Print Record | {{ document.form_name }}</title>
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
-  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20261103-layout-editor">
+  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20261105-record-preview">
   <link rel="stylesheet" href="{{ url_for('static', path='print-layout.css') }}?v=20261103-layout-editor">
   {% set presentation = document.template or {} %}
   {% set record_meta = document["record"] or {} %}
@@ -23,37 +23,34 @@
   {% set fit = document.fit_estimate or {} %}
 
   <main class="print-shell">
-    <header class="print-command-bar">
+    <header class="print-command-bar{% if not is_form_layout_builder %} print-command-bar--record{% endif %}">
       <div class="print-command-context">
         <a class="print-command-back" href="{{ back_href }}" aria-label="{{ back_label }}" title="{{ back_label }}"><span aria-hidden="true">&larr;</span><span class="print-command-back__label">{{ back_label }}</span></a>
         <div class="print-command-record">
           <strong>{{ document.form_name }}</strong>
+          {% if not is_form_layout_builder %}
+          <span>{{ presentation.paper_size_label }} &middot; {{ presentation.orientation }}</span>
+          {% endif %}
         </div>
       </div>
       <div class="print-command-actions">
-        {% if can_manage_print_presentation %}
+        {% if is_form_layout_builder and can_manage_print_presentation %}
         <button class="print-active-profile" type="button" data-print-profile data-fit="{{ fit.status or 'likely' }}" data-open-print-settings aria-haspopup="dialog" aria-label="Change print settings" title="Change print settings">
           <span>Print setup</span>
           <strong>{{ presentation.style_label }} | {{ presentation.orientation }} | {{ presentation.paper_size_label }}</strong>
           <small class="print-fit-status" data-print-fit-status data-fit="{{ fit.status or 'likely' }}" title="{{ fit.detail or 'Use browser print preview for final confirmation.' }}"><span data-print-fit-label>{{ fit.label or 'One-page check' }}</span></small>
         </button>
         <button class="print-link print-layout-command" type="button" data-open-layout-editor>Adjust layout</button>
-        {% else %}
+        {% elif is_form_layout_builder %}
         <div class="print-active-profile" data-print-profile data-fit="{{ fit.status or 'likely' }}" aria-label="Print setup">
           <span>Print setup</span>
           <strong>{{ presentation.style_label }} | {{ presentation.orientation }} | {{ presentation.paper_size_label }}</strong>
           <small class="print-fit-status" data-print-fit-status data-fit="{{ fit.status or 'likely' }}" title="{{ fit.detail or 'Use browser print preview for final confirmation.' }}"><span data-print-fit-label>{{ fit.label or 'One-page check' }}</span></small>
         </div>
+        {% elif can_manage_print_presentation %}
+        <button class="print-settings-command" type="button" data-open-print-settings aria-haspopup="dialog">Print settings</button>
         {% endif %}
         {% if not is_form_layout_builder %}
-        <button class="print-command-refresh" type="button" data-print-refresh aria-label="Refresh print preview" title="Refresh print preview">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M3 12a9 9 0 0 1 15.5-6.2L21 8" />
-            <path d="M21 3v5h-5" />
-            <path d="M21 12a9 9 0 0 1-15.5 6.2L3 16" />
-            <path d="M3 21v-5h5" />
-          </svg>
-        </button>
         <details class="print-more-menu">
           <summary aria-label="More record actions" title="More record actions"><span aria-hidden="true">...</span></summary>
           <div class="print-more-panel">
@@ -64,6 +61,7 @@
             </form>
             {% endif %}
             <a href="/records/new">Choose form</a>
+            <a href="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">Refresh preview</a>
           </div>
         </details>
         {% endif %}
@@ -72,6 +70,11 @@
         {% endif %}
       </div>
     </header>
+    {% if not is_form_layout_builder %}
+    <div class="print-preview-fit" role="status">
+      <span class="print-fit-status" data-print-fit-status data-fit="{{ fit.status or 'likely' }}" title="{{ fit.detail or 'Use browser print preview for final confirmation.' }}"><span data-print-fit-label>{{ fit.label or 'Check print preview' }}</span></span>
+    </div>
+    {% endif %}
     {% if print_sizes_saved %}
     <p class="print-sizes-saved" role="status">Text sizes saved for this form and print layout.</p>
     {% endif %}
@@ -80,7 +83,7 @@
     <p class="print-layout-save-notice" data-layout-save-notice hidden role="status"></p>
     <section class="print-layout-editor" data-print-layout-editor hidden aria-labelledby="print-layout-editor-title">
       <div class="print-layout-editor-copy">
-        <strong id="print-layout-editor-title">Adjust layout</strong>
+        <strong id="print-layout-editor-title" tabindex="-1">Adjust layout</strong>
         <span data-layout-editor-hint>Select a field or a section on the page.</span>
       </div>
       <div class="print-layout-editor-actions">
@@ -142,6 +145,33 @@
         {% if request.query_params.get("return_to") %}
         <input type="hidden" name="return_to" value="{{ request.query_params.get('return_to') }}">
         {% endif %}
+        {% if not is_form_layout_builder %}
+        <fieldset class="print-text-sizes">
+          <legend>Text sizes</legend>
+          <input type="hidden" name="save_text_sizes" value="1">
+          {% for name, label in [('test_name_scale', 'Test names'), ('result_scale', 'Results')] %}
+          <div class="print-text-size-row">
+            <label for="{{ name }}">{{ label }}</label>
+            <div class="print-text-stepper" data-text-stepper>
+              <button type="button" data-text-step="-5" aria-label="Decrease {{ label | lower }} size">&minus;</button>
+              <div class="print-text-percent">
+                <input id="{{ name }}" name="{{ name }}" type="number" min="50" max="200" step="1" value="{{ document.print_config[name] }}" data-text-scale aria-label="{{ label }} size in percent">
+                <span aria-hidden="true">%</span>
+              </div>
+              <button type="button" data-text-step="5" aria-label="Increase {{ label | lower }} size">+</button>
+            </div>
+          </div>
+          {% endfor %}
+          <div class="print-text-size-footer">
+            <span data-text-size-scope>{{ presentation.style_label }} &middot; {{ presentation.paper_size_label }}</span>
+            <button type="button" data-reset-text-sizes>Reset sizes</button>
+          </div>
+          <p class="print-text-size-warning" data-text-size-warning role="status" hidden></p>
+        </fieldset>
+        <details class="print-paper-settings" data-print-paper-settings>
+          <summary>Paper &amp; style</summary>
+          <div class="print-paper-settings-fields">
+        {% endif %}
         <fieldset class="print-layout-choice">
           <legend>Style</legend>
           <div class="print-segmented-control print-segmented-control--styles" role="radiogroup" aria-label="Print style">
@@ -187,35 +217,18 @@
           </label>
         </div>
         {% if not is_form_layout_builder %}
-        <fieldset class="print-text-sizes">
-          <legend>Text sizes</legend>
-          <input type="hidden" name="save_text_sizes" value="1">
-          {% for name, label in [('test_name_scale', 'Test names'), ('result_scale', 'Results')] %}
-          <div class="print-text-size-row">
-            <label for="{{ name }}">{{ label }}</label>
-            <div class="print-text-stepper" data-text-stepper>
-              <button type="button" data-text-step="-5" aria-label="Decrease {{ label | lower }} size">&minus;</button>
-              <div class="print-text-percent">
-                <input id="{{ name }}" name="{{ name }}" type="number" min="50" max="200" step="1" value="{{ document.print_config[name] }}" data-text-scale aria-label="{{ label }} size in percent">
-                <span aria-hidden="true">%</span>
-              </div>
-              <button type="button" data-text-step="5" aria-label="Increase {{ label | lower }} size">+</button>
-            </div>
-          </div>
-          {% endfor %}
-          <div class="print-text-size-footer">
-            <span data-text-size-scope>{{ presentation.style_label }} &middot; {{ presentation.paper_size_label }}</span>
-            <button type="button" data-reset-text-sizes>Reset sizes</button>
-          </div>
-          <p class="print-text-size-hint">Saved for this form and print layout. Results include units.</p>
-          <p class="print-text-size-warning" data-text-size-warning role="status" hidden></p>
-        </fieldset>
         <label class="print-default-option">
           <input type="checkbox" name="set_default" value="1">
           <span>Use this style and paper for new records</span>
         </label>
+          </div>
+        </details>
+        <div class="print-settings-layout">
+          <button class="print-link" type="button" data-open-layout-editor>Adjust layout</button>
+          <small data-layout-settings-hint role="status" hidden>Save your settings before adjusting the layout.</small>
+        </div>
         {% if print_preference_saved or print_paper_preference_saved %}
-        <p class="print-layout-notice">Your default print settings were saved.</p>
+        <p class="print-layout-notice" role="status">Your default print settings were saved.</p>
         {% endif %}
         {% endif %}
         <div class="print-settings-actions">
@@ -230,7 +243,7 @@
       {{ render_print_page(document) }}
     </div>
   </main>
-  <script src="{{ url_for('static', path='print-layout.js') }}?v=20261103-layout-editor"></script>
+  <script src="{{ url_for('static', path='print-layout.js') }}?v=20261105-record-preview"></script>
   <script>
     (() => {
       const settingsDialog = document.querySelector("[data-print-settings-dialog]");
@@ -305,6 +318,17 @@
 
       const scaleInputs = Array.from(document.querySelectorAll('[data-text-scale]'));
       const settingsForm = document.querySelector('.print-settings-form');
+      const paperSettings = document.querySelector('[data-print-paper-settings]');
+      const layoutButton = settingsDialog?.querySelector('[data-open-layout-editor]');
+      const layoutSettingsHint = settingsDialog?.querySelector('[data-layout-settings-hint]');
+      const settingsValues = () => new URLSearchParams(new FormData(settingsForm)).toString();
+      const savedSettingsValues = layoutButton ? settingsValues() : '';
+      const syncLayoutButton = () => {
+        if (!layoutButton) return;
+        layoutButton.disabled = settingsValues() !== savedSettingsValues;
+        layoutSettingsHint.hidden = !layoutButton.disabled;
+      };
+      settingsForm?.addEventListener('change', syncLayoutButton);
       const initialTextSizes = {
         test_name_scale: {{ document.print_config.test_name_scale | default(100) }},
         result_scale: {{ document.print_config.result_scale | default(100) }},
@@ -335,6 +359,7 @@
         document.body.dataset.testNameScale = sizes.test_name_scale;
         document.body.dataset.resultScale = sizes.result_scale;
         draftTextSizes[currentSizeKey()] = { ...sizes };
+        syncLayoutButton();
         schedulePrintFitCheck();
       };
       const switchTextSizeProfile = () => {
@@ -368,6 +393,7 @@
       paperSizeSelect?.addEventListener('change', switchTextSizeProfile);
       settingsDialog?.addEventListener('close', () => {
         if (!scaleInputs.length) return;
+        paperSettings.open = false;
         settingsForm.reset();
         syncOrientation();
         syncTextSize();

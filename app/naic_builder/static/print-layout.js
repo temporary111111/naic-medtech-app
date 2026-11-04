@@ -9,6 +9,8 @@
       const paper = find(".print-page");
       const grids = Array.from(document.querySelectorAll("[data-print-layout-grid]"));
       const openButton = find("[data-open-layout-editor]");
+      const settingsDialog = openButton?.closest("[data-print-settings-dialog]");
+      const returnFocus = settingsDialog ? find("[data-open-print-settings]") : openButton;
       const saveButton = find("[data-layout-save]");
       const cancelButton = find("[data-layout-cancel]");
       const undoButton = find("[data-layout-undo]");
@@ -307,7 +309,7 @@
       const setEditing = (value) => {
         editing = value; editor.hidden = !value;
         document.body.classList.toggle("is-layout-editing", value);
-        openButton.disabled = value;
+        if (!settingsDialog) openButton.disabled = value;
         document.querySelectorAll("[data-print-action], [data-open-print-settings]").forEach((button) => {
           if (value) { temporarilyDisabled.set(button, button.disabled); button.disabled = true; }
           else { button.disabled = temporarilyDisabled.get(button) || false; temporarilyDisabled.delete(button); }
@@ -318,7 +320,7 @@
         if (saving) return;
         finishGesture(true); restoreSnapshot(baseline);
         if (future) future.checked = baselineFuture;
-        setEditing(false); say(""); openButton.focus({ preventScroll: true });
+        setEditing(false); say(""); returnFocus.focus({ preventScroll: true });
       };
       const save = async () => {
         if (!editing || saving || gesture || !dirty()) return;
@@ -333,7 +335,7 @@
           baseline = snapshot(); baselineFuture = Boolean(future?.checked);
           if (restoreButton) { restoreButton.hidden = false; restoreButton.disabled = false; }
           setEditing(false); notice.textContent = result.message || "Layout saved."; notice.hidden = false;
-          openButton.focus();
+          returnFocus.focus();
         } catch (error) { say(error.message || "Could not save the layout. Your adjustments are still here.", true); }
         finally { saving = false; updateControls(); }
       };
@@ -350,9 +352,11 @@
       }
       if (!editor || !paper) return { currentPreference };
       openButton.addEventListener("click", () => {
+        settingsDialog?.close();
         baseline = snapshot(); baselineFuture = Boolean(future?.checked);
         history.splice(0, history.length, baseline); historyIndex = 0; selected = null;
         notice.hidden = true; say(""); setEditing(true); updateControls();
+        if (settingsDialog) title.focus({ preventScroll: true });
       });
       cancelButton.addEventListener("click", cancel);
       saveButton.addEventListener("click", save);
@@ -443,7 +447,6 @@
         if (!dirty()) return;
         event.preventDefault(); if (await confirmDiscard()) { cancel(); window.location.assign(link.href); }
       });
-      find("[data-print-refresh]")?.addEventListener("click", async () => { if (!editing || await confirmDiscard()) { if (editing) cancel(); location.reload(); } });
       restoreButton?.addEventListener("click", async () => {
         if (saving || !window.confirm("Restore the saved form layout? Any unsaved layout adjustments will be discarded.")) return;
         saving = true; updateControls();

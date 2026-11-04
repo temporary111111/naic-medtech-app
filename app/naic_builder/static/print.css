@@ -409,7 +409,7 @@ body {
 .print-command-back,
 .print-active-profile,
 .print-layout-command,
-.print-command-refresh,
+.print-settings-command,
 .print-more-menu summary {
   display: inline-flex;
   align-items: center;
@@ -426,6 +426,10 @@ body {
   line-height: 1.1;
   text-decoration: none;
   cursor: pointer;
+}
+
+.print-settings-command {
+  white-space: nowrap;
 }
 
 .print-active-profile {
@@ -501,21 +505,6 @@ body {
   line-height: 1;
 }
 
-.print-command-refresh {
-  min-width: 38px;
-  padding: 0;
-}
-
-.print-command-refresh svg {
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.9;
-}
-
 .print-command-record {
   display: grid;
   gap: 2px;
@@ -538,6 +527,16 @@ body {
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.print-preview-fit .print-fit-status {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.print-preview-fit [data-fit="likely"] {
+  display: none;
 }
 
 .print-fit-notice {
@@ -701,6 +700,42 @@ body {
 }
 .print-settings-grid--single { grid-template-columns: minmax(0, 1fr); }
 
+.print-paper-settings,
+.print-settings-layout {
+  border-top: 1px solid var(--line-soft);
+}
+
+.print-paper-settings summary {
+  padding: 12px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.print-paper-settings-fields {
+  display: grid;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+.print-settings-layout {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding-top: 12px;
+}
+
+.print-settings-layout button:disabled {
+  opacity: .55;
+  cursor: default;
+}
+
+.print-settings-layout small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
 .print-settings-actions {
   display: flex;
   justify-content: flex-end;
@@ -790,7 +825,6 @@ body {
   font: inherit;
   cursor: pointer;
 }
-.print-text-size-hint,
 .print-text-size-warning { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.4; }
 .print-text-size-warning { color: #9a4a12; }
 .print-text-size-warning[hidden] { display: none; }
@@ -802,11 +836,14 @@ body {
 .print-scaled-result { font-size: calc(1em * var(--print-result-scale, 1)); line-height: 1.1; }
 
 @media screen and (min-width: 1100px) {
-  .print-settings-dialog:has([data-text-scale]) {
+  .print-settings-dialog:has([data-print-paper-settings]) {
     margin: 88px 24px auto auto;
     width: 370px;
   }
-  .print-settings-dialog:has([data-text-scale])::backdrop { background: rgba(23, 30, 27, .06); }
+  .print-settings-dialog:has([data-print-paper-settings])::backdrop { background: rgba(23, 30, 27, .06); }
+  .print-shell:has(.print-settings-dialog[open] [data-print-paper-settings]) {
+    margin-left: max(0px, calc((100% - var(--print-page-width) - 386px) / 2));
+  }
 }
 
 .print-page {
@@ -2125,6 +2162,16 @@ body {
     gap: 8px;
   }
 
+  .print-command-bar--record .print-command-actions {
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  .print-command-bar--record .print-button {
+    flex: 1;
+    width: auto;
+  }
+
   .print-button {
     grid-column: 1 / -1;
     grid-row: 1;
@@ -2141,11 +2188,6 @@ body {
     grid-column: 1;
     grid-row: 3;
     width: 100%;
-  }
-
-  .print-command-refresh {
-    grid-column: 2;
-    grid-row: 3;
   }
 
   .print-more-menu {
@@ -2182,6 +2224,10 @@ body {
     border-bottom: 0;
     border-left: 0;
     border-radius: 8px 8px 0 0;
+  }
+
+  .print-settings-dialog:has([data-print-paper-settings]) {
+    max-width: none;
   }
 
   .print-settings-grid {
@@ -2307,6 +2353,7 @@ body {
   .print-fit-badge,
   .print-toolbar,
   .print-command-bar,
+  .print-preview-fit,
   .print-sizes-saved,
   .print-settings-dialog {
     display: none;
