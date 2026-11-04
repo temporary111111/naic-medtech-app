@@ -1,10 +1,36 @@
 {% extends "_authenticated_shell.html" %}
 {% set shell_active = "overview" %}
 
+{% macro overview_icon(name) %}
+  <svg class="overview-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    {% if name == 'drafts' %}
+    <path d="M8 4h6l4 4v12H6V4Zm6 0v5h4M9 13h6m-6 3h4"/>
+    {% elif name == 'completed' %}
+    <circle cx="12" cy="12" r="8"/><path d="m8.5 12 2.3 2.3 4.7-4.6"/>
+    {% elif name == 'voided' %}
+    <circle cx="12" cy="12" r="8"/><path d="m6.4 17.6 11.2-11.2"/>
+    {% elif name == 'activity' %}
+    <path d="M4 4v16h16M8 16v-4m4 4V8m4 8V5"/>
+    {% elif name == 'recent' %}
+    <circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>
+    {% elif name == 'arrow' %}
+    <path d="M5 12h14m-5-5 5 5-5 5"/>
+    {% endif %}
+  </svg>
+{% endmacro %}
+
+{% macro activity_row(item) %}
+  <a class="overview-form-row" href="{{ item.history_url }}">
+    <span>{{ item.name }}</span>
+    <strong>{{ item.count }}</strong>
+    <span class="overview-form-row__track" aria-hidden="true"><span style="width: {{ item.percent }}%"></span></span>
+  </a>
+{% endmacro %}
+
 {% block html_title %}Overview | {{ app_title }}{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{{ url_for('static', path='overview.css') }}?v=20260801-all-form-activity">
+  <link rel="stylesheet" href="{{ url_for('static', path='overview.css') }}?v=20261105-layered-overview">
 {% endblock %}
 
 {% block shell_eyebrow %}Laboratory records{% endblock %}
@@ -20,30 +46,85 @@
 {% endblock %}
 
 {% block content %}
+  {% set featured_forms = (form_activity | selectattr('count') | sort(attribute='count', reverse=true))[:4] %}
+  {% set featured_slugs = featured_forms | map(attribute='slug') | list %}
+  {% set other_forms = form_activity | rejectattr('slug', 'in', featured_slugs) | list %}
   <section class="overview-shell" aria-label="Laboratory records overview">
-    <section class="overview-board">
-      <a class="overview-zone overview-zone--attention" href="/records">
-        <span class="overview-zone__eyebrow">Needs attention</span>
-        <strong class="overview-zone__number overview-zone__number--danger">{{ draft_count }}</strong>
-        <span class="overview-zone__title">Draft records</span>
-        <span class="overview-zone__copy">All unfinished records</span>
-        <span class="overview-zone__link">Open work queue</span>
+    <section class="overview-metrics" aria-label="Record counts">
+      <a class="overview-metric overview-metric--draft" href="/records">
+        <svg class="overview-orb" viewBox="0 0 224 180" fill="none" aria-hidden="true">
+          <defs>
+            <radialGradient id="overviewOrbGlow">
+              <stop stop-color="currentColor" stop-opacity=".26"/>
+              <stop offset="1" stop-color="currentColor" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <circle cx="114" cy="75" r="70" fill="url(#overviewOrbGlow)"/>
+          <g stroke="currentColor">
+            <circle cx="114" cy="75" r="48" opacity=".85"/>
+            <ellipse cx="114" cy="75" rx="19" ry="48" opacity=".65" transform="rotate(30 114 75)"/>
+            <ellipse cx="114" cy="75" rx="48" ry="18" opacity=".7" transform="rotate(30 114 75)"/>
+            <ellipse cx="114" cy="75" rx="75" ry="22" opacity=".76" transform="rotate(-25 114 75)"/>
+            <ellipse cx="114" cy="146" rx="75" ry="18" opacity=".66"/>
+            <ellipse cx="114" cy="146" rx="48" ry="11" opacity=".38"/>
+            <path d="M114 124v21M39 146v8a75 18 0 0 0 150 0v-8" opacity=".34"/>
+          </g>
+          <circle cx="175" cy="43" r="3" fill="currentColor"/>
+          <circle cx="65" cy="105" r="2.5" fill="currentColor"/>
+        </svg>
+        <span class="overview-metric__label">{{ overview_icon('drafts') }} Draft records</span>
+        <strong class="overview-metric__number">{{ draft_count }}</strong>
+        <span class="overview-metric__scope">All unfinished</span>
+        <span class="overview-metric__action">Open work queue {{ overview_icon('arrow') }}</span>
       </a>
 
-      <a class="overview-zone overview-zone--primary" href="{{ completed_history_url }}">
-        <span class="overview-zone__eyebrow">Selected period</span>
-        <span class="overview-zone__focus-ring" aria-hidden="true"></span>
-        <span class="overview-zone__primary-copy">
-          <strong class="overview-zone__number">{{ completed_count }}</strong>
-          <span class="overview-zone__title">Completed records</span>
-          <span class="overview-zone__copy">Updated {{ period_label | lower }}</span>
-        </span>
+      <a class="overview-metric overview-metric--completed" href="{{ completed_history_url }}">
+        <span class="overview-metric__label">{{ overview_icon('completed') }} Completed records</span>
+        <strong class="overview-metric__number">{{ completed_count }}</strong>
+        <span class="overview-metric__scope">{{ period_label }}</span>
+        <span class="overview-metric__action">View completed {{ overview_icon('arrow') }}</span>
       </a>
 
-      <section class="overview-recent" aria-labelledby="overview-recent-title">
+      <a class="overview-metric overview-metric--voided" href="{{ voided_history_url }}">
+        <span class="overview-metric__label">{{ overview_icon('voided') }} Voided records</span>
+        <strong class="overview-metric__number">{{ voided_count }}</strong>
+        <span class="overview-metric__scope">{{ period_label }}</span>
+        <span class="overview-metric__action">Review voided {{ overview_icon('arrow') }}</span>
+      </a>
+    </section>
+
+    <div class="overview-detail-grid">
+      <section class="overview-panel overview-activity" aria-labelledby="overview-activity-title">
         <header class="overview-panel-head">
-          <h2 id="overview-recent-title">Recent updates</h2>
-          <a href="{{ recent_history_url }}">History</a>
+          <h2 id="overview-activity-title">{{ overview_icon('activity') }} Activity by form</h2>
+          <span class="overview-panel-meta">Completed</span>
+        </header>
+        <div class="overview-panel-body">
+          {% if featured_forms %}
+          <div class="overview-form-grid">
+            {% for item in featured_forms %}{{ activity_row(item) }}{% endfor %}
+          </div>
+          {% else %}
+          <p class="overview-empty">No completed records {{ period_label | lower }}.</p>
+          {% endif %}
+          {% if other_forms %}
+          <details class="overview-more">
+            <summary>
+              <span class="overview-more__closed">View all forms <small>{{ form_activity | length }}</small></span>
+              <span class="overview-more__open">Show less</span>
+            </summary>
+            <div class="overview-form-grid">
+              {% for item in other_forms %}{{ activity_row(item) }}{% endfor %}
+            </div>
+          </details>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="overview-panel overview-recent" aria-labelledby="overview-recent-title">
+        <header class="overview-panel-head">
+          <h2 id="overview-recent-title">{{ overview_icon('recent') }} Recent updates</h2>
+          <a href="{{ recent_history_url }}">History {{ overview_icon('arrow') }}</a>
         </header>
         {% if recent_records %}
           {% for record in recent_records %}
@@ -52,41 +133,13 @@
               <strong>{{ record.form_name }}</strong>
               <small>Created by {{ record.overview_creator_name }}{% if record.overview_updated_at_label %} &middot; Updated {{ record.overview_updated_at_label }}{% endif %}</small>
             </span>
+            {{ overview_icon('arrow') }}
           </a>
           {% endfor %}
         {% else %}
-        <div class="overview-empty">No record updates {{ period_label | lower }}.</div>
+        <p class="overview-empty">No record updates {{ period_label | lower }}.</p>
         {% endif %}
       </section>
-
-      <section class="overview-activity" aria-labelledby="overview-activity-title">
-        <header class="overview-panel-head">
-          <h2 id="overview-activity-title">Activity by form</h2>
-          <a href="{{ completed_history_url }}">View in history</a>
-        </header>
-        {% if form_activity %}
-        <div class="overview-form-grid">
-          {% for item in form_activity %}
-          <a class="overview-form-row" href="{{ item.history_url }}">
-            <span>{{ item.name }}</span>
-            <span class="overview-form-row__track"><span style="width: {{ item.percent }}%"></span></span>
-            <strong>{{ item.count }}</strong>
-          </a>
-          {% endfor %}
-        </div>
-        {% else %}
-        <div class="overview-empty">No completed records {{ period_label | lower }}.</div>
-        {% endif %}
-      </section>
-
-      <a class="overview-zone overview-zone--voided" href="{{ voided_history_url }}">
-        <span class="overview-zone__eyebrow">Record status</span>
-        <strong class="overview-zone__number">{{ voided_count }}</strong>
-        <span class="overview-zone__title">Voided records</span>
-        <span class="overview-zone__copy">Updated {{ period_label | lower }}</span>
-        <span class="overview-zone__link">Review voided records</span>
-      </a>
-    </section>
-    <p class="overview-footnote">Completed, voided, form activity, and recent updates use the selected period. Drafts include all unfinished records.</p>
+    </div>
   </section>
 {% endblock %}
