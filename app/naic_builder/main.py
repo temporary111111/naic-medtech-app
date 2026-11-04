@@ -118,7 +118,6 @@ from .services import (
     get_record_or_none,
     has_any_users,
     list_container_choices,
-    completed_record_trends,
     list_completed_record_activity_by_form,
     list_form_choices,
     list_library_tree,
@@ -872,7 +871,6 @@ def render_overview_page(
             "draft_count": draft_count,
             "voided_count": voided_count,
             "form_activity": form_activity,
-            "completion_trends": completed_record_trends(session),
             "recent_records": recent_records,
             "completed_history_url": records_history_url(
                 status_filter="completed",

@@ -32,19 +32,6 @@
 
 .overview-period-tab.is-active { box-shadow: inset 0 -2px var(--accent); }
 
-.overview-trend-period {
-  display: inline-grid;
-  align-items: center;
-  min-height: 42px;
-  padding: 5px 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--control-radius);
-  background: var(--panel);
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
-}
-
 .overview-period-tab:focus-visible,
 .overview-shell :is(a, button, summary, [tabindex]):focus-visible {
   outline: 2px solid var(--accent);
@@ -58,7 +45,6 @@
   --globe-edge: #538480;
   --globe-fill: #25605e;
   --globe-floor: #0a2027;
-  --trend-previous: #d2baff;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(210px, .47fr);
   align-items: center;
@@ -123,18 +109,6 @@
   opacity: .28;
 }
 
-.globe-trend-arc {
-  fill: none;
-  stroke: var(--globe-accent);
-  stroke-width: 2;
-  opacity: .75;
-}
-
-.globe-trend-arc--previous {
-  stroke: var(--trend-previous);
-  stroke-dasharray: 6 5;
-}
-
 .globe-pin {
   --pin-color: var(--globe-accent);
   position: absolute;
@@ -184,16 +158,11 @@
 
 .globe-pin--form {
   --pin-color: var(--form-accent, var(--globe-accent));
-}
-
-.globe-pin--trend-previous { --pin-color: var(--trend-previous); }
-
-.globe-pin:is(.globe-pin--form, [data-trend-day]) {
   width: clamp(24px, 6cqw, 44px);
   height: clamp(24px, 6cqw, 44px);
 }
 
-.globe-pin:is(.globe-pin--form, [data-trend-day]) .globe-pin__point {
+.globe-pin--form .globe-pin__point {
   width: var(--pin-size);
   height: var(--pin-size);
   border-color: color-mix(in srgb, currentColor 55%, var(--globe-text));
@@ -201,14 +170,7 @@
   box-shadow: 0 0 12px color-mix(in srgb, currentColor 49%, transparent);
 }
 
-.globe-pin[data-trend-day] .globe-pin__point { background: currentColor; }
-.globe-pin--trend-previous .globe-pin__point {
-  background: color-mix(in srgb, currentColor 23%, var(--globe-floor));
-  border: 2px solid currentColor;
-}
-.globe-pin[data-trend-day][data-count="0"] .globe-pin__point { background: var(--globe-floor); }
-
-.globe-pin:is(.globe-pin--form, [data-trend-day]) .globe-pin__label {
+.globe-pin--form .globe-pin__label {
   display: none;
   max-width: clamp(86px, 30cqw, 200px);
   overflow: hidden;
@@ -216,7 +178,7 @@
   font-size: clamp(10px, 2.8cqw, 13px);
 }
 
-.globe-pin:is(.globe-pin--form, [data-trend-day]):is(:hover, :focus-visible, [aria-pressed="true"]) .globe-pin__label { display: block; }
+.globe-pin--form:is(:hover, :focus-visible, [aria-pressed="true"]) .globe-pin__label { display: block; }
 
 .globe-pin:is(:hover, [aria-pressed="true"]) .globe-pin__point {
   box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 35%, transparent), 0 0 19px color-mix(in srgb, currentColor 45%, transparent);
@@ -300,32 +262,6 @@
   font-weight: 800;
 }
 
-.globe-trend-summary h2 {
-  margin: 0 0 7px;
-  color: var(--globe-text);
-  font: 800 16px var(--font-display);
-}
-
-.globe-trend-totals {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.globe-trend-total {
-  display: grid;
-  gap: 3px;
-  padding: 8px;
-  border-top: 2px solid var(--globe-accent);
-  background: var(--globe-floor);
-  color: var(--globe-muted);
-  font-size: 12px;
-}
-
-.globe-trend-total--previous { border-top: 2px dashed var(--trend-previous); }
-.globe-trend-total strong { color: var(--globe-text); font: 800 25px var(--font-display); }
-.globe-trend-total small { font-size: inherit; }
-
 .globe-fallback { display: flex; flex-wrap: wrap; gap: 10px; }
 
 .globe-form-picker {
@@ -385,11 +321,10 @@ html[data-contrast="high"] .overview-stage {
   --globe-edge: var(--line-strong);
   --globe-fill: var(--accent-soft);
   --globe-floor: var(--panel-strong);
-  --trend-previous: var(--globe-text);
   background: var(--panel);
 }
 
-html[data-contrast="high"] .globe-pin:not(.globe-pin--form, [data-trend-day]) { --pin-color: var(--globe-accent); }
+html[data-contrast="high"] .globe-pin:not(.globe-pin--form) { --pin-color: var(--globe-accent); }
 html[data-contrast="high"] .globe-pin--form .globe-pin__point {
   border-color: var(--globe-edge);
   background: currentColor;
