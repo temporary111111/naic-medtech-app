@@ -1,24 +1,31 @@
 {% extends "_authenticated_shell.html" %}
 {% set shell_active = "overview" %}
 
-{% macro globe_pin(name, count, scope, url, kind, key='', location='', accent=none) %}
+{% macro globe_pin(name, count, scope, url, kind, key='', location='', accent=none, action='', value='', attention=false) %}
   <button type="button" class="globe-pin globe-pin--{{ kind }}" data-globe-pin
           data-name="{{ name }}" data-count="{{ count }}" data-scope="{{ scope }}"
-          data-url="{{ url }}" data-key="{{ key }}" data-location="{{ location }}"
-          aria-label="{{ name }}: {{ count }}"{% if accent %} style="--form-accent: {{ accent }}"{% endif %} hidden>
-    <span class="globe-pin__point" aria-hidden="true">{% if kind != 'form' %}{{ count }}{% endif %}</span>
-    <span class="globe-pin__label" aria-hidden="true">{{ name }}{% if kind == 'form' %} · {{ count }}{% endif %}</span>
+          data-url="{{ url }}" data-key="{{ key or kind }}" data-location="{{ location }}"
+          {% if action %}data-action="{{ action }}"{% endif %}{% if value %} data-value="{{ value }}"{% endif %}
+          {% if attention %}data-attention{% endif %}
+          aria-label="{{ name }}: {{ value if value else count }}"{% if accent %} style="--form-accent: {{ accent }}"{% endif %} hidden>
+    <span class="globe-pin__point" aria-hidden="true">
+      {% if kind == 'backup' %}{{ shell_icon('backup') }}{% elif kind != 'form' %}{{ count }}{% endif %}
+    </span>
+    <span class="globe-pin__label" aria-hidden="true">
+      {% if kind == 'users' %}Access requests{% else %}{{ name }}{% endif %}{% if kind == 'form' %} · {{ count }}{% endif %}
+      {% if kind == 'backup' and attention %}<small>{{ value }}</small>{% endif %}
+    </span>
   </button>
 {% endmacro %}
 
 {% block html_title %}Overview | {{ app_title }}{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{{ url_for('static', path='overview.css') }}?v=20261105-globe-labels">
+  <link rel="stylesheet" href="{{ url_for('static', path='overview.css') }}?v=20261105-system-markers">
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', path='overview-orbit.js') }}?v=20261105-globe-labels" defer></script>
+  <script src="{{ url_for('static', path='overview-orbit.js') }}?v=20261105-system-markers" defer></script>
 {% endblock %}
 
 {% block shell_eyebrow %}Laboratory records{% endblock %}
@@ -59,6 +66,10 @@
             {{ globe_pin('Drafts', draft_count, 'All unfinished', '/records', 'draft') }}
             {{ globe_pin('Completed', completed_count, period_label, completed_history_url, 'completed') }}
             {{ globe_pin('Voided', voided_count, period_label, voided_history_url, 'voided') }}
+            {% if system_status %}
+              {{ globe_pin('Backup', '', system_status.backup.scope, '/backup', 'backup', action='Open backup', value=system_status.backup.value, attention=system_status.backup.attention) }}
+              {{ globe_pin('Pending access requests', system_status.pending_requests, 'Total users · ' ~ system_status.user_count, '/settings/users', 'users', action='Review requests', attention=system_status.pending_requests > 0) }}
+            {% endif %}
             {% for item in ordered_forms %}
               {{ globe_pin(item.name, item.count, 'Completed · ' ~ period_label, item.history_url, 'form', item.slug, item.location, item.print_accent) }}
             {% endfor %}
@@ -115,6 +126,10 @@
           <a href="/records">{{ draft_count }} drafts</a>
           <a href="{{ completed_history_url }}">{{ completed_count }} completed</a>
           <a href="{{ voided_history_url }}">{{ voided_count }} voided</a>
+          {% if system_status %}
+          <a href="/backup">Backup · {{ system_status.backup.value }}</a>
+          <a href="/settings/users">{{ system_status.pending_requests }} pending access requests</a>
+          {% endif %}
         </nav>
       </div>
     </div>

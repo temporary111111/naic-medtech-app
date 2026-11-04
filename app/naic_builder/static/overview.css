@@ -148,6 +148,14 @@
 .globe-pin--draft { --pin-color: #ffe4aa; }
 .globe-pin--voided { --pin-color: #cad7f2; }
 
+.globe-pin:is(.globe-pin--backup, .globe-pin--users) {
+  --pin-color: var(--globe-muted);
+  width: clamp(30px, 7.2cqw, 44px);
+  height: clamp(30px, 7.2cqw, 44px);
+}
+
+.globe-pin[data-attention] { --pin-color: #ffe4aa; }
+
 .globe-pin__point {
   display: grid;
   place-items: center;
@@ -173,6 +181,21 @@
   font-weight: 800;
   white-space: nowrap;
   pointer-events: none;
+}
+
+.globe-pin:is(.globe-pin--backup, .globe-pin--users) .globe-pin__point { font-size: clamp(13px, 3.4cqw, 19px); }
+.globe-pin--backup .globe-pin__point svg { width: 1.05em; height: 1.05em; }
+
+.globe-pin:is(.globe-pin--backup, .globe-pin--users) .globe-pin__label {
+  font-size: clamp(10px, 2.8cqw, 13px);
+  text-align: center;
+}
+
+.globe-pin--backup .globe-pin__label small {
+  display: block;
+  margin-top: 2px;
+  color: var(--pin-color);
+  font-size: .9em;
 }
 
 .globe-pin--form {
@@ -330,6 +353,7 @@
 
 .globe-detail h2 { font-size: 17px; }
 .globe-detail strong { font-size: clamp(25px, 3.4vw, 43px); font-variant-numeric: tabular-nums; }
+.globe-detail strong[data-status-value] { font-size: clamp(18px, 2.4vw, 25px); }
 
 .globe-detail p {
   margin: 2px 0 0;
@@ -409,6 +433,7 @@ html[data-contrast="high"] .overview-stage {
 }
 
 html[data-contrast="high"] .globe-pin:not(.globe-pin--form) { --pin-color: var(--globe-accent); }
+html[data-contrast="high"] .globe-pin[data-attention] { --pin-color: var(--warm); }
 html[data-contrast="high"] .globe-pin--form .globe-pin__point {
   border-color: var(--globe-edge);
   background: currentColor;

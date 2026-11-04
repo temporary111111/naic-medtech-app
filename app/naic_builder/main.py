@@ -34,6 +34,7 @@ from .backup import (
 )
 from .backup_schedule import (
     backup_schedule_summary,
+    daily_backup_due,
     request_change_backup,
     scheduled_backup_loop,
     start_change_backup_worker,
@@ -811,6 +812,28 @@ def normalize_overview_period(value: str | None) -> str:
     return active_period if active_period or not requested_period else "this_month"
 
 
+def overview_backup_marker() -> dict[str, Any]:
+    try:
+        local_status = local_backup_status(limit=1)
+    except OSError:
+        return {"value": "Check backup", "scope": "Backup status is unavailable.", "attention": True}
+
+    latest = local_status["latest"]
+    if latest is None:
+        return {"value": "No backup yet", "scope": "Create a verified backup to protect clinic records.", "attention": True}
+
+    schedule = backup_schedule_summary(local_status=local_status)
+    if schedule["status"] != "ready":
+        value = schedule["label"]
+    else:
+        value = "Backup due" if daily_backup_due(local_status=local_status) else "Available"
+    return {
+        "value": value,
+        "scope": f"Latest local backup · {latest['modified_label']}",
+        "attention": value not in {"Available", "Running", "Waiting"},
+    }
+
+
 def render_overview_page(
     request: Request,
     session: Session,
@@ -860,6 +883,13 @@ def render_overview_page(
         )
         record["overview_updated_at_label"] = str(record.get("updated_at_compact_label") or "")
         record["overview_url"] = f"/records/{record['id']}?{overview_query(overview_return_url)}"
+    system_status = None
+    if request.state.is_admin:
+        system_status = {
+            "backup": overview_backup_marker(),
+            "pending_requests": count_users(session, status="pending"),
+            "user_count": count_users(session),
+        }
     return templates.TemplateResponse(
         request=request,
         name="overview.html",
@@ -870,6 +900,7 @@ def render_overview_page(
             "completed_count": completed_count,
             "draft_count": draft_count,
             "voided_count": voided_count,
+            "system_status": system_status,
             "form_activity": form_activity,
             "recent_records": recent_records,
             "completed_history_url": records_history_url(

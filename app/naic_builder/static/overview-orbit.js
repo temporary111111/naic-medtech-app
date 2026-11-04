@@ -27,19 +27,23 @@
     Math.cos(latitude) * Math.cos(longitude),
   ];
   const elements = [...overview.querySelectorAll("[data-globe-pin]")];
-  const formElements = elements.slice(3);
-  const statusPositions = [[-8, -43], [30, 0], [-8, 43]];
+  const formElements = elements.filter(element => element.classList.contains("globe-pin--form"));
+  const statusPositions = {
+    draft: [-8, -43], completed: [30, 0], voided: [-8, 43],
+    backup: [-44, -40], users: [-44, 40],
+  };
   const defaultPitch = radians(12);
   const columns = Math.ceil(Math.sqrt(formElements.length * 1.5));
   const rows = Math.ceil(formElements.length / columns) || 0;
   const maximum = Math.max(1, ...formElements.map(element => Number(element.dataset.count)));
 
-  const pins = elements.map((element, index) => {
-    const isForm = index >= statusPositions.length;
+  let formIndex = 0;
+  const pins = elements.map(element => {
+    const isForm = element.classList.contains("globe-pin--form");
     let latitude;
     let longitude;
     if (isForm) {
-      const offset = index - statusPositions.length;
+      const offset = formIndex++;
       const row = Math.floor(offset / columns);
       const column = offset % columns;
       const rowLength = Math.min(columns, formElements.length - row * columns);
@@ -49,7 +53,7 @@
       const size = 24 + 76 * Math.sqrt(Number(element.dataset.count) / maximum);
       element.style.setProperty("--pin-size", `${size}%`);
     } else {
-      [latitude, longitude] = statusPositions[index];
+      [latitude, longitude] = statusPositions[element.dataset.key];
     }
 
     return { element, isForm, latitude: radians(latitude), longitude: radians(longitude),
@@ -200,13 +204,14 @@
     selected?.element.setAttribute("aria-pressed", "false");
     selected = pin;
     pin.element.setAttribute("aria-pressed", "true");
-    const { name, count, scope, url, location, key } = pin.element.dataset;
+    const { name, count, scope, url, location, key, action, value } = pin.element.dataset;
     detailName.textContent = name;
-    detailCount.textContent = formatter.format(Number(count));
+    detailCount.textContent = value || formatter.format(Number(count));
+    detailCount.toggleAttribute("data-status-value", Boolean(value));
     detailScope.textContent = location && location !== name ? `${location} · ${scope}` : scope;
     detailLink.href = url;
-    detailLinkLabel.textContent = pin === pins[0] ? "Open work queue" : "Open records";
-    if (select) select.value = key;
+    detailLinkLabel.textContent = action || (pin === pins[0] ? "Open work queue" : "Open records");
+    if (select) select.value = pin.isForm ? key : "";
   }
 
   function turnTo(longitude, latitude) {
@@ -308,7 +313,7 @@
   shortcuts.forEach(button => button.addEventListener("click", () => {
     const forms = button.dataset.globeView === "forms";
     if (forms) {
-      const busiest = pins.slice(3).reduce((best, pin) =>
+      const busiest = [...formPins.values()].reduce((best, pin) =>
         Number(pin.element.dataset.count) > Number(best.element.dataset.count) ? pin : best);
       showMarker(busiest);
     } else {
