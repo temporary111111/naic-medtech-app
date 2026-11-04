@@ -14,11 +14,11 @@
 {% block html_title %}Overview | {{ app_title }}{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{{ url_for('static', path='overview.css') }}?v=20261105-form-accent">
+  <link rel="stylesheet" href="{{ url_for('static', path='overview.css') }}?v=20261105-globe-labels">
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', path='overview-orbit.js') }}?v=20261105-form-accent" defer></script>
+  <script src="{{ url_for('static', path='overview-orbit.js') }}?v=20261105-globe-labels" defer></script>
 {% endblock %}
 
 {% block shell_eyebrow %}Laboratory records{% endblock %}
@@ -38,29 +38,34 @@
   <section class="overview-shell" data-overview-globe aria-label="Laboratory records overview">
     <div class="overview-stage">
       <div class="globe-scene" data-globe-scene>
-        <svg class="globe-graphic" viewBox="0 0 560 480" aria-hidden="true">
-          <defs>
-            <radialGradient id="globe-surface" cx="35%" cy="25%" r="75%">
-              <stop class="globe-gradient-light"/>
-              <stop class="globe-gradient-dark" offset="1"/>
-            </radialGradient>
-            <radialGradient id="globe-shadow">
-              <stop stop-color="currentColor" stop-opacity=".32"/>
-              <stop offset="1" stop-color="currentColor" stop-opacity="0"/>
-            </radialGradient>
-          </defs>
-          <ellipse class="globe-halo" cx="280" cy="444" rx="215" ry="32" fill="url(#globe-shadow)"/>
-          <circle class="globe-rim" cx="280" cy="228" r="213"/>
-          <circle class="globe-surface" cx="280" cy="228" r="196" fill="url(#globe-surface)"/>
-          <path class="globe-gridlines" data-globe-grid/>
-        </svg>
-        <div class="globe-pins">
-          {{ globe_pin('Drafts', draft_count, 'All unfinished', '/records', 'draft') }}
-          {{ globe_pin('Completed', completed_count, period_label, completed_history_url, 'completed') }}
-          {{ globe_pin('Voided', voided_count, period_label, voided_history_url, 'voided') }}
-          {% for item in ordered_forms %}
-            {{ globe_pin(item.name, item.count, 'Completed · ' ~ period_label, item.history_url, 'form', item.slug, item.location, item.print_accent) }}
-          {% endfor %}
+        <div class="globe-plot" data-globe-plot>
+          <svg class="globe-graphic" viewBox="0 0 560 480" aria-hidden="true">
+            <defs>
+              <radialGradient id="globe-surface" cx="35%" cy="25%" r="75%">
+                <stop class="globe-gradient-light"/>
+                <stop class="globe-gradient-dark" offset="1"/>
+              </radialGradient>
+              <radialGradient id="globe-shadow">
+                <stop stop-color="currentColor" stop-opacity=".32"/>
+                <stop offset="1" stop-color="currentColor" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <ellipse class="globe-halo" cx="280" cy="444" rx="215" ry="32" fill="url(#globe-shadow)"/>
+            <circle class="globe-rim" cx="280" cy="228" r="213"/>
+            <circle class="globe-surface" cx="280" cy="228" r="196" fill="url(#globe-surface)"/>
+            <path class="globe-gridlines" data-globe-grid/>
+          </svg>
+          <div class="globe-pins">
+            {{ globe_pin('Drafts', draft_count, 'All unfinished', '/records', 'draft') }}
+            {{ globe_pin('Completed', completed_count, period_label, completed_history_url, 'completed') }}
+            {{ globe_pin('Voided', voided_count, period_label, voided_history_url, 'voided') }}
+            {% for item in ordered_forms %}
+              {{ globe_pin(item.name, item.count, 'Completed · ' ~ period_label, item.history_url, 'form', item.slug, item.location, item.print_accent) }}
+            {% endfor %}
+          </div>
+        </div>
+        <div class="globe-label-layer" id="globe-labels" data-globe-label-layer aria-hidden="true" hidden>
+          <svg class="globe-label-lines"><path data-globe-label-lines/></svg>
         </div>
         <p id="overview-globe-instructions" hidden>Drag or use arrow keys to rotate. Select a marker to see its records.</p>
       </div>
@@ -75,7 +80,10 @@
             {% endif %}
           </div>
           <p class="overview-globe-hint">Drag to rotate · Select a marker</p>
-          <p class="overview-globe-hint" data-globe-legend hidden>Larger markers show more completed records.</p>
+          <div class="globe-label-controls" data-globe-legend hidden>
+            <p class="overview-globe-hint">Larger markers show more completed records.</p>
+            <button type="button" class="globe-label-toggle" data-globe-label-toggle aria-controls="globe-labels" aria-expanded="false">Show labels</button>
+          </div>
         </div>
 
         <div class="globe-detail" data-globe-detail hidden>

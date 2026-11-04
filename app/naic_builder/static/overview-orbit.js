@@ -3,11 +3,15 @@
   if (!overview) return;
 
   const scene = overview.querySelector("[data-globe-scene]");
+  const plot = overview.querySelector("[data-globe-plot]");
   const grid = overview.querySelector("[data-globe-grid]");
   const shortcuts = [...overview.querySelectorAll("[data-globe-view]")];
   const picker = overview.querySelector("[data-globe-picker]");
   const select = overview.querySelector("[data-globe-select]");
   const legend = overview.querySelector("[data-globe-legend]");
+  const labelToggle = overview.querySelector("[data-globe-label-toggle]");
+  const labelLayer = overview.querySelector("[data-globe-label-layer]");
+  const labelLines = overview.querySelector("[data-globe-label-lines]");
   const detailName = overview.querySelector("[data-globe-name]");
   const detailCount = overview.querySelector("[data-globe-count]");
   const detailScope = overview.querySelector("[data-globe-scope]");
@@ -65,6 +69,74 @@
   let animation = 0;
   let gesture = null;
   let suppressClick = false;
+  let labelsEnabled = false;
+  let labelGeometry = null;
+  const labelGap = 5;
+  const labelMargin = 6;
+
+  for (const pin of formPins.values()) {
+    const label = document.createElement("span");
+    label.className = "globe-label";
+    label.style.setProperty("--form-accent", pin.element.style.getPropertyValue("--form-accent"));
+    const name = document.createElement("span");
+    name.textContent = pin.element.dataset.name;
+    const count = document.createElement("span");
+    count.className = "globe-label__count";
+    count.textContent = formatter.format(Number(pin.element.dataset.count));
+    label.append(name, count);
+    labelLayer.append(label);
+    pin.label = label;
+  }
+
+  function measureLabels() {
+    const heights = [...formPins.values()].map(pin => {
+      pin.labelHeight = pin.label.offsetHeight;
+      return pin.labelHeight;
+    }).sort((a, b) => b - a);
+    const rows = Math.ceil(heights.length / 2);
+    const stackHeight = heights.slice(0, rows).reduce((sum, height) => sum + height, 0);
+    scene.style.setProperty("--globe-label-height", `${stackHeight + labelGap * (rows - 1) + labelMargin * 2}px`);
+    labelGeometry = {
+      width: scene.clientWidth,
+      height: scene.clientHeight,
+      plotWidth: plot.clientWidth,
+      plotHeight: plot.clientHeight,
+      rail: formPins.values().next().value.label.offsetWidth,
+    };
+  }
+
+  function drawLabels(visible) {
+    const { width, height, plotWidth, plotHeight, rail } = labelGeometry;
+    const xOffset = (width - plotWidth) / 2;
+    const yOffset = (height - plotHeight) / 2;
+    const sorted = visible.sort((a, b) => a.x - b.x);
+    const midpoint = Math.ceil(sorted.length / 2);
+    let path = "";
+
+    // Split the visible pins between two rails, then pack each rail in top-to-bottom order.
+    for (const [side, items] of [["left", sorted.slice(0, midpoint)], ["right", sorted.slice(midpoint)]]) {
+      const edge = side === "left" ? rail : width - rail;
+      const bend = edge + (side === "left" ? 8 : -8);
+      items.sort((a, b) => a.y - b.y);
+      let nextTop = labelMargin;
+      for (const item of items) {
+        const center = yOffset + item.y * plotHeight;
+        item.top = Math.max(nextTop, center - item.pin.labelHeight / 2);
+        nextTop = item.top + item.pin.labelHeight + labelGap;
+      }
+      let nextBottom = height - labelMargin;
+      for (let index = items.length - 1; index >= 0; index--) {
+        const { pin, x, y, top } = items[index];
+        const fittedTop = Math.min(top, nextBottom - pin.labelHeight);
+        nextBottom = fittedTop - labelGap;
+        pin.label.dataset.side = side;
+        pin.label.style.transform = `translateY(${fittedTop}px)`;
+        const labelCenter = fittedTop + pin.labelHeight / 2;
+        path += `M${xOffset + x * plotWidth} ${yOffset + y * plotHeight}L${bend} ${labelCenter}H${edge}`;
+      }
+    }
+    labelLines.setAttribute("d", path);
+  }
 
   function render() {
     const cosYaw = Math.cos(yaw);
@@ -93,9 +165,22 @@
     }
     grid.setAttribute("d", path);
 
+    const side = cosYaw >= 0 ? "status" : "forms";
+    const showLabels = labelsEnabled && side === "forms";
+    if (labelLayer.hidden === showLabels) {
+      labelLayer.hidden = !showLabels;
+      overview.toggleAttribute("data-globe-labels-visible", showLabels);
+      if (showLabels) measureLabels();
+    }
+    const labeledPins = [];
     for (const pin of pins) {
       const [x, y, depth] = project(pin.point);
       pin.element.hidden = depth <= .1;
+      if (showLabels && pin.label) {
+        pin.label.toggleAttribute("data-visible", !pin.element.hidden);
+        pin.label.toggleAttribute("data-selected", pin === selected);
+        if (!pin.element.hidden) labeledPins.push({ pin, x: x / 560, y: y / 480 });
+      }
       if (pin.element.hidden) {
         if (document.activeElement === pin.element) scene.focus({ preventScroll: true });
         continue;
@@ -104,8 +189,8 @@
       pin.element.style.top = `${y / 4.8}%`;
       pin.element.style.zIndex = Math.round(depth * 100);
     }
+    if (showLabels) drawLabels(labeledPins);
 
-    const side = cosYaw >= 0 ? "status" : "forms";
     shortcuts.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.globeView === side)));
     if (picker) picker.hidden = side !== "forms";
     legend.hidden = !picker || side !== "forms";
@@ -235,6 +320,22 @@
     const pin = formPins.get(select.value);
     if (pin) selectMarker(pin);
   });
+
+  labelToggle?.addEventListener("click", () => {
+    labelsEnabled = !labelsEnabled;
+    labelToggle.textContent = labelsEnabled ? "Hide labels" : "Show labels";
+    labelToggle.setAttribute("aria-expanded", String(labelsEnabled));
+    render();
+  });
+  if (labelToggle) {
+    const resizeLabels = () => {
+      if (labelLayer.hidden) return;
+      measureLabels();
+      render();
+    };
+    new ResizeObserver(() => requestAnimationFrame(resizeLabels)).observe(scene);
+    document.fonts.ready.then(resizeLabels);
+  }
 
   scene.tabIndex = 0;
   scene.setAttribute("role", "group");
