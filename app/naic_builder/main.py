@@ -92,7 +92,6 @@ from .services import (
     create_form,
     create_record,
     create_user_account,
-    current_record_values,
     effective_record_print_presentation,
     ensure_blood_bank_defaults,
     ensure_blood_gas_analysis_defaults,
@@ -124,7 +123,6 @@ from .services import (
     list_completed_record_activity_by_form,
     list_form_choices,
     list_library_tree,
-    list_record_completion_issues,
     list_records,
     list_users,
     list_move_target_choices,
@@ -1124,13 +1122,6 @@ def render_record_edit_page(
     if not resolved_error_message and request.query_params.get("print_blocked") == "1":
         resolved_error_message = "Complete this record before printing the final result."
 
-    resolved_validation_issues = validation_issues or []
-    if record.status == "draft" and not resolved_validation_issues:
-        resolved_validation_issues = list_record_completion_issues(
-            record,
-            values=current_record_values(record),
-        )
-
     back_to_history = request.query_params.get("from") == "history"
     back_to_overview = request.query_params.get("from") == "overview"
     history_return_url = safe_records_history_return(request.query_params.get("return_to"))
@@ -1172,7 +1163,7 @@ def render_record_edit_page(
             "has_unsaved_changes": submitted_payload is not None,
             "error_message": resolved_error_message,
             "success_message": resolved_success_message,
-            "validation_issues": resolved_validation_issues,
+            "validation_issues": validation_issues or [],
             "back_href": back_href,
             "back_label": back_label,
             "history_query": history_query,

@@ -1474,31 +1474,39 @@ html[data-theme][data-contrast="high"] .record-form-option {
   line-height: 1.02;
 }
 
-.record-shell--entry .record-summary-main .panel-copy {
-  margin: 0;
-  font-size: 12px;
-}
-
-.record-shell--entry .record-summary-pills {
-  justify-content: flex-end;
-  gap: 6px;
-}
-
-.record-shell--entry .record-summary-side {
-  min-width: min(340px, 100%);
-}
-
-.record-shell--entry .record-meta-pill {
-  min-height: 28px;
-  padding: 5px 9px;
-  font-size: 11px;
-}
-
 .record-shell--entry .record-meta-details {
   grid-column: 1 / -1;
   gap: 8px;
   padding-top: 8px;
 }
+
+.record-shell--entry .record-meta-details:not([open]) {
+  grid-column: auto;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.record-shell--entry .record-meta-details summary {
+  justify-self: end;
+  padding: 6px 4px;
+  white-space: nowrap;
+}
+
+.record-shell--entry .record-meta-details summary::after { content: " ▾"; }
+.record-shell--entry .record-meta-details[open] summary::after { content: " ▴"; }
+
+.record-info-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.record-info-facts > div { min-width: 0; }
+.record-info-facts dt { color: var(--muted); font-size: 12px; }
+.record-info-facts dd { margin: 2px 0 0; font-weight: 700; }
 
 .record-shell--entry .record-entry-panel {
   padding: 0;
@@ -1579,6 +1587,11 @@ html[data-theme][data-contrast="high"] .record-form-option {
   display: grid;
   gap: 8px;
   margin-bottom: 10px;
+}
+
+[data-record-validation] .completion-issues {
+  margin-top: 6px;
+  color: inherit;
 }
 
 .entry-note {
@@ -1747,7 +1760,6 @@ html[data-theme][data-contrast="high"] .record-form-option {
   font-size: 13px;
 }
 
-.record-completion-brief,
 .record-view-state {
   display: grid;
   justify-items: end;
@@ -1760,7 +1772,6 @@ html[data-theme][data-contrast="high"] .record-form-option {
     linear-gradient(180deg, color-mix(in srgb, var(--warm-soft) 62%, transparent), color-mix(in srgb, var(--panel) 84%, transparent));
 }
 
-.record-completion-brief.is-ready,
 .record-view-state[data-status="completed"] {
   border-color: color-mix(in srgb, var(--success) 24%, transparent);
   background:
@@ -1773,9 +1784,7 @@ html[data-theme][data-contrast="high"] .record-form-option {
     linear-gradient(180deg, color-mix(in srgb, var(--danger-soft) 60%, transparent), color-mix(in srgb, var(--panel) 84%, transparent));
 }
 
-.record-completion-brief > span,
-.record-view-state > span,
-.record-completion-details summary {
+.record-view-state > span {
   color: color-mix(in srgb, var(--muted) 78%, var(--text) 22%);
   font-size: 10.5px;
   font-weight: 900;
@@ -1784,7 +1793,6 @@ html[data-theme][data-contrast="high"] .record-form-option {
   text-transform: uppercase;
 }
 
-.record-completion-brief.is-ready > span,
 .record-view-state[data-status="completed"] > span {
   color: var(--success);
 }
@@ -1793,34 +1801,11 @@ html[data-theme][data-contrast="high"] .record-form-option {
   color: var(--danger);
 }
 
-.record-completion-brief > strong,
 .record-view-state > strong {
   color: var(--text);
   font-size: 13px;
   line-height: 1.15;
   text-align: right;
-}
-
-.record-completion-details {
-  width: 100%;
-  display: grid;
-  gap: 6px;
-}
-
-.record-completion-details summary {
-  cursor: pointer;
-  list-style: none;
-  text-align: right;
-}
-
-.record-completion-details summary::-webkit-details-marker {
-  display: none;
-}
-
-.record-completion-details .completion-issues {
-  padding-left: 16px;
-  font-size: 11.5px;
-  text-align: left;
 }
 
 .entry-actions {
@@ -2149,14 +2134,12 @@ html[data-theme="dark"] .record-summary-shell .record-meta-details {
   border-top-color: rgba(223, 240, 245, 0.08);
 }
 
-html[data-theme="dark"] .record-completion-brief,
 html[data-theme="dark"] .record-view-state {
   border-color: rgba(210, 174, 109, 0.18);
   background:
     linear-gradient(180deg, rgba(210, 174, 109, 0.1), rgba(255, 255, 255, 0.018));
 }
 
-html[data-theme="dark"] .record-completion-brief.is-ready,
 html[data-theme="dark"] .record-view-state[data-status="completed"] {
   border-color: rgba(100, 187, 153, 0.18);
   background:
@@ -2169,7 +2152,6 @@ html[data-theme="dark"] .record-view-state[data-status="voided"] {
     linear-gradient(180deg, rgba(221, 133, 120, 0.1), rgba(255, 255, 255, 0.018));
 }
 
-html[data-theme="dark"] .record-completion-brief > strong,
 html[data-theme="dark"] .record-view-state > strong {
   color: var(--shell-text);
 }
@@ -2493,7 +2475,6 @@ html[data-theme="dark"] .completion-checklist.is-ready {
   }
 
   .record-shell--entry .record-summary-shell {
-    grid-template-columns: 1fr;
     gap: 8px;
     padding: 10px 12px;
   }
@@ -2503,23 +2484,6 @@ html[data-theme="dark"] .completion-checklist.is-ready {
     line-height: 1.08;
   }
 
-  .record-shell--entry .record-summary-pills {
-    justify-content: flex-start;
-    gap: 6px;
-  }
-
-  .record-shell--entry .record-summary-side {
-    justify-items: stretch;
-    min-width: 0;
-  }
-
-  .record-shell--entry .record-meta-pill {
-    min-height: 26px;
-    padding: 5px 8px;
-    font-size: 10.5px;
-  }
-
-  .record-shell--entry .record-completion-brief,
   .record-shell--entry .record-view-state {
     width: 100%;
     min-width: 0;
@@ -2527,9 +2491,7 @@ html[data-theme="dark"] .completion-checklist.is-ready {
     padding: 7px 9px;
   }
 
-  .record-shell--entry .record-completion-brief > strong,
-  .record-shell--entry .record-view-state > strong,
-  .record-shell--entry .record-completion-details summary {
+  .record-shell--entry .record-view-state > strong {
     text-align: left;
   }
 

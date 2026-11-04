@@ -601,40 +601,22 @@
     });
   };
 
-  const isRequiredFieldEmpty = (field) => {
-    const hasExistingImage = Boolean(field.querySelector(".entry-image-preview"));
-    const fileInput = field.querySelector('input[type="file"]');
-    if (fileInput) {
-      return !hasExistingImage && !fileInput.files?.length;
-    }
-
-    const control = field.querySelector("input, select, textarea");
-    if (!control) {
-      return false;
-    }
-
-    return String(control.value || "").trim() === "";
-  };
-
   const setupRequiredFieldAttention = () => {
-    const errorBanner = document.querySelector(".error-banner");
-    if (!errorBanner) {
-      return;
+    if (!document.querySelector("[data-record-validation]")) return;
+
+    for (const field of document.querySelectorAll("#record-entry-form [data-required-field]")) {
+      const control = field.querySelector('input:not([type="hidden"]):enabled, select:enabled, textarea:enabled');
+      if (!control) continue;
+      const isEmpty = control.type === "file"
+        ? !field.querySelector(".entry-image-preview") && !control.files?.length
+        : !control.value.trim();
+      if (!isEmpty) continue;
+
+      field.classList.add("entry-field--attention");
+      field.scrollIntoView({ behavior: "instant", block: "center" });
+      control.focus({ preventScroll: true });
+      break;
     }
-
-    const requiredFields = Array.from(document.querySelectorAll("[data-required-field]"));
-    const firstMissingField = requiredFields.find(isRequiredFieldEmpty);
-    if (!firstMissingField) {
-      return;
-    }
-
-    firstMissingField.classList.add("entry-field--attention");
-    firstMissingField.scrollIntoView({ behavior: "smooth", block: "center" });
-
-    const focusTarget = firstMissingField.querySelector("input, select, textarea");
-    window.setTimeout(() => {
-      focusTarget?.focus({ preventScroll: true });
-    }, 220);
   };
 
   const setupRecordFormPickers = (root = document) => {

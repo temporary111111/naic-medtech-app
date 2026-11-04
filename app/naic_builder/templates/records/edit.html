@@ -6,7 +6,7 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', path='library.css') }}?v=20260607-ui-root-phase2">
-  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20261103-blended-record-footer">
+  <link rel="stylesheet" href="{{ url_for('static', path='records.css') }}?v=20261105-record-info">
 {% endblock %}
 
 {% block shell_eyebrow %}Records{% endblock %}
@@ -179,7 +179,7 @@
             data-temporal-input
             data-temporal-kind="date"
             data-temporal-label="{{ block.name }}"
-            data-temporal-default="{{ 'blank' if record.status == 'completed' else (props.default_value_mode or 'smart') }}"
+            data-temporal-default="{{ 'blank' if record.status == 'completed' or validation_issues else (props.default_value_mode or 'smart') }}"
           >
         </div>
         {% elif props.data_type == "time" %}
@@ -191,7 +191,7 @@
             data-temporal-input
             data-temporal-kind="time"
             data-temporal-label="{{ block.name }}"
-            data-temporal-default="{{ 'blank' if record.status == 'completed' else (props.default_value_mode or 'smart') }}"
+            data-temporal-default="{{ 'blank' if record.status == 'completed' or validation_issues else (props.default_value_mode or 'smart') }}"
           >
         </div>
         {% elif props.data_type == "datetime" %}
@@ -203,7 +203,7 @@
             data-temporal-input
             data-temporal-kind="datetime"
             data-temporal-label="{{ block.name }}"
-            data-temporal-default="{{ 'blank' if record.status == 'completed' else (props.default_value_mode or 'smart') }}"
+            data-temporal-default="{{ 'blank' if record.status == 'completed' or validation_issues else (props.default_value_mode or 'smart') }}"
           >
         </div>
         {% elif props.data_type == "number" %}
@@ -340,40 +340,25 @@
       <div class="record-summary-main">
         <div class="record-card-meta-line">
           <span class="record-status-chip" data-status="{{ record.status }}">{{ record.status_label or record.status }}</span>
-          <p class="form-card-meta">{{ record.form_name }}</p>
+          {% if record.display_title != record.form_name %}<p class="form-card-meta">{{ record.form_name }}</p>{% endif %}
         </div>
         <h2>{{ record.display_title }}</h2>
-        <p class="panel-copy">{{ record.form_path_label }}</p>
-      </div>
-
-      <div class="record-summary-side">
-        <div class="record-summary-pills">
-          <span class="record-meta-pill"><strong>{{ record.display_subtitle_label }}</strong>{{ record.display_subtitle or "Not set yet" }}</span>
-          <span class="record-meta-pill"><strong>Version</strong>Form v{{ record.form_version_number }}</span>
-        </div>
-        {% if record.status == "draft" %}
-        <section class="record-completion-brief{% if not validation_issues %} is-ready{% endif %}">
-          {% if validation_issues %}
-          <details class="record-completion-details" {% if error_message %}open{% endif %}>
-            <summary>{{ validation_issues|length }} required {{ "detail" if (validation_issues|length) == 1 else "details" }}</summary>
-            <ul class="completion-issues">
-              {% for issue in validation_issues %}
-              <li>{{ issue }}</li>
-              {% endfor %}
-            </ul>
-          </details>
-          {% else %}
-          <span>Ready to complete</span>
-          <strong>Required answers in place</strong>
-          {% endif %}
-        </section>
-        {% endif %}
       </div>
 
       <details class="record-meta-details">
         <summary>Record info</summary>
         <div class="record-meta-details__body">
-          <p class="panel-copy">Record key: {{ record.record_key }}</p>
+          <dl class="record-info-facts">
+            {% set record_identifier = record.record_identity.secondary_value or record.case_number %}
+            {% if record_identifier %}
+            <div><dt>{{ record.display_subtitle_label }}</dt><dd>{{ record_identifier }}</dd></div>
+            {% endif %}
+            <div><dt>Version</dt><dd>Form v{{ record.form_version_number }}</dd></div>
+            <div><dt>Record key</dt><dd>{{ record.record_key }}</dd></div>
+            {% if record.form_path_label and record.form_path_label != record.form_name %}
+            <div><dt>Form path</dt><dd>{{ record.form_path_label }}</dd></div>
+            {% endif %}
+          </dl>
           <div class="record-audit-strip">
             <article class="record-audit-item">
               <span>Created by</span>
@@ -396,10 +381,12 @@
       {% if error_message or success_message %}
       <div class="record-entry-alerts">
       {% if error_message %}
-      <div class="error-banner">{{ error_message }}</div>
-      {% if record.status == 'completed' and validation_issues %}
-      <ul class="completion-issues">{% for issue in validation_issues %}<li>{{ issue }}</li>{% endfor %}</ul>
-      {% endif %}
+      <div class="error-banner"{% if validation_issues %} role="alert" data-record-validation{% endif %}>
+        {{ error_message }}
+        {% if validation_issues %}
+        <ul class="completion-issues">{% for issue in validation_issues %}<li>{{ issue }}</li>{% endfor %}</ul>
+        {% endif %}
+      </div>
       {% endif %}
       {% if success_message %}
       <div class="success-banner">{{ success_message }}</div>
@@ -452,5 +439,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', path='records.js') }}?v=20261103-record-footer" defer></script>
+  <script src="{{ url_for('static', path='records.js') }}?v=20261105-record-info" defer></script>
 {% endblock %}
