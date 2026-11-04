@@ -1,40 +1,24 @@
 {% extends "_authenticated_shell.html" %}
 {% set shell_active = "overview" %}
 
-{% macro overview_icon(name) %}
-  <svg class="overview-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    {% if name == 'drafts' %}
-    <path d="M8 4h6l4 4v12H6V4Zm6 0v5h4M9 13h6m-6 3h4"/>
-    {% elif name == 'completed' %}
-    <circle cx="12" cy="12" r="8"/><path d="m8.5 12 2.3 2.3 4.7-4.6"/>
-    {% elif name == 'voided' %}
-    <circle cx="12" cy="12" r="8"/><path d="m6.4 17.6 11.2-11.2"/>
-    {% elif name == 'activity' %}
-    <path d="M4 4v16h16M8 16v-4m4 4V8m4 8V5"/>
-    {% elif name == 'recent' %}
-    <circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>
-    {% elif name == 'arrow' %}
-    <path d="M5 12h14m-5-5 5 5-5 5"/>
-    {% endif %}
-  </svg>
-{% endmacro %}
-
-{% macro activity_row(item) %}
-  <a class="overview-form-row" href="{{ item.history_url }}">
-    <span>{{ item.name }}</span>
-    <strong>{{ item.count }}</strong>
-    <span class="overview-form-row__track" aria-hidden="true"><span style="width: {{ item.percent }}%"></span></span>
-  </a>
+{% macro globe_pin(name, count, scope, url, kind, key='', location='') %}
+  <button type="button" class="globe-pin globe-pin--{{ kind }}" data-globe-pin
+          data-name="{{ name }}" data-count="{{ count }}" data-scope="{{ scope }}"
+          data-url="{{ url }}" data-key="{{ key }}" data-location="{{ location }}"
+          aria-label="{{ name }}: {{ count }}" hidden>
+    <span class="globe-pin__point" aria-hidden="true">{% if kind != 'form' %}{{ count }}{% endif %}</span>
+    <span class="globe-pin__label" aria-hidden="true">{{ name }}{% if kind == 'form' %} · {{ count }}{% endif %}</span>
+  </button>
 {% endmacro %}
 
 {% block html_title %}Overview | {{ app_title }}{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{{ url_for('static', path='overview.css') }}?v=20261105-orbit">
+  <link rel="stylesheet" href="{{ url_for('static', path='overview.css') }}?v=20261105-globe">
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', path='overview-orbit.js') }}" defer></script>
+  <script src="{{ url_for('static', path='overview-orbit.js') }}?v=20261105-globe" defer></script>
 {% endblock %}
 
 {% block shell_eyebrow %}Laboratory records{% endblock %}
@@ -50,117 +34,99 @@
 {% endblock %}
 
 {% block content %}
-  {% set featured_forms = (form_activity | selectattr('count') | sort(attribute='count', reverse=true))[:4] %}
-  {% set featured_slugs = featured_forms | map(attribute='slug') | list %}
-  {% set other_forms = form_activity | rejectattr('slug', 'in', featured_slugs) | list %}
-  <section class="overview-shell" aria-label="Laboratory records overview">
-    <section class="overview-metrics" aria-label="Record counts">
-      <article class="overview-metric overview-metric--draft" aria-labelledby="overview-draft-title">
-        <div class="overview-draft-copy">
-          <h2 id="overview-draft-title" class="overview-metric__label">{{ overview_icon('drafts') }} Draft records</h2>
-          <strong class="overview-metric__number">{{ draft_count }}</strong>
-          <span class="overview-metric__scope">All unfinished</span>
-          <a class="overview-metric__action" href="/records">Open work queue {{ overview_icon('arrow') }}</a>
-        </div>
-        <div class="overview-orb-panel" data-overview-orbit>
-          <div class="overview-orb-control" data-orbit-control>
-            <svg class="overview-orb" viewBox="0 0 224 180" fill="none" aria-hidden="true">
-              <defs>
-                <radialGradient id="overviewOrbGlow">
-                  <stop stop-color="currentColor" stop-opacity=".26"/>
-                  <stop offset="1" stop-color="currentColor" stop-opacity="0"/>
-                </radialGradient>
-              </defs>
-              <circle cx="114" cy="75" r="70" fill="url(#overviewOrbGlow)"/>
-              <g stroke="currentColor">
-                <ellipse cx="114" cy="146" rx="75" ry="18" opacity=".66"/>
-                <ellipse cx="114" cy="146" rx="48" ry="11" opacity=".38"/>
-                <path d="M114 124v21M39 146v8a75 18 0 0 0 150 0v-8" opacity=".34"/>
-                <path class="overview-orb__back" data-orbit-back/>
-                <circle cx="114" cy="75" r="48" opacity=".85"/>
-                <path class="overview-orb__front" data-orbit-front/>
-              </g>
-              <g data-orbit-static stroke="currentColor">
-                <ellipse cx="114" cy="75" rx="19" ry="48" opacity=".65" transform="rotate(30 114 75)"/>
-                <ellipse cx="114" cy="75" rx="48" ry="18" opacity=".7" transform="rotate(30 114 75)"/>
-                <ellipse cx="114" cy="75" rx="75" ry="22" opacity=".76" transform="rotate(-25 114 75)"/>
-                <circle cx="175" cy="43" r="3" fill="currentColor" stroke="none"/>
-                <circle cx="65" cy="105" r="2.5" fill="currentColor" stroke="none"/>
-              </g>
-              <circle r="3" fill="currentColor" data-orbit-dot hidden/>
-              <circle r="2.5" fill="currentColor" data-orbit-dot hidden/>
-            </svg>
-          </div>
-          <p id="overview-orb-instructions" hidden>Drag or use the arrow keys to rotate the hologram.</p>
-          <div class="overview-orb-actions">
-            <span data-orbit-hint hidden>Drag to rotate</span>
-            <button class="overview-orb-reset" type="button" data-orbit-reset hidden>Reset view</button>
-          </div>
-        </div>
-      </article>
-
-      <a class="overview-metric overview-metric--completed" href="{{ completed_history_url }}">
-        <span class="overview-metric__label">{{ overview_icon('completed') }} Completed records</span>
-        <strong class="overview-metric__number">{{ completed_count }}</strong>
-        <span class="overview-metric__scope">{{ period_label }}</span>
-        <span class="overview-metric__action">View completed {{ overview_icon('arrow') }}</span>
-      </a>
-
-      <a class="overview-metric overview-metric--voided" href="{{ voided_history_url }}">
-        <span class="overview-metric__label">{{ overview_icon('voided') }} Voided records</span>
-        <strong class="overview-metric__number">{{ voided_count }}</strong>
-        <span class="overview-metric__scope">{{ period_label }}</span>
-        <span class="overview-metric__action">Review voided {{ overview_icon('arrow') }}</span>
-      </a>
-    </section>
-
-    <div class="overview-detail-grid">
-      <section class="overview-panel overview-activity" aria-labelledby="overview-activity-title">
-        <header class="overview-panel-head">
-          <h2 id="overview-activity-title">{{ overview_icon('activity') }} Activity by form</h2>
-          <span class="overview-panel-meta">Completed</span>
-        </header>
-        <div class="overview-panel-body">
-          {% if featured_forms %}
-          <div class="overview-form-grid">
-            {% for item in featured_forms %}{{ activity_row(item) }}{% endfor %}
-          </div>
-          {% else %}
-          <p class="overview-empty">No completed records {{ period_label | lower }}.</p>
-          {% endif %}
-          {% if other_forms %}
-          <details class="overview-more">
-            <summary>
-              <span class="overview-more__closed">View all forms <small>{{ form_activity | length }}</small></span>
-              <span class="overview-more__open">Show less</span>
-            </summary>
-            <div class="overview-form-grid">
-              {% for item in other_forms %}{{ activity_row(item) }}{% endfor %}
-            </div>
-          </details>
-          {% endif %}
-        </div>
-      </section>
-
-      <section class="overview-panel overview-recent" aria-labelledby="overview-recent-title">
-        <header class="overview-panel-head">
-          <h2 id="overview-recent-title">{{ overview_icon('recent') }} Recent updates</h2>
-          <a href="{{ recent_history_url }}">History {{ overview_icon('arrow') }}</a>
-        </header>
-        {% if recent_records %}
-          {% for record in recent_records %}
-          <a class="overview-recent-row" href="{{ record.overview_url }}">
-            <span class="overview-recent-row__copy">
-              <strong>{{ record.form_name }}</strong>
-              <small>Created by {{ record.overview_creator_name }}{% if record.overview_updated_at_label %} &middot; Updated {{ record.overview_updated_at_label }}{% endif %}</small>
-            </span>
-            {{ overview_icon('arrow') }}
-          </a>
+  {% set ordered_forms = form_activity | sort(attribute='location') %}
+  <section class="overview-shell" data-overview-globe aria-label="Laboratory records overview">
+    <div class="overview-stage">
+      <div class="globe-scene" data-globe-scene>
+        <svg class="globe-graphic" viewBox="0 0 560 480" aria-hidden="true">
+          <defs>
+            <radialGradient id="globe-surface" cx="35%" cy="25%" r="75%">
+              <stop class="globe-gradient-light"/>
+              <stop class="globe-gradient-dark" offset="1"/>
+            </radialGradient>
+            <radialGradient id="globe-shadow">
+              <stop stop-color="currentColor" stop-opacity=".32"/>
+              <stop offset="1" stop-color="currentColor" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <ellipse class="globe-halo" cx="280" cy="444" rx="215" ry="32" fill="url(#globe-shadow)"/>
+          <circle class="globe-rim" cx="280" cy="228" r="213"/>
+          <circle class="globe-surface" cx="280" cy="228" r="196" fill="url(#globe-surface)"/>
+          <path class="globe-gridlines" data-globe-grid/>
+        </svg>
+        <div class="globe-pins">
+          {{ globe_pin('Drafts', draft_count, 'All unfinished', '/records', 'draft') }}
+          {{ globe_pin('Completed', completed_count, period_label, completed_history_url, 'completed') }}
+          {{ globe_pin('Voided', voided_count, period_label, voided_history_url, 'voided') }}
+          {% for item in ordered_forms %}
+            {{ globe_pin(item.name, item.count, 'Completed · ' ~ period_label, item.history_url, 'form', item.slug, item.location) }}
           {% endfor %}
-        {% else %}
-        <p class="overview-empty">No record updates {{ period_label | lower }}.</p>
+        </div>
+        <p id="overview-globe-instructions" hidden>Drag or use arrow keys to rotate. Select a marker to see its records.</p>
+      </div>
+
+      <div class="overview-globe-info">
+        <p class="overview-globe-title">Record globe</p>
+        <div data-globe-controls hidden>
+          <div class="overview-view-switch" role="group" aria-label="Jump to a side">
+            <button type="button" data-globe-view="status" aria-pressed="true">Status</button>
+            {% if ordered_forms %}
+            <button type="button" data-globe-view="forms" aria-pressed="false">Forms</button>
+            {% endif %}
+          </div>
+          <p class="overview-globe-hint">Drag to rotate · Select a marker</p>
+          <p class="overview-globe-hint" data-globe-legend hidden>Larger markers show more completed records.</p>
+        </div>
+
+        <div class="globe-detail" data-globe-detail hidden>
+          <div class="globe-detail__copy" aria-live="polite">
+            <h2 data-globe-name></h2>
+            <strong data-globe-count></strong>
+            <p data-globe-scope></p>
+          </div>
+          <a data-globe-link href="/records"><span data-globe-link-label>Open work queue</span> <span aria-hidden="true">&rarr;</span></a>
+        </div>
+
+        {% if ordered_forms %}
+        <label class="globe-form-picker" data-globe-picker hidden>
+          <span>Jump to a form</span>
+          <select data-globe-select>
+            <option value="">Select form</option>
+            {% for location, items in ordered_forms | groupby('location') %}
+            <optgroup label="{{ location }}">
+              {% for item in items %}
+              <option value="{{ item.slug }}">{{ item.name }}</option>
+              {% endfor %}
+            </optgroup>
+            {% endfor %}
+          </select>
+        </label>
         {% endif %}
-      </section>
+
+        <nav class="globe-fallback" data-globe-fallback aria-label="Record counts">
+          <a href="/records">{{ draft_count }} drafts</a>
+          <a href="{{ completed_history_url }}">{{ completed_count }} completed</a>
+          <a href="{{ voided_history_url }}">{{ voided_count }} voided</a>
+        </nav>
+      </div>
     </div>
+
+    <details class="overview-drawer">
+      <summary>Recent updates</summary>
+      {% if recent_records %}
+      {% for record in recent_records %}
+      <a class="overview-recent-row" href="{{ record.overview_url }}">
+        <span>
+          <strong>{{ record.form_name }}</strong>
+          <small>Created by {{ record.overview_creator_name }}{% if record.overview_updated_at_label %} &middot; Updated {{ record.overview_updated_at_label }}{% endif %}</small>
+        </span>
+        <span aria-hidden="true">&rarr;</span>
+      </a>
+      {% endfor %}
+      <a class="overview-drawer-link" href="{{ recent_history_url }}">Open history <span aria-hidden="true">&rarr;</span></a>
+      {% else %}
+      <p class="overview-empty">No record updates {{ period_label | lower }}.</p>
+      {% endif %}
+    </details>
   </section>
 {% endblock %}
