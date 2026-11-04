@@ -30,7 +30,11 @@
 {% block html_title %}Overview | {{ app_title }}{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{{ url_for('static', path='overview.css') }}?v=20261105-layered-overview">
+  <link rel="stylesheet" href="{{ url_for('static', path='overview.css') }}?v=20261105-orbit">
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{{ url_for('static', path='overview-orbit.js') }}" defer></script>
 {% endblock %}
 
 {% block shell_eyebrow %}Laboratory records{% endblock %}
@@ -51,32 +55,49 @@
   {% set other_forms = form_activity | rejectattr('slug', 'in', featured_slugs) | list %}
   <section class="overview-shell" aria-label="Laboratory records overview">
     <section class="overview-metrics" aria-label="Record counts">
-      <a class="overview-metric overview-metric--draft" href="/records">
-        <svg class="overview-orb" viewBox="0 0 224 180" fill="none" aria-hidden="true">
-          <defs>
-            <radialGradient id="overviewOrbGlow">
-              <stop stop-color="currentColor" stop-opacity=".26"/>
-              <stop offset="1" stop-color="currentColor" stop-opacity="0"/>
-            </radialGradient>
-          </defs>
-          <circle cx="114" cy="75" r="70" fill="url(#overviewOrbGlow)"/>
-          <g stroke="currentColor">
-            <circle cx="114" cy="75" r="48" opacity=".85"/>
-            <ellipse cx="114" cy="75" rx="19" ry="48" opacity=".65" transform="rotate(30 114 75)"/>
-            <ellipse cx="114" cy="75" rx="48" ry="18" opacity=".7" transform="rotate(30 114 75)"/>
-            <ellipse cx="114" cy="75" rx="75" ry="22" opacity=".76" transform="rotate(-25 114 75)"/>
-            <ellipse cx="114" cy="146" rx="75" ry="18" opacity=".66"/>
-            <ellipse cx="114" cy="146" rx="48" ry="11" opacity=".38"/>
-            <path d="M114 124v21M39 146v8a75 18 0 0 0 150 0v-8" opacity=".34"/>
-          </g>
-          <circle cx="175" cy="43" r="3" fill="currentColor"/>
-          <circle cx="65" cy="105" r="2.5" fill="currentColor"/>
-        </svg>
-        <span class="overview-metric__label">{{ overview_icon('drafts') }} Draft records</span>
-        <strong class="overview-metric__number">{{ draft_count }}</strong>
-        <span class="overview-metric__scope">All unfinished</span>
-        <span class="overview-metric__action">Open work queue {{ overview_icon('arrow') }}</span>
-      </a>
+      <article class="overview-metric overview-metric--draft" aria-labelledby="overview-draft-title">
+        <div class="overview-draft-copy">
+          <h2 id="overview-draft-title" class="overview-metric__label">{{ overview_icon('drafts') }} Draft records</h2>
+          <strong class="overview-metric__number">{{ draft_count }}</strong>
+          <span class="overview-metric__scope">All unfinished</span>
+          <a class="overview-metric__action" href="/records">Open work queue {{ overview_icon('arrow') }}</a>
+        </div>
+        <div class="overview-orb-panel" data-overview-orbit>
+          <div class="overview-orb-control" data-orbit-control>
+            <svg class="overview-orb" viewBox="0 0 224 180" fill="none" aria-hidden="true">
+              <defs>
+                <radialGradient id="overviewOrbGlow">
+                  <stop stop-color="currentColor" stop-opacity=".26"/>
+                  <stop offset="1" stop-color="currentColor" stop-opacity="0"/>
+                </radialGradient>
+              </defs>
+              <circle cx="114" cy="75" r="70" fill="url(#overviewOrbGlow)"/>
+              <g stroke="currentColor">
+                <ellipse cx="114" cy="146" rx="75" ry="18" opacity=".66"/>
+                <ellipse cx="114" cy="146" rx="48" ry="11" opacity=".38"/>
+                <path d="M114 124v21M39 146v8a75 18 0 0 0 150 0v-8" opacity=".34"/>
+                <path class="overview-orb__back" data-orbit-back/>
+                <circle cx="114" cy="75" r="48" opacity=".85"/>
+                <path class="overview-orb__front" data-orbit-front/>
+              </g>
+              <g data-orbit-static stroke="currentColor">
+                <ellipse cx="114" cy="75" rx="19" ry="48" opacity=".65" transform="rotate(30 114 75)"/>
+                <ellipse cx="114" cy="75" rx="48" ry="18" opacity=".7" transform="rotate(30 114 75)"/>
+                <ellipse cx="114" cy="75" rx="75" ry="22" opacity=".76" transform="rotate(-25 114 75)"/>
+                <circle cx="175" cy="43" r="3" fill="currentColor" stroke="none"/>
+                <circle cx="65" cy="105" r="2.5" fill="currentColor" stroke="none"/>
+              </g>
+              <circle r="3" fill="currentColor" data-orbit-dot hidden/>
+              <circle r="2.5" fill="currentColor" data-orbit-dot hidden/>
+            </svg>
+          </div>
+          <p id="overview-orb-instructions" hidden>Drag or use the arrow keys to rotate the hologram.</p>
+          <div class="overview-orb-actions">
+            <span data-orbit-hint hidden>Drag to rotate</span>
+            <button class="overview-orb-reset" type="button" data-orbit-reset hidden>Reset view</button>
+          </div>
+        </div>
+      </article>
 
       <a class="overview-metric overview-metric--completed" href="{{ completed_history_url }}">
         <span class="overview-metric__label">{{ overview_icon('completed') }} Completed records</span>

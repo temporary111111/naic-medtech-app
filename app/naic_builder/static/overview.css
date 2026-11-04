@@ -89,11 +89,14 @@
 }
 
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .overview-metric:hover { transform: translateY(-3px); }
+  a.overview-metric:hover { transform: translateY(-3px); }
 }
 
 .overview-metric--draft {
   --metric-color: #a6f4e1;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 46%);
+  grid-template-rows: 1fr;
+  justify-items: stretch;
   border-color: #32746d;
   background:
     linear-gradient(110deg, #0d2d32 24%, transparent 78%),
@@ -107,21 +110,84 @@
   box-shadow: 0 5px 0 #12363a, 0 21px 37px #0e383a55;
 }
 
-.overview-metric--draft:focus-visible {
-  outline-color: var(--accent);
+.overview-draft-copy {
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  justify-items: start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.overview-draft-copy h2 {
+  margin: 0;
+  color: inherit;
+  font-family: inherit;
+  letter-spacing: normal;
 }
 
 .overview-metric--completed { --metric-color: var(--success); }
 
-.overview-orb {
-  position: absolute;
-  inset-block: 8%;
-  inset-inline-end: 2%;
-  z-index: -1;
-  width: 46%;
-  height: 84%;
+.overview-orb-panel {
+  display: grid;
+  align-content: center;
+  justify-items: center;
   color: var(--metric-color);
+}
+
+.overview-orb-control {
+  width: 100%;
+  border-radius: var(--radius-md);
+}
+
+.overview-orb-control[tabindex] {
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+
+.overview-orb-control.is-dragging { cursor: grabbing; }
+
+.overview-orb {
+  display: block;
+  width: 100%;
+  max-height: 164px;
   pointer-events: none;
+}
+
+.overview-orb__back { opacity: .42; }
+.overview-orb__front { stroke-width: 1.25; }
+
+.overview-orb-actions {
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.overview-orb-actions > * {
+  min-height: 30px;
+  padding: 4px 8px;
+  align-content: center;
+  text-align: center;
+}
+
+.overview-orb-reset {
+  border: 1px solid currentColor;
+  border-radius: var(--control-radius-pill);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.overview-orb-reset:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
+
+.overview-orb-control:focus-visible,
+.overview-orb-reset:focus-visible,
+.overview-shell .overview-draft-copy a:focus-visible {
+  outline: 2px solid var(--metric-color);
+  outline-offset: 3px;
 }
 
 .overview-metric__label,
@@ -171,7 +237,13 @@
   font-weight: 800;
 }
 
-.overview-metric--draft .overview-metric__action { color: var(--metric-color); }
+.overview-draft-copy .overview-metric__action {
+  min-height: 32px;
+  color: var(--metric-color);
+  text-decoration: none;
+}
+
+.overview-draft-copy .overview-metric__action:hover { text-decoration: underline; }
 
 .overview-panel-head {
   display: flex;
