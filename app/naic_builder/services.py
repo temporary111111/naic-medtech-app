@@ -14,7 +14,7 @@ from typing import Any, Callable
 from uuid import uuid4
 
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import and_, func, or_, select, update
+from sqlalchemy import and_, case, func, or_, select, update
 from sqlalchemy.orm import Session, selectinload
 
 from .config import (
@@ -7441,6 +7441,40 @@ def count_records(
         date_scope=date_scope,
     )
     return int(session.scalar(query) or 0)
+
+
+def completed_record_trends(session: Session, *, now: datetime | None = None) -> list[dict[str, Any]]:
+    """Compare two seven-day periods ending before today's local midnight."""
+    today = (now or utc_now()).astimezone().date()
+    dates = [today - timedelta(days=14 - index) for index in range(15)]
+    boundaries = [datetime.combine(day, time.min).astimezone(timezone.utc) for day in dates]
+    day_bucket = case(
+        *((Record.completed_at < boundary, index) for index, boundary in enumerate(boundaries[1:-1])),
+        else_=13,
+    ).label("day_bucket")
+    counts = dict(session.execute(
+        select(day_bucket, func.count(Record.id))
+        .where(
+            Record.status == "completed",
+            Record.completed_at >= boundaries[0],
+            Record.completed_at < boundaries[-1],
+        )
+        .group_by(day_bucket)
+    ).all())
+    days = [
+        {"label": f"{day:%b} {day.day}", "name": f"{day:%a, %b} {day.day}", "count": counts.get(index, 0)}
+        for index, day in enumerate(dates[:-1])
+    ]
+    return [
+        {
+            "key": key,
+            "label": label,
+            "days": week,
+            "range": f"{week[0]['label']} – {week[-1]['label']}",
+            "total": sum(day["count"] for day in week),
+        }
+        for key, label, week in (("recent", "Latest 7 days", days[7:]), ("previous", "Previous 7 days", days[:7]))
+    ]
 
 
 def list_records(

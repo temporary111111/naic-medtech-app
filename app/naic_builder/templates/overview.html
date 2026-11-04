@@ -1,24 +1,25 @@
 {% extends "_authenticated_shell.html" %}
 {% set shell_active = "overview" %}
 
-{% macro globe_pin(name, count, scope, url, kind, key='', location='', accent=none) %}
+{% macro globe_pin(name, count, scope, url, kind, key='', location='', accent=none, trend_day=none) %}
   <button type="button" class="globe-pin globe-pin--{{ kind }}" data-globe-pin
           data-name="{{ name }}" data-count="{{ count }}" data-scope="{{ scope }}"
           data-url="{{ url }}" data-key="{{ key }}" data-location="{{ location }}"
-          aria-label="{{ name }}: {{ count }}"{% if accent %} style="--form-accent: {{ accent }}"{% endif %} hidden>
-    <span class="globe-pin__point" aria-hidden="true">{% if kind != 'form' %}{{ count }}{% endif %}</span>
-    <span class="globe-pin__label" aria-hidden="true">{{ name }}{% if kind == 'form' %} · {{ count }}{% endif %}</span>
+          {% if trend_day is not none %}data-trend-day="{{ trend_day }}"{% endif %}
+          aria-label="{{ name }}: {{ count }}{% if trend_day is not none %} completed, {{ scope }}{% endif %}"{% if accent %} style="--form-accent: {{ accent }}"{% endif %} hidden>
+    <span class="globe-pin__point" aria-hidden="true">{% if kind != 'form' and trend_day is none %}{{ count }}{% endif %}</span>
+    <span class="globe-pin__label" aria-hidden="true">{{ name }}{% if kind == 'form' or trend_day is not none %} · {{ count }}{% endif %}</span>
   </button>
 {% endmacro %}
 
 {% block html_title %}Overview | {{ app_title }}{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{{ url_for('static', path='overview.css') }}?v=20261105-form-accent">
+  <link rel="stylesheet" href="{{ url_for('static', path='overview.css') }}?v=20261105-trends">
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', path='overview-orbit.js') }}?v=20261105-form-accent" defer></script>
+  <script src="{{ url_for('static', path='overview-orbit.js') }}?v=20261105-trends" defer></script>
 {% endblock %}
 
 {% block shell_eyebrow %}Laboratory records{% endblock %}
@@ -26,11 +27,12 @@
 {% block shell_description %}{% endblock %}
 
 {% block topbar_actions %}
-  <nav class="overview-period-tabs" aria-label="Overview period">
+  <nav class="overview-period-tabs" data-globe-record-period aria-label="Overview period">
     {% for option in period_options %}
     <a class="overview-period-tab{% if option.active %} is-active{% endif %}" href="{{ option.url }}"{% if option.active %} aria-current="page"{% endif %}>{{ option.label }}</a>
     {% endfor %}
   </nav>
+  <span class="overview-trend-period" data-globe-trend-period hidden>14 complete days</span>
 {% endblock %}
 
 {% block content %}
@@ -53,6 +55,8 @@
           <circle class="globe-rim" cx="280" cy="228" r="213"/>
           <circle class="globe-surface" cx="280" cy="228" r="196" fill="url(#globe-surface)"/>
           <path class="globe-gridlines" data-globe-grid/>
+          <path class="globe-trend-arc globe-trend-arc--recent" data-trend-arc="recent" hidden/>
+          <path class="globe-trend-arc globe-trend-arc--previous" data-trend-arc="previous" hidden/>
         </svg>
         <div class="globe-pins">
           {{ globe_pin('Drafts', draft_count, 'All unfinished', '/records', 'draft') }}
@@ -61,22 +65,42 @@
           {% for item in ordered_forms %}
             {{ globe_pin(item.name, item.count, 'Completed · ' ~ period_label, item.history_url, 'form', item.slug, item.location, item.print_accent) }}
           {% endfor %}
+          {% for period in completion_trends %}
+            {% for day in period.days %}
+              {{ globe_pin(day.name, day.count, period.label, '', 'trend-' ~ period.key, trend_day=loop.index0) }}
+            {% endfor %}
+          {% endfor %}
         </div>
-        <p id="overview-globe-instructions" hidden>Drag or use arrow keys to rotate. Select a marker to see its records.</p>
+        <p id="overview-globe-instructions" hidden>Drag or use arrow keys to rotate. Select a marker to see details.</p>
       </div>
 
       <div class="overview-globe-info">
         <p class="overview-globe-title">Record globe</p>
         <div data-globe-controls hidden>
-          <div class="overview-view-switch" role="group" aria-label="Jump to a side">
+          <div class="overview-view-switch" role="group" aria-label="Globe view">
             <button type="button" data-globe-view="status" aria-pressed="true">Status</button>
             {% if ordered_forms %}
             <button type="button" data-globe-view="forms" aria-pressed="false">Forms</button>
             {% endif %}
+            <button type="button" data-globe-view="trends" aria-pressed="false">Trends</button>
           </div>
           <p class="overview-globe-hint">Drag to rotate · Select a marker</p>
           <p class="overview-globe-hint" data-globe-legend hidden>Larger markers show more completed records.</p>
         </div>
+
+        <section class="globe-trend-summary" data-globe-trends hidden aria-labelledby="globe-trend-title">
+          <h2 id="globe-trend-title">Daily completions</h2>
+          <div class="globe-trend-totals">
+            {% for period in completion_trends %}
+            <div class="globe-trend-total globe-trend-total--{{ period.key }}">
+              <span>{{ period.label }}</span>
+              <strong>{{ period.total }}</strong>
+              <small>{{ period.range }}</small>
+            </div>
+            {% endfor %}
+          </div>
+          <p class="overview-globe-hint">Through yesterday · Larger dots mean more completions</p>
+        </section>
 
         <div class="globe-detail" data-globe-detail hidden>
           <div class="globe-detail__copy" aria-live="polite">

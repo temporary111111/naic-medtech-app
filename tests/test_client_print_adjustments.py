@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
 
 from jinja2 import Environment, FileSystemLoader
 from sqlalchemy import create_engine, select
@@ -40,6 +40,7 @@ from naic_builder.services import (
     build_print_reference,
     build_print_summary_items,
     build_signatory_snapshot,
+    completed_record_trends,
     create_container,
     current_version,
     effective_record_print_presentation,
@@ -255,6 +256,48 @@ class ClientPrintAdjustmentTests(unittest.TestCase):
                     {"slug": "microbiology", "name": "Microbiology", "count": 0, "percent": 0},
                 ],
             )
+        finally:
+            engine.dispose()
+
+    def test_overview_trends_compare_complete_local_days_by_completion_time(self) -> None:
+        engine = create_engine("sqlite://")
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine)
+        now = datetime(2026, 7, 4, 12).astimezone(timezone.utc)
+
+        def midnight(days_ago: int) -> datetime:
+            day = now.astimezone().date() - timedelta(days=days_ago)
+            return datetime.combine(day, time.min).astimezone(timezone.utc)
+
+        try:
+            with Session() as session:
+                form = FormDefinition(slug="trends-form", name="Trends form")
+                session.add(form)
+                session.flush()
+                version = FormVersion(form_id=form.id, version_number=1, block_schema_json="{}", is_current=True)
+                session.add(version)
+                session.flush()
+                session.add_all([
+                    Record(record_key=f"trend-{index}", form_id=form.id, form_version_id=version.id,
+                           status=status, completed_at=timestamp, updated_at=now)
+                    for index, (status, timestamp) in enumerate([
+                        ("completed", midnight(14) - timedelta(seconds=1)),
+                        ("completed", midnight(14)),
+                        ("completed", midnight(7) - timedelta(seconds=1)),
+                        ("completed", midnight(7)),
+                        ("completed", midnight(0) - timedelta(seconds=1)),
+                        ("completed", midnight(0)),
+                        ("completed", None),
+                        ("voided", midnight(1)),
+                        ("draft", midnight(1)),
+                    ])
+                ])
+                session.flush()
+                latest, previous = completed_record_trends(session, now=now)
+                self.assertEqual([day["count"] for day in latest["days"]], [1, 0, 0, 0, 0, 0, 1])
+                self.assertEqual([day["count"] for day in previous["days"]], [1, 0, 0, 0, 0, 0, 1])
+                self.assertEqual([latest["total"], previous["total"]], [2, 2])
+                self.assertEqual(latest["range"], "Jun 27 – Jul 3")
         finally:
             engine.dispose()
 
