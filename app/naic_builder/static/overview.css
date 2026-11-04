@@ -157,7 +157,7 @@
 }
 
 .globe-pin--form {
-  --pin-color: hsl(var(--pin-hue, 167) 68% 76%);
+  --pin-color: var(--form-accent, var(--globe-accent));
   width: clamp(24px, 6cqw, 44px);
   height: clamp(24px, 6cqw, 44px);
 }
@@ -165,7 +165,8 @@
 .globe-pin--form .globe-pin__point {
   width: var(--pin-size);
   height: var(--pin-size);
-  background: radial-gradient(circle at 32% 28%, #ffffff, currentColor 53%, var(--globe-floor) 100%);
+  border-color: color-mix(in srgb, currentColor 55%, var(--globe-text));
+  background: radial-gradient(circle at 32% 27%, #ffffffa6, transparent 60%), currentColor;
   box-shadow: 0 0 12px color-mix(in srgb, currentColor 49%, transparent);
 }
 
@@ -323,8 +324,11 @@ html[data-contrast="high"] .overview-stage {
   background: var(--panel);
 }
 
-html[data-contrast="high"] .globe-pin { --pin-color: var(--globe-accent); }
-html[data-contrast="high"] .globe-pin--form .globe-pin__point { background: var(--globe-accent); }
+html[data-contrast="high"] .globe-pin:not(.globe-pin--form) { --pin-color: var(--globe-accent); }
+html[data-contrast="high"] .globe-pin--form .globe-pin__point {
+  border-color: var(--globe-edge);
+  background: currentColor;
+}
 html[data-contrast="high"] .overview-view-switch button[aria-pressed="true"] {
   background: var(--accent-soft);
   box-shadow: inset 0 0 0 2px var(--accent);

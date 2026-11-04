@@ -29,7 +29,6 @@
   const columns = Math.ceil(Math.sqrt(formElements.length * 1.5));
   const rows = Math.ceil(formElements.length / columns) || 0;
   const maximum = Math.max(1, ...formElements.map(element => Number(element.dataset.count)));
-  const departments = new Map();
 
   const pins = elements.map((element, index) => {
     const isForm = index >= statusPositions.length;
@@ -43,10 +42,6 @@
       latitude = rows === 1 ? 0 : 54 - row * 108 / (rows - 1);
       longitude = 180 + (column - (rowLength - 1) / 2) * (122 / Math.max(2, columns - 1));
 
-      const location = element.dataset.location;
-      if (!departments.has(location)) departments.set(location, departments.size);
-      const hues = [167, 201, 44, 272, 335];
-      element.style.setProperty("--pin-hue", hues[departments.get(location) % hues.length]);
       const size = 24 + 76 * Math.sqrt(Number(element.dataset.count) / maximum);
       element.style.setProperty("--pin-size", `${size}%`);
     } else {

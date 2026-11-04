@@ -825,9 +825,11 @@ def render_overview_page(
     draft_count = count_records(session, status="draft")
     voided_count = count_records(session, status="voided", date_scope=active_period or None)
     form_activity = list_completed_record_activity_by_form(session, date_scope=active_period or None)
-    form_locations = {choice["slug"]: choice["location_path_label"] for choice in list_form_choices(session)}
+    form_choices = {choice["slug"]: choice for choice in list_form_choices(session, include_print_accent=True)}
     for item in form_activity:
-        item["location"] = form_locations.get(item["slug"], "Top level")
+        choice = form_choices.get(item["slug"], {})
+        item["location"] = choice.get("location_path_label", "Top level")
+        item["print_accent"] = choice.get("print_accent")
         item["history_url"] = records_history_url(
             status_filter="completed",
             form_slug=item["slug"],

@@ -8002,8 +8002,8 @@ def list_container_choices(session: Session) -> list[dict[str, Any]]:
     return choices
 
 
-def list_form_choices(session: Session) -> list[dict[str, Any]]:
-    tree = list_library_tree(session)
+def list_form_choices(session: Session, *, include_print_accent: bool = False) -> list[dict[str, Any]]:
+    tree = list_library_tree(session, include_print_accent=include_print_accent)
     choices: list[dict[str, Any]] = []
 
     def walk(nodes: list[dict[str, Any]], path: list[str]) -> None:
@@ -8020,18 +8020,19 @@ def list_form_choices(session: Session) -> list[dict[str, Any]]:
             form = node.get("form") or {}
             form_name = compact_text(form.get("name")) or compact_text(node.get("name")) or "Untitled Form"
             current_path = [*path, form_name]
-            choices.append(
-                {
-                    "slug": compact_text(form.get("slug")),
-                    "name": form_name,
-                    "location_name": path[-1] if path else "Top level",
-                    "location_path_label": " / ".join(path) or "Top level",
-                    "form_path_label": " / ".join(current_path),
-                    "depth": len(path),
-                    "order": int(node.get("order") or 1),
-                    "current_version_number": int(form.get("current_version_number") or 1),
-                }
-            )
+            choice = {
+                "slug": compact_text(form.get("slug")),
+                "name": form_name,
+                "location_name": path[-1] if path else "Top level",
+                "location_path_label": " / ".join(path) or "Top level",
+                "form_path_label": " / ".join(current_path),
+                "depth": len(path),
+                "order": int(node.get("order") or 1),
+                "current_version_number": int(form.get("current_version_number") or 1),
+            }
+            if include_print_accent:
+                choice["print_accent"] = form.get("print_accent", DEFAULT_PRINT_ACCENT_COLOR)
+            choices.append(choice)
 
     walk(tree, [])
     return choices
@@ -8596,7 +8597,7 @@ def ensure_library_tree(session: Session) -> None:
         session.commit()
 
 
-def list_library_tree(session: Session) -> list[dict[str, Any]]:
+def list_library_tree(session: Session, *, include_print_accent: bool = False) -> list[dict[str, Any]]:
     ensure_library_tree(session)
     nodes = session.scalars(
         select(LibraryNode)
@@ -8624,6 +8625,9 @@ def list_library_tree(session: Session) -> list[dict[str, Any]]:
                 "name": node.form_definition.name,
                 "current_version_number": version.version_number if version else 0,
             }
+            if include_print_accent and version is not None and not node.archived:
+                schema, _ = load_block_storage_document(version)
+                payload["form"]["print_accent"] = schema["meta"]["print_config"]["accent_color"]
         return payload
 
     return [serialize_node(node) for node in children_by_parent.get(None, [])]
