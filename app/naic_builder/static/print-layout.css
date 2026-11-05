@@ -44,8 +44,8 @@ body.is-layout-moving, body.is-layout-moving * { cursor: grabbing !important; us
 body.is-layout-resizing, body.is-layout-resizing * { cursor: ew-resize !important; user-select: none; }
 @media screen {
   body.has-layout-preview-zoom .print-page { width: var(--print-page-width); min-width: var(--print-page-width); max-width: none; zoom: var(--layout-preview-zoom, 1); }
-  body.is-layout-editing .print-shell, body.has-layout-preview-zoom .print-shell { width: min(1180px, 100%); }
-  body.is-layout-editing .print-page-viewport, body.has-layout-preview-zoom .print-page-viewport { overflow-x: auto; padding: 20px 10px; }
+  body.is-layout-editing .print-shell:not(.print-workspace), body.has-layout-preview-zoom .print-shell:not(.print-workspace) { width: min(1180px, 100%); }
+  body.is-layout-editing .print-shell:not(.print-workspace) .print-page-viewport, body.has-layout-preview-zoom .print-shell:not(.print-workspace) .print-page-viewport { overflow-x: auto; padding: 20px 10px; }
 }
 .print-layout-discard-dialog { width: min(400px, calc(100vw - 32px)); padding: 24px; border: 1px solid #9caaa4; border-radius: 14px; font: 14px/1.5 Arial, sans-serif; color: #1e2b25; background: #f8fbf9; }
 .print-layout-discard-dialog::backdrop { background: #10252666; }

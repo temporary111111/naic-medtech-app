@@ -31,6 +31,7 @@
       const pageEdge = find("[data-layout-page-edge]");
       const discardDialog = find("[data-layout-discard-dialog]");
       const viewport = find(".print-page-viewport");
+      const workspace = find(".print-workspace");
       const more = find(".print-layout-more");
       const history = [];
       let historyIndex = -1;
@@ -134,7 +135,7 @@
         overlayFrame = 0;
         if (!selection) return;
         const paperRect = paper.getBoundingClientRect();
-        const paperHeight = paperSize.height * zoom;
+        const paperHeight = paperSize.height * paperRect.width / paper.offsetWidth;
         pageEdge.hidden = !editing || paperRect.height <= paperHeight + 2;
         if (!pageEdge.hidden) Object.assign(pageEdge.style, { top: `${paperRect.top + paperHeight}px`, left: `${paperRect.left}px`, width: `${paperRect.width}px` });
         const node = editing && selected ? visualFor(selected.grid, selected.cell) : null;
@@ -245,9 +246,11 @@
       const autoScroll = () => {
         if (!gesture?.started || gesture.type !== "move") { scrollFrame = 0; return; }
         const { x, y } = gesture;
-        const top = editor.getBoundingClientRect().bottom + 25;
-        const delta = y > innerHeight - 50 ? 12 : y < top ? -12 : 0;
-        if (delta) { window.scrollBy(0, delta); updateDrop(x, y); }
+        const viewportRect = viewport.getBoundingClientRect();
+        const top = workspace ? viewportRect.top + 25 : editor.getBoundingClientRect().bottom + 25;
+        const bottom = workspace ? viewportRect.bottom - 50 : innerHeight - 50;
+        const delta = y > bottom ? 12 : y < top ? -12 : 0;
+        if (delta) { (workspace ? viewport : window).scrollBy(0, delta); updateDrop(x, y); }
         if (viewport && viewport.scrollWidth > viewport.clientWidth) {
           const rect = viewport.getBoundingClientRect();
           const previous = viewport.scrollLeft;
@@ -366,10 +369,10 @@
       find("[data-layout-wider]").addEventListener("click", () => stepWidth(1));
       find("[data-layout-earlier]").addEventListener("click", () => stepOrder(-1));
       find("[data-layout-later]").addEventListener("click", () => stepOrder(1));
-      find("[data-layout-zoom-out]").addEventListener("click", () => setZoom(zoom - .1));
-      find("[data-layout-zoom-in]").addEventListener("click", () => setZoom(zoom + .1));
-      find("[data-layout-zoom-reset]").addEventListener("click", () => setZoom(1));
-      find("[data-layout-fit]").addEventListener("click", () => {
+      find("[data-layout-zoom-out]")?.addEventListener("click", () => setZoom(zoom - .1));
+      find("[data-layout-zoom-in]")?.addEventListener("click", () => setZoom(zoom + .1));
+      find("[data-layout-zoom-reset]")?.addEventListener("click", () => setZoom(1));
+      find("[data-layout-fit]")?.addEventListener("click", () => {
         window.scrollTo(0, 0);
         viewport.scrollLeft = 0;
         const room = Math.max(200, innerHeight - editor.getBoundingClientRect().bottom - 40);
@@ -466,6 +469,8 @@
         const draft = printDraft; printDraft = null; restoreSnapshot(draft);
       });
       document.addEventListener("scroll", queueOverlay, true); window.addEventListener("resize", queueOverlay);
+      find("[data-print-preview-controls]")?.addEventListener("click", queueOverlay);
+      if (workspace) new ResizeObserver(queueOverlay).observe(viewport);
       return { currentPreference };
     },
   };

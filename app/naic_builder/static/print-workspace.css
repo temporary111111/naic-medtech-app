@@ -1,0 +1,262 @@
+@media screen {
+  body[data-form-layout-builder="false"] {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .print-shell.print-workspace {
+    --print-command-height: 76px;
+    --print-settings-width: 360px;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .print-workspace .print-command-bar {
+    z-index: 40;
+    flex-shrink: 0;
+    min-height: 76px;
+    margin: 0;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+    font: 13px/1.4 Arial, Helvetica, sans-serif;
+  }
+
+  .print-workspace .print-command-context {
+    flex: 1;
+  }
+
+  .print-workspace .print-command-actions {
+    flex-shrink: 0;
+  }
+
+  .print-workspace .print-page-viewport {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    width: auto;
+    margin: 0;
+    padding: 24px;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable both-edges;
+  }
+
+  .print-workspace .print-page-viewport .print-page {
+    width: var(--print-page-width);
+    min-width: var(--print-page-width);
+    max-width: none;
+    margin-inline: auto;
+    zoom: var(--layout-preview-zoom, 1);
+  }
+
+  .print-workspace .print-sizes-saved,
+  .print-workspace .print-layout-save-notice {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 8px 24px;
+    font: 12px/1.4 Arial, Helvetica, sans-serif;
+    color: #175541;
+  }
+
+  .print-workspace .print-text-size-footer button {
+    color: var(--ui-accent);
+  }
+
+  .print-preview-toolbar {
+    position: relative;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    gap: 12px;
+    min-height: 52px;
+    padding: 8px 24px;
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+    font: 12px/1.4 Arial, Helvetica, sans-serif;
+  }
+
+  .print-workspace .print-preview-fit .print-fit-status {
+    margin: 0;
+    font: inherit;
+  }
+
+  .print-preview-zoom {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 4px;
+  }
+
+  .print-preview-zoom button {
+    min-width: 32px;
+    min-height: 34px;
+    padding: 6px 8px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    color: var(--ui-accent);
+    background: white;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .print-preview-zoom [data-preview-zoom-label] {
+    min-width: 58px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .print-preview-zoom [aria-pressed="true"] {
+    border-color: var(--ui-accent-border);
+    background: var(--ui-accent-soft);
+  }
+
+  .print-preview-zoom button:disabled {
+    opacity: .45;
+    cursor: default;
+  }
+
+  .print-workspace button:focus-visible,
+  .print-workspace summary:focus-visible,
+  .print-workspace a:focus-visible {
+    outline: 2px solid #087a85;
+    outline-offset: 2px;
+  }
+
+  .print-workspace .print-settings-dialog {
+    position: fixed;
+    inset: var(--print-command-height) 0 0 auto;
+    width: var(--print-settings-width);
+    max-width: 100%;
+    height: calc(100dvh - var(--print-command-height));
+    max-height: none;
+    margin: 0;
+    overflow: hidden;
+    border: 0;
+    border-left: 1px solid var(--line);
+    border-radius: 0;
+    font: 13px/1.4 Arial, Helvetica, sans-serif;
+  }
+
+  .print-workspace .print-settings-dialog[open] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .print-workspace .print-settings-dialog::backdrop {
+    background: rgba(23, 30, 27, .06);
+  }
+
+  .print-workspace .print-settings-heading {
+    flex-shrink: 0;
+    padding: 20px 52px 16px 20px;
+  }
+
+  .print-workspace .print-settings-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    padding: 16px 20px;
+    overflow-y: auto;
+  }
+
+  .print-workspace .print-settings-form > * {
+    flex-shrink: 0;
+  }
+
+  .print-workspace .print-settings-actions {
+    position: sticky;
+    bottom: 0;
+    margin-top: auto;
+    padding-top: 12px;
+    background: white;
+    box-shadow: 0 12px white;
+  }
+
+  .print-workspace .print-layout-editor {
+    position: relative;
+    top: auto;
+    flex-shrink: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: 100%;
+    margin: 0;
+    padding: 12px 24px;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+@media screen and (min-width: 901px) {
+  .print-workspace:has(.print-settings-dialog[open]) .print-page-viewport {
+    margin-right: var(--print-settings-width);
+  }
+}
+
+@media screen and (max-width: 900px) {
+  .print-workspace .print-settings-dialog {
+    inset: auto 0 0;
+    width: 100%;
+    height: auto;
+    max-height: 80dvh;
+    border: 0;
+    border-top: 1px solid var(--line);
+    border-radius: 14px 14px 0 0;
+  }
+
+  .print-workspace .print-settings-dialog::backdrop {
+    background: rgba(23, 30, 27, .25);
+  }
+}
+
+@media screen and (max-width: 760px) {
+  .print-workspace .print-command-bar {
+    padding: 12px;
+  }
+
+  .print-workspace .print-command-context {
+    flex: auto;
+    width: 100%;
+  }
+
+  .print-workspace .print-command-actions {
+    width: 100%;
+  }
+
+  .print-workspace .print-page-viewport {
+    padding: 16px;
+  }
+
+  .print-preview-toolbar {
+    flex-wrap: wrap;
+    padding: 8px 12px;
+  }
+
+  .print-preview-zoom {
+    margin-left: auto;
+  }
+
+  .print-workspace .print-layout-editor {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 10px 12px;
+  }
+
+  .print-workspace .print-layout-selection-tools[hidden] {
+    display: flex;
+    visibility: hidden;
+  }
+}
+
+@media print {
+  .print-preview-toolbar {
+    display: none;
+  }
+}

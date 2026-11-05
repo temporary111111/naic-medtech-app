@@ -6,8 +6,9 @@
   <title>Print Record | {{ document.form_name }}</title>
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', path='ndhi-labrecords-icon-512.png') }}?v=20260606-app-icon-source">
   <link rel="alternate icon" href="{{ url_for('static', path='favicon.ico') }}?v=20260606-app-icon-source">
-  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20261105-record-preview">
-  <link rel="stylesheet" href="{{ url_for('static', path='print-layout.css') }}?v=20261103-layout-editor">
+  <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v=20261106-print-workspace">
+  <link rel="stylesheet" href="{{ url_for('static', path='print-layout.css') }}?v=20261106-print-workspace">
+  <link rel="stylesheet" href="{{ url_for('static', path='print-workspace.css') }}?v=20261106-print-workspace">
   {% set presentation = document.template or {} %}
   {% set record_meta = document["record"] or {} %}
 </head>
@@ -22,7 +23,7 @@
   {% from "records/_print_document.html" import render_print_page %}
   {% set fit = document.fit_estimate or {} %}
 
-  <main class="print-shell">
+  <main class="print-shell{% if not is_form_layout_builder %} print-workspace{% endif %}">
     <header class="print-command-bar{% if not is_form_layout_builder %} print-command-bar--record{% endif %}">
       <div class="print-command-context">
         <a class="print-command-back" href="{{ back_href }}" aria-label="{{ back_label }}" title="{{ back_label }}"><span aria-hidden="true">&larr;</span><span class="print-command-back__label">{{ back_label }}</span></a>
@@ -70,11 +71,6 @@
         {% endif %}
       </div>
     </header>
-    {% if not is_form_layout_builder %}
-    <div class="print-preview-fit" role="status">
-      <span class="print-fit-status" data-print-fit-status data-fit="{{ fit.status or 'likely' }}" title="{{ fit.detail or 'Use browser print preview for final confirmation.' }}"><span data-print-fit-label>{{ fit.label or 'Check print preview' }}</span></span>
-    </div>
-    {% endif %}
     {% if print_sizes_saved %}
     <p class="print-sizes-saved" role="status">Text sizes saved for this form and print layout.</p>
     {% endif %}
@@ -91,12 +87,14 @@
           <button type="button" data-layout-undo disabled aria-label="Undo last layout change" title="Undo last layout change"><span aria-hidden="true">&#8630;</span></button>
           <button type="button" data-layout-redo disabled aria-label="Redo last layout change" title="Redo last layout change"><span aria-hidden="true">&#8631;</span></button>
         </div>
+        {% if is_form_layout_builder %}
         <div class="print-layout-zoom" role="group" aria-label="Preview zoom">
           <button type="button" data-layout-zoom-out aria-label="Zoom out">−</button>
           <button type="button" data-layout-zoom-reset data-layout-zoom-label title="Actual size">100%</button>
           <button type="button" data-layout-zoom-in aria-label="Zoom in">+</button>
           <button type="button" data-layout-fit>Fit page</button>
         </div>
+        {% endif %}
         <details class="print-layout-more"><summary>More</summary><div>
         <button type="button" data-layout-reset disabled title="Restore this item's saved position and width">Reset selection</button>
         {% if is_form_layout_builder %}
@@ -242,8 +240,22 @@
     <div class="print-page-viewport">
       {{ render_print_page(document) }}
     </div>
+    {% if not is_form_layout_builder %}
+    <footer class="print-preview-toolbar" data-print-preview-controls>
+      <div class="print-preview-fit" role="status">
+        <span class="print-fit-status" data-print-fit-status data-fit="{{ fit.status or 'likely' }}" title="{{ fit.detail or 'Use browser print preview for final confirmation.' }}"><span data-print-fit-label>{{ fit.label or 'Check print preview' }}</span></span>
+      </div>
+      <div class="print-preview-zoom" role="group" aria-label="Preview zoom">
+        <button type="button" data-preview-zoom-out aria-label="Zoom out">−</button>
+        <button type="button" data-preview-zoom-reset data-preview-zoom-label title="Actual size">100%</button>
+        <button type="button" data-preview-zoom-in aria-label="Zoom in">+</button>
+        <button type="button" data-preview-fit aria-pressed="true">Fit page</button>
+      </div>
+    </footer>
+    {% endif %}
   </main>
-  <script src="{{ url_for('static', path='print-layout.js') }}?v=20261105-record-preview"></script>
+  <script src="{{ url_for('static', path='print-workspace.js') }}?v=20261106-print-workspace"></script>
+  <script src="{{ url_for('static', path='print-layout.js') }}?v=20261106-print-workspace"></script>
   <script>
     (() => {
       const settingsDialog = document.querySelector("[data-print-settings-dialog]");
